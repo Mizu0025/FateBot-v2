@@ -1,0 +1,4 @@
+.venv
+.env
+bot skeleton.MD
+__pycache__
