@@ -1,18 +1,18 @@
 import os
 import random
-from dotenv import load_dotenv
 import websocket
 import uuid
 import json
 import urllib.request
 import urllib.parse
 
-# Load environment variables from the .env file
-load_dotenv()
+from config import COMFYUI_CONFIG
+from json_section_mapper import SectionMapper
 
 # Fetch the server address from the environment variables
-server_address = os.getenv('COMFYUI_ADDRESS', '127.0.0.1:8188')
-output_address = os.getenv('COMFYUI_OUTPUT', '')
+server_address = COMFYUI_CONFIG["address"]
+image_domain = COMFYUI_CONFIG["domain"]
+image_folder = COMFYUI_CONFIG["image_folder"]
 client_id = str(uuid.uuid4())
 
 # Function to queue the prompt to the API
@@ -56,7 +56,7 @@ def get_images(ws, prompt):
         if 'images' in node_output:
             for image in node_output['images']:
                 imageFile = image['filename']
-                domainUrl = output_address + imageFile
+                domainUrl = f"{image_domain}/{image_folder}/{imageFile}"
                 images_output.append(domainUrl)
 
     return images_output
@@ -66,106 +66,35 @@ def generate_image(positive_prompt, negative_prompt):
     ws = None
 
     try:
+        # load json prompt from file
+        with open('workflows/paSanctuary_v4.json', 'r') as file:
+            data = json.load(file)
+            mapper = SectionMapper(data)
+
         # Assign image details
         seed = random.randint(1, 1000000)
         steps = 20
         batch_size = 1
-        img_height = 512
-        img_width = 512
+        img_height = 1024
+        img_width = 1024
+        default_positive_prompt = "masterpiece, best quality"
+        default_negative_prompt = "lowres, worst quality, low quality, bad anatomy, bad proportions, simple background"
 
         # Create the prompt structure for Stable Diffusion
-        prompt_json = {
-                "3": {
-                    "class_type": "KSampler",
-                    "inputs": {
-                        "cfg": 8,
-                        "denoise": 1,
-                        "latent_image": [
-                            "5",
-                            0
-                        ],
-                        "model": [
-                            "4",
-                            0
-                        ],
-                        "negative": [
-                            "7",
-                            0
-                        ],
-                        "positive": [
-                            "6",
-                            0
-                        ],
-                        "sampler_name": "euler",
-                        "scheduler": "normal",
-                        "seed": seed,
-                        "steps": steps
-                    }
-                },
-                "4": {
-                    "class_type": "CheckpointLoaderSimple",
-                    "inputs": {
-                        "ckpt_name": "MeinaMix_v11.safetensors"
-                    }
-                },
-                "5": {
-                    "class_type": "EmptyLatentImage",
-                    "inputs": {
-                        "batch_size": batch_size,
-                        "height": img_height,
-                        "width": img_width
-                    }
-                },
-                "6": {
-                    "class_type": "CLIPTextEncode",
-                    "inputs": {
-                        "clip": [
-                            "4",
-                            1
-                        ],
-                        "text": positive_prompt
-                    }
-                },
-                "7": {
-                    "class_type": "CLIPTextEncode",
-                    "inputs": {
-                        "clip": [
-                            "4",
-                            1
-                        ],
-                        "text": negative_prompt
-                    }
-                },
-                "8": {
-                    "class_type": "VAEDecode",
-                    "inputs": {
-                        "samples": [
-                            "3",
-                            0
-                        ],
-                        "vae": [
-                            "4",
-                            2
-                        ]
-                    }
-                },
-                "9": {
-                    "class_type": "SaveImage",
-                    "inputs": {
-                        "filename_prefix": "ComfyUI",
-                        "images": [
-                            "8",
-                            0
-                        ]
-                    }
-                }
-        }
+        mapper.ksampler.seed = seed
+        mapper.ksampler.steps = steps
+        mapper.latent_image.width = img_width
+        mapper.latent_image.height = img_height
+        mapper.latent_image.batch_size = batch_size
+        mapper.positive_prompt.text = f"{default_positive_prompt}, {positive_prompt}"
+        mapper.negative_prompt.text = f"{default_negative_prompt}, {negative_prompt}"
+        
         # Connect to the websocket
         ws = websocket.WebSocket()
         ws.connect(f"ws://{server_address}/ws?clientId={client_id}")
         
         # Call the function to retrieve images after sending the prompt
-        images = get_images(ws, prompt_json)
+        images = get_images(ws, data)
         ws.close()  # Close the websocket connection
 
         # Returning images (or you can process them further here)
