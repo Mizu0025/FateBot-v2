@@ -2,3 +2,4 @@
 .env
 bot skeleton.MD
 __pycache__
+.vscode
