@@ -7,6 +7,7 @@ import urllib.parse
 
 from config import COMFYUI_CONFIG
 from promp_data import PromptData
+from text_filter import FilteredPrompt
 
 server_address = COMFYUI_CONFIG["address"]
 image_domain = COMFYUI_CONFIG["domain"]
@@ -59,7 +60,11 @@ def get_images(ws: websocket, prompt: str) -> list:
 
     return images_output
 
-def generate_image(positive_prompt: str, negative_prompt: str) -> list:
+def assign_if_not_none(value, default) -> any:
+    """Assign value if not None, otherwise assign default value."""
+    return value if value not in (None, '') else default
+
+def generate_image(filteredPrompt: FilteredPrompt) -> list:
     """Generate one or more images based on the given prompts."""
     ws = None
 
@@ -72,26 +77,26 @@ def generate_image(positive_prompt: str, negative_prompt: str) -> list:
         # Assign image details
         seed = random.randint(1, 1000000)
         batch_size = 1
-        default_model = "paSanctuary"
+        model = assign_if_not_none(filteredPrompt.model, 'paSanctuary')
 
         # Load default prompts from modelConfiguration.json
         with open('modelConfiguration.json', 'r') as config_file:
             config_data = json.load(config_file)
-            checkpoint_data = config_data.get(default_model)
+            checkpoint_data = config_data.get(model)
 
             prompt_data.model = checkpoint_data.get("checkpointName")
             prompt_data.vae = checkpoint_data.get("vae")
             prompt_data.steps = checkpoint_data.get("steps")
-            prompt_data.width = checkpoint_data.get("imageWidth")
-            prompt_data.height = checkpoint_data.get("imageHeight")
+            prompt_data.width = assign_if_not_none(filteredPrompt.width, checkpoint_data.get("imageWidth"))
+            prompt_data.height = assign_if_not_none(filteredPrompt.height, checkpoint_data.get("imageHeight"))
             default_positive_prompt = checkpoint_data.get("defaultPositivePrompt")
             default_negative_prompt = checkpoint_data.get("defaultNegativePrompt")
 
         # Create the prompt structure for Stable Diffusion
         prompt_data.seed = seed
         prompt_data.batch_size = batch_size
-        prompt_data.positive_prompt = f"{default_positive_prompt}, {positive_prompt}"
-        prompt_data.negative_prompt = f"{default_negative_prompt}, {negative_prompt}"
+        prompt_data.positive_prompt = f"{default_positive_prompt}, {filteredPrompt.prompt}"
+        prompt_data.negative_prompt = f"{default_negative_prompt}, ${assign_if_not_none(filteredPrompt.negative_prompt, '')}"
         
         # Connect to the websocket
         ws = websocket.WebSocket()

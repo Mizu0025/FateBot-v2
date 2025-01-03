@@ -7,5 +7,14 @@
         "imageWidth": 1024,
         "defaultPositivePrompt": "masterpiece, best quality",
         "defaultNegativePrompt": "lowres, worst quality, low quality, bad anatomy, bad proportions"
+    },
+    "illustriousXL": {
+        "checkpointName": "Illustrious-XL_v0-1.safetensors",
+        "vae": "sdxl_vae.safetensors",
+        "steps": 20,
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "",
+        "defaultNegativePrompt": "worst quality, comic, multiple views, bad quality, low quality, lowres, displeasing, very displeasing, bad anatomy, bad hands, scan artifacts, monochrome, greyscale, signature, twitter username, jpeg artifacts, 2koma, 4koma, guro, extra digits, fewer digits"
     }
 }

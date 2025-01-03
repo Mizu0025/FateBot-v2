@@ -56,10 +56,10 @@ class IRCBot:
             """Handle the image generation process."""
             try:
                 # Extract the prompt and negative prompt
-                prompt, negative_prompt = extract_prompts(message)
+                filteredPrompt = extract_prompts(message)
 
                 # Generate the image
-                webImages = generate_image(prompt, negative_prompt)
+                webImages = generate_image(filteredPrompt)
 
                 # Handle the trigger (image generation)
                 for image in webImages:
