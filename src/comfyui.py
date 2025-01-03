@@ -96,7 +96,7 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
         prompt_data.seed = seed
         prompt_data.batch_size = batch_size
         prompt_data.positive_prompt = f"{default_positive_prompt}, {filteredPrompt.prompt}"
-        prompt_data.negative_prompt = f"{default_negative_prompt}, ${assign_if_not_none(filteredPrompt.negative_prompt, '')}"
+        prompt_data.negative_prompt = f"nsfw, nude, {default_negative_prompt}, ${assign_if_not_none(filteredPrompt.negative_prompt, '')}"
         
         # Connect to the websocket
         ws = websocket.WebSocket()

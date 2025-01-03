@@ -1,3 +1,4 @@
+import json
 from config import IRC_CONFIG
 from comfyui import generate_image
 from text_filter import extract_prompts
@@ -66,8 +67,33 @@ class IRCBot:
                 user = response.split("!")[0][1:]  # Extract the user
                 message = response.split(f"PRIVMSG {self.channel} :")[1]  # Extract the message
 
-                if self.trigger_word in message:
+                # check for both trigger word and --help immediately after in message
+                if self.trigger_word and '--help' in message:
+                    self.handle_help_request(user)
+                elif self.trigger_word and '--models' in message:
+                    models = self.get_models_list()
+                    self.send_user_message(user, f"The current models are: {models}")
+                elif self.trigger_word in message:
                     self.handle_image_generation(user, message)
+
+    def handle_help_request(self, user) -> None:
+        """Send a help message to the channel."""
+        help_message = f"{user}: To generate an image, type '{self.trigger_word} <prompt>'"
+        prompt_help = f"Prompt structure: '{self.trigger_word}' <positive_text> <width> <height> <model> <negative_text>"
+        prompt_help_continued = "Most options use the following format: --option=value. <negative_text> is --no."
+
+        for message in [help_message, prompt_help, prompt_help_continued]:
+            self.send_user_message(user, message)
+
+    def get_models_list(self) -> str:
+        """Return a list of available models."""
+        # open modelConfiguration.json and extract the model names from root lvl
+        with open('modelConfiguration.json', 'r') as file:
+            data = json.load(file)
+            model_names = list(data.keys())
+            joined_names = ', '.join(model_names)
+        
+        return joined_names            
     
     def handle_image_generation(self, user, message) -> None:
             """Handle the image generation process."""
@@ -92,7 +118,12 @@ class IRCBot:
 
     def send_message(self, message) -> None:
         """Send a message to the channel."""
-        self.socket.sendall(f"PRIVMSG {self.channel} :{message}\r\n".encode("utf-8"))
+        self.handle_sendall(f"PRIVMSG {self.channel} :{message}")
+        print(f"Sent: {message}")
+
+    def send_user_message(self, user, message) -> None:
+        """Send a message to a specific user."""
+        self.handle_sendall(f"PRIVMSG {user} :{message}")
         print(f"Sent: {message}")
 
 if __name__ == "__main__":
