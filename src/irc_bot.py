@@ -13,35 +13,52 @@ class IRCBot:
         self.trigger_word = trigger_word
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    def handle_ping(self, response) -> None:
+        """Handle PING messages from the server."""
+        if response.startswith("PING"):
+            self.socket.sendall(f"PONG {response.split()[1]}\r\n".encode("utf-8"))
+            print("PONG sent to server")
+
+    def handle_decode_response(self) -> str:
+        """Decode the response from the server."""
+        response = self.socket.recv(2048)
+        return response.decode("utf-8").strip()
+    
+    def handle_sendall(self, message) -> None:
+        """Send a message to the server."""
+        self.socket.sendall(f"{message}\r\n".encode("utf-8"))
+        print(f"Sent: {message}")
+
     def connect(self) -> None:
         """Connect to the IRC server and join the channel."""
         print(f"Connecting to {self.server}:{self.port}...")
         self.socket.connect((self.server, self.port))
         
         # Send NICK and USER in sequence
-        self.socket.sendall(f"NICK {self.bot_nick}\r\n".encode("utf-8"))
-        self.socket.sendall(f"USER {self.bot_user} 0 * :{self.bot_nick}\r\n".encode("utf-8"))
+        self.handle_sendall(f"NICK {self.bot_nick}")
+        self.handle_sendall(f"USER {self.bot_user} 0 * :{self.bot_nick}")
         
         # Wait for server welcome message before joining
         while True:
-            response = self.socket.recv(2048).decode("utf-8").strip()
+            response = self.handle_decode_response()
             
             # Check for successful registration (numeric 001)
             if f"001 {self.bot_nick}" in response:
                 # Now join the channel
-                self.socket.sendall(f"JOIN {self.channel}\r\n".encode("utf-8"))
+                self.handle_sendall(f"JOIN {self.channel}")
                 print(f"Joined channel {self.channel}")
                 break
             
             # Respond to PINGs during connection
-            if response.startswith("PING"):
-                self.socket.sendall(f"PONG {response.split()[1]}\r\n".encode("utf-8"))
-                print("PONG sent to server")
+            self.handle_ping(response)
 
     def listen(self) -> None:
         """Listen for messages in the channel and respond to the trigger word."""
         while True:
-            response = self.socket.recv(2048).decode("utf-8").strip("\r\n")
+            response = self.handle_decode_response()
+
+            # Respond to PINGs while in a channel
+            self.handle_ping(response)
             
             # Check for messages containing the trigger word
             if f"PRIVMSG {self.channel}" in response:
@@ -51,7 +68,7 @@ class IRCBot:
 
                 if self.trigger_word in message:
                     self.handle_image_generation(user, message)
-
+    
     def handle_image_generation(self, user, message) -> None:
             """Handle the image generation process."""
             try:
