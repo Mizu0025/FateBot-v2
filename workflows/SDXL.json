@@ -1,26 +1,26 @@
 {
-    "3": {
+    "KSampler": {
       "inputs": {
-        "seed": 660147774938369,
-        "steps": 20,
+        "seed": 0,
+        "steps": 0,
         "cfg": 8,
         "sampler_name": "euler",
         "scheduler": "normal",
         "denoise": 1,
         "model": [
-          "4",
+          "Checkpoint",
           0
         ],
         "positive": [
-          "6",
+          "PositivePrompt",
           0
         ],
         "negative": [
-          "7",
+          "NegativePrompt",
           0
         ],
         "latent_image": [
-          "5",
+          "EmptyLatentImage",
           0
         ]
       },
@@ -29,16 +29,16 @@
         "title": "KSampler"
       }
     },
-    "4": {
+    "Checkpoint": {
       "inputs": {
-        "ckpt_name": "PaSanctuary_v4.safetensors"
+        "ckpt_name": ""
       },
       "class_type": "CheckpointLoaderSimple",
       "_meta": {
         "title": "Load Checkpoint"
       }
     },
-    "5": {
+    "EmptyLatentImage": {
       "inputs": {
         "width": 1024,
         "height": 1024,
@@ -49,11 +49,11 @@
         "title": "Empty Latent Image"
       }
     },
-    "6": {
+    "PositivePrompt": {
       "inputs": {
         "text": "",
         "clip": [
-          "4",
+          "Checkpoint",
           1
         ]
       },
@@ -62,11 +62,11 @@
         "title": "CLIP Text Encode (Prompt)"
       }
     },
-    "7": {
+    "NegativePrompt": {
       "inputs": {
         "text": "",
         "clip": [
-          "4",
+          "Checkpoint",
           1
         ]
       },
@@ -75,14 +75,14 @@
         "title": "CLIP Text Encode (Prompt)"
       }
     },
-    "8": {
+    "VAEDecode": {
       "inputs": {
         "samples": [
-          "3",
+          "KSampler",
           0
         ],
         "vae": [
-          "10",
+          "VAELoader",
           0
         ]
       },
@@ -91,11 +91,11 @@
         "title": "VAE Decode"
       }
     },
-    "9": {
+    "SaveImage": {
       "inputs": {
         "filename_prefix": "ComfyUI",
         "images": [
-          "8",
+          "VAEDecode",
           0
         ]
       },
@@ -104,9 +104,9 @@
         "title": "Save Image"
       }
     },
-    "10": {
+    "VAELoader": {
       "inputs": {
-        "vae_name": "sdxl_vae.safetensors"
+        "vae_name": ""
       },
       "class_type": "VAELoader",
       "_meta": {

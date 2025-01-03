@@ -13,7 +13,8 @@ class IRCBot:
         self.trigger_word = trigger_word
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def connect(self):
+    def connect(self) -> None:
+        """Connect to the IRC server and join the channel."""
         print(f"Connecting to {self.server}:{self.port}...")
         self.socket.connect((self.server, self.port))
         
@@ -37,7 +38,8 @@ class IRCBot:
                 self.socket.sendall(f"PONG {response.split()[1]}\r\n".encode("utf-8"))
                 print("PONG sent to server")
 
-    def listen(self):
+    def listen(self) -> None:
+        """Listen for messages in the channel and respond to the trigger word."""
         while True:
             response = self.socket.recv(2048).decode("utf-8").strip("\r\n")
             
@@ -50,7 +52,8 @@ class IRCBot:
                 if self.trigger_word in message:
                     self.handle_image_generation(user, message)
 
-    def handle_image_generation(self, user, message):
+    def handle_image_generation(self, user, message) -> None:
+            """Handle the image generation process."""
             try:
                 # Extract the prompt and negative prompt
                 prompt, negative_prompt = extract_prompts(message)
@@ -65,11 +68,13 @@ class IRCBot:
             except Exception as errorMsg:
                 self.handle_image_reply(user, errorMsg)
 
-    def handle_image_reply(self, user, message):
+    def handle_image_reply(self, user, message) -> None:
+        """Send a message back to the channel notifying the image request user."""
         response_message = f"{user}: {message}"
         self.send_message(response_message)
 
-    def send_message(self, message):
+    def send_message(self, message) -> None:
+        """Send a message to the channel."""
         self.socket.sendall(f"PRIVMSG {self.channel} :{message}\r\n".encode("utf-8"))
         print(f"Sent: {message}")
 

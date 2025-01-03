@@ -1,8 +1,9 @@
 import os
+from typing import Tuple
 
 bot_trigger = os.getenv('BOT_TRIGGER', '')
 
-def extract_prompts(message):
+def extract_prompts(message: str) -> Tuple[str, str]:
     """
     Extracts the prompt and negative prompt from the message.
     Assumes the format is:

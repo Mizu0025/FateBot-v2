@@ -1,0 +1,11 @@
+{
+    "paSanctuary": {
+        "checkpointName": "PaSanctuary_v4.safetensors",
+        "vae": "sdxl_vae.safetensors",
+        "steps": 20,
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, best quality",
+        "defaultNegativePrompt": "lowres, worst quality, low quality, bad anatomy, bad proportions"
+    }
+}

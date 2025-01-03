@@ -1,4 +1,3 @@
-import os
 import random
 import websocket
 import uuid
@@ -7,35 +6,34 @@ import urllib.request
 import urllib.parse
 
 from config import COMFYUI_CONFIG
-from json_section_mapper import SectionMapper
+from promp_data import PromptData
 
-# Fetch the server address from the environment variables
 server_address = COMFYUI_CONFIG["address"]
 image_domain = COMFYUI_CONFIG["domain"]
 image_folder = COMFYUI_CONFIG["image_folder"]
 client_id = str(uuid.uuid4())
 
-# Function to queue the prompt to the API
-def queue_prompt(prompt):
+def queue_prompt(prompt: str) -> dict:
+    """Queue the prompt to the API."""
     p = {"prompt": prompt, "client_id": client_id}
     data = json.dumps(p).encode('utf-8')
     req = urllib.request.Request("http://{}/prompt".format(server_address), data=data)
     return json.loads(urllib.request.urlopen(req).read())
 
-# Function to get the image data from the API
-def get_image(filename, subfolder, folder_type):
+def get_image(filename, subfolder, folder_type) -> str:
+    """Get the image data from the API."""
     data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
     url_values = urllib.parse.urlencode(data)
     with urllib.request.urlopen("http://{}/view?{}".format(server_address, url_values)) as response:
         return response.url
 
-# Function to get history of the prompt execution
-def get_history(prompt_id):
+def get_history(prompt_id) -> dict:
+    """Get the history of the prompt execution"""
     with urllib.request.urlopen("http://{}/history/{}".format(server_address, prompt_id)) as response:
         return json.loads(response.read())
 
-# Main function to handle prompt sending and image retrieval via websocket
-def get_images(ws, prompt):
+def get_images(ws: websocket, prompt: str) -> list:
+    """Send the prompt to the websocket and retrieve the images."""
     prompt_id = queue_prompt(prompt)['prompt_id']
     images_output = []
 
@@ -61,33 +59,39 @@ def get_images(ws, prompt):
 
     return images_output
 
-# Function to generate and retrieve an image based on a user-provided text prompt
-def generate_image(positive_prompt, negative_prompt):
+def generate_image(positive_prompt: str, negative_prompt: str) -> list:
+    """Generate one or more images based on the given prompts."""
     ws = None
 
     try:
         # load json prompt from file
-        with open('workflows/paSanctuary_v4.json', 'r') as file:
-            data = json.load(file)
-            mapper = SectionMapper(data)
+        with open('workflows/SDXL.json', 'r') as file:
+            data: dict = json.load(file)
+            prompt_data = PromptData(data)
 
         # Assign image details
         seed = random.randint(1, 1000000)
-        steps = 20
         batch_size = 1
-        img_height = 1024
-        img_width = 1024
-        default_positive_prompt = "masterpiece, best quality"
-        default_negative_prompt = "lowres, worst quality, low quality, bad anatomy, bad proportions, simple background"
+        default_model = "paSanctuary"
+
+        # Load default prompts from modelConfiguration.json
+        with open('modelConfiguration.json', 'r') as config_file:
+            config_data = json.load(config_file)
+            checkpoint_data = config_data.get(default_model)
+
+            prompt_data.model = checkpoint_data.get("checkpointName")
+            prompt_data.vae = checkpoint_data.get("vae")
+            prompt_data.steps = checkpoint_data.get("steps")
+            prompt_data.width = checkpoint_data.get("imageWidth")
+            prompt_data.height = checkpoint_data.get("imageHeight")
+            default_positive_prompt = checkpoint_data.get("defaultPositivePrompt")
+            default_negative_prompt = checkpoint_data.get("defaultNegativePrompt")
 
         # Create the prompt structure for Stable Diffusion
-        mapper.ksampler.seed = seed
-        mapper.ksampler.steps = steps
-        mapper.latent_image.width = img_width
-        mapper.latent_image.height = img_height
-        mapper.latent_image.batch_size = batch_size
-        mapper.positive_prompt.text = f"{default_positive_prompt}, {positive_prompt}"
-        mapper.negative_prompt.text = f"{default_negative_prompt}, {negative_prompt}"
+        prompt_data.seed = seed
+        prompt_data.batch_size = batch_size
+        prompt_data.positive_prompt = f"{default_positive_prompt}, {positive_prompt}"
+        prompt_data.negative_prompt = f"{default_negative_prompt}, {negative_prompt}"
         
         # Connect to the websocket
         ws = websocket.WebSocket()
@@ -97,7 +101,7 @@ def generate_image(positive_prompt, negative_prompt):
         images = get_images(ws, data)
         ws.close()  # Close the websocket connection
 
-        # Returning images (or you can process them further here)
+        # Returning images
         return images
 
     except websocket.WebSocketException as e:
@@ -110,11 +114,3 @@ def generate_image(positive_prompt, negative_prompt):
     finally:
         if ws:
             ws.close()
-
-if __name__ == "__main__":
-    test_pos_prompt = '1girl, casual clothes, short hair, smiling, green eyes, loli, flat chest, city streets'
-    test_neg_prompt = 'nsfw, nude, poor quality'
-    print('Connecting to ' + server_address)
-
-    result = generate_image(test_pos_prompt, test_neg_prompt)
-    print(result)
