@@ -91,6 +91,33 @@
         "title": "VAE Decode"
       }
     },
+    "ImagesGridByRows": {
+      "inputs": {
+        "gap": 0,
+        "max_rows": 2,
+        "images": [
+          "VAEDecode",
+          0
+        ]
+      },
+      "class_type": "ImagesGridByRows",
+      "_meta": {
+        "title": "ImagesGridByRows"
+      }
+    },
+    "SaveGridImage": {
+      "inputs": {
+        "filename_prefix": "",
+        "images": [
+          "ImagesGridByRows",
+          0
+        ]
+      },
+      "class_type": "SaveImage",
+      "_meta": {
+        "title": "Save Image"
+      }
+    },
     "SaveImage": {
       "inputs": {
         "filename_prefix": "",

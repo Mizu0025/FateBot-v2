@@ -70,7 +70,7 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
 
     try:
         # load json prompt from file
-        with open('workflows/SDXL.json', 'r') as file:
+        with open('workflows/SDXL_grid.json', 'r') as file:
             data: dict = json.load(file)
             prompt_data = PromptData(data)
 
@@ -97,6 +97,10 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
         prompt_data.batch_size = batch_size
         prompt_data.positive_prompt = f"{default_positive_prompt}, {filteredPrompt.prompt}"
         prompt_data.negative_prompt = f"nsfw, nude, {default_negative_prompt}, ${assign_if_not_none(filteredPrompt.negative_prompt, '')}"
+
+        # assign filenames
+        prompt_data.filename = f"{seed}"
+        prompt_data.grid_filename = f"{seed}_grid"
         
         # Connect to the websocket
         ws = websocket.WebSocket()
@@ -105,6 +109,9 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
         # Call the function to retrieve images after sending the prompt
         images = get_images(ws, data)
         ws.close()  # Close the websocket connection
+
+        # filter images to only contain grid_filename image
+        images = [image for image in images if prompt_data.grid_filename in image]
 
         # Returning images
         return images

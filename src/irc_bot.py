@@ -2,7 +2,6 @@ import json
 from config import IRC_CONFIG
 from comfyui import generate_image
 from text_filter import extract_prompts
-from image_grid import generate_image_grid
 import socket
 
 class IRCBot:
@@ -103,13 +102,10 @@ class IRCBot:
                 filtered_prompt = extract_prompts(message)
 
                 # Generate the image
-                web_images = generate_image(filtered_prompt)
-
-                # generate grid iamge
-                grid_image = generate_image_grid(web_images)
+                grid_image = generate_image(filtered_prompt)
 
                 # Handle the trigger (image generation)
-                self.handle_image_reply(user, grid_image)
+                self.handle_image_reply(user, grid_image[0])
 
             except Exception as errorMsg:
                 self.handle_image_reply(user, errorMsg)

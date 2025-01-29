@@ -102,3 +102,13 @@ class PromptData:
     def filename(self, value) -> str:
         """Set the filename."""
         self.data["SaveImage"]["inputs"]["filename_prefix"] = value
+
+    @property
+    def grid_filename(self) -> str:
+        """Get the grid filename."""
+        return self.data["SaveGridImage"]["inputs"]["filename_prefix"]
+    
+    @grid_filename.setter
+    def grid_filename(self, value) -> str:
+        """Set the grid filename."""
+        self.data["SaveGridImage"]["inputs"]["filename_prefix"] = value
