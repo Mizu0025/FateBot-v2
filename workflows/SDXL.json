@@ -93,7 +93,7 @@
     },
     "SaveImage": {
       "inputs": {
-        "filename_prefix": "ComfyUI",
+        "filename_prefix": "%KSampler.seed%",
         "images": [
           "VAEDecode",
           0

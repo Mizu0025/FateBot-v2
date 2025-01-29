@@ -92,3 +92,13 @@ class PromptData:
     def negative_prompt(self, value) -> str:
         """Set the negative prompt."""
         self.data["NegativePrompt"]["inputs"]["text"] = value
+
+    @property
+    def filename(self) -> str:
+        """Get the filename."""
+        return self.data["SaveImage"]["inputs"]["filename_prefix"]
+    
+    @filename.setter
+    def filename(self, value) -> str:
+        """Set the filename."""
+        self.data["SaveImage"]["inputs"]["filename_prefix"] = value

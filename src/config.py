@@ -21,5 +21,5 @@ IRC_CONFIG = {
 COMFYUI_CONFIG = {
     "address": os.getenv("COMFYUI_ADDRESS"),
     "domain": os.getenv("COMFYUI_DOMAIN"),
-    "image_folder": os.getenv("COMFYUI_OUTPUT")
+    "image_folder": os.getenv("COMFYUI_IMAGE_FOLDER"),
 }

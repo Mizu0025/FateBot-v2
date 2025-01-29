@@ -54,9 +54,9 @@ def get_images(ws: websocket, prompt: str) -> list:
         node_output = history['outputs'][node_id]
         if 'images' in node_output:
             for image in node_output['images']:
-                imageFile = image['filename']
-                domainUrl = f"{image_domain}/{image_folder}/{imageFile}"
-                images_output.append(domainUrl)
+                image_file = image['filename']
+                image_file_path = f"{image_domain}/{image_folder}/{image_file}"
+                images_output.append(image_file_path)
 
     return images_output
 
@@ -76,7 +76,7 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
 
         # Assign image details
         seed = random.randint(1, 1000000)
-        batch_size = 1
+        batch_size = 4
         model = assign_if_not_none(filteredPrompt.model, 'paSanctuary')
 
         # Load default prompts from modelConfiguration.json
