@@ -6,7 +6,7 @@ load_dotenv()
 
 # load env specific values
 environment = os.getenv("ENVIRONMENT", 'development')
-load_dotenv(f'.env.{environment}')
+load_dotenv(f'.env.{environment}', override=True)
 
 # Access the variables
 IRC_CONFIG = {
@@ -20,6 +20,6 @@ IRC_CONFIG = {
 
 COMFYUI_CONFIG = {
     "address": os.getenv("COMFYUI_ADDRESS"),
-    "domain": os.getenv("COMFYUI_DOMAIN"),
-    "image_folder": os.getenv("COMFYUI_IMAGE_FOLDER"),
+    "domain_path": os.getenv("COMFYUI_DOMAIN_PATH"),
+    "folder_path": os.getenv("COMFYUI_FOLDER_PATH"),
 }

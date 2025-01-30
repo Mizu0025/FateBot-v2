@@ -91,17 +91,16 @@
         "title": "VAE Decode"
       }
     },
-    "SaveImage": {
+    "SaveImageWebsocket": {
       "inputs": {
-        "filename_prefix": "",
         "images": [
           "VAEDecode",
           0
         ]
       },
-      "class_type": "SaveImage",
+      "class_type": "SaveImageWebsocket",
       "_meta": {
-        "title": "Save Image"
+        "title": "SaveImageWebsocket"
       }
     },
     "VAELoader": {

@@ -10,55 +10,60 @@ from promp_data import PromptData
 from text_filter import FilteredPrompt
 
 server_address = COMFYUI_CONFIG["address"]
-image_domain = COMFYUI_CONFIG["domain"]
-image_folder = COMFYUI_CONFIG["image_folder"]
+folder_path = COMFYUI_CONFIG["folder_path"]
 client_id = str(uuid.uuid4())
 
-def queue_prompt(prompt: str) -> dict:
-    """Queue the prompt to the API."""
+def save_image_files(images: list[str], seed: str) -> list[str]:
+    '''Saves the images to a specified folder.'''
+    saved_images = []
+
+    for image in images:
+        index = len(saved_images) + 1
+        filename = f"{seed}.{index}.png"
+        with open(f"{folder_path}/{filename}", "wb") as file:
+            file.write(image)
+        saved_images.append(f"{folder_path}/{filename}")
+
+    return saved_images
+
+def queue_prompt(prompt):
     p = {"prompt": prompt, "client_id": client_id}
     data = json.dumps(p).encode('utf-8')
-    req = urllib.request.Request("http://{}/prompt".format(server_address), data=data)
+    req =  urllib.request.Request("http://{}/prompt".format(server_address), data=data)
     return json.loads(urllib.request.urlopen(req).read())
 
-def get_image(filename, subfolder, folder_type) -> str:
-    """Get the image data from the API."""
+def get_image(filename, subfolder, folder_type):
     data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
     url_values = urllib.parse.urlencode(data)
     with urllib.request.urlopen("http://{}/view?{}".format(server_address, url_values)) as response:
-        return response.url
+        return response.read()
 
-def get_history(prompt_id) -> dict:
-    """Get the history of the prompt execution"""
+def get_history(prompt_id):
     with urllib.request.urlopen("http://{}/history/{}".format(server_address, prompt_id)) as response:
         return json.loads(response.read())
 
-def get_images(ws: websocket, prompt: str) -> list:
-    """Send the prompt to the websocket and retrieve the images."""
+def get_images(ws, prompt):
     prompt_id = queue_prompt(prompt)['prompt_id']
-    images_output = []
-
+    output_images = {}
+    current_node = ""
     while True:
         out = ws.recv()
         if isinstance(out, str):
             message = json.loads(out)
             if message['type'] == 'executing':
                 data = message['data']
-                if data['node'] is None and data['prompt_id'] == prompt_id:
-                    break  # Execution is done
+                if data['prompt_id'] == prompt_id:
+                    if data['node'] is None:
+                        break #Execution is done
+                    else:
+                        current_node = data['node']
         else:
-            continue  # Skip binary data
+            if current_node == 'SaveImageWebsocket':
+                images_output = output_images.get(current_node, [])
+                images_output.append(out[8:])
+                output_images[current_node] = images_output
 
-    history = get_history(prompt_id)[prompt_id]
-    for node_id in history['outputs']:
-        node_output = history['outputs'][node_id]
-        if 'images' in node_output:
-            for image in node_output['images']:
-                image_file = image['filename']
-                image_file_path = f"{image_domain}/{image_folder}/{image_file}"
-                images_output.append(image_file_path)
-
-    return images_output
+    return output_images
 
 def assign_if_not_none(value, default) -> any:
     """Assign value if not None, otherwise assign default value."""
@@ -70,13 +75,13 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
 
     try:
         # load json prompt from file
-        with open('workflows/SDXL_grid.json', 'r') as file:
+        with open('workflows/SDXL.json', 'r') as file:
             data: dict = json.load(file)
             prompt_data = PromptData(data)
 
         # Assign image details
         seed = random.randint(1, 1000000)
-        batch_size = 4
+        batch_size = 2
         model = assign_if_not_none(filteredPrompt.model, 'paSanctuary')
 
         # Load default prompts from modelConfiguration.json
@@ -97,10 +102,6 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
         prompt_data.batch_size = batch_size
         prompt_data.positive_prompt = f"{default_positive_prompt}, {filteredPrompt.prompt}"
         prompt_data.negative_prompt = f"nsfw, nude, {default_negative_prompt}, ${assign_if_not_none(filteredPrompt.negative_prompt, '')}"
-
-        # assign filenames
-        prompt_data.filename = f"{seed}"
-        prompt_data.grid_filename = f"{seed}_grid"
         
         # Connect to the websocket
         ws = websocket.WebSocket()
@@ -110,11 +111,11 @@ def generate_image(filteredPrompt: FilteredPrompt) -> list:
         images = get_images(ws, data)
         ws.close()  # Close the websocket connection
 
-        # filter images to only contain grid_filename image
-        images = [image for image in images if prompt_data.grid_filename in image]
+        # Save the images
+        saved_images = save_image_files(images["SaveImageWebsocket"], seed)
 
         # Returning images
-        return images
+        return saved_images
 
     except websocket.WebSocketException as e:
             raise RuntimeError(f"WebSocket error while generating images: {e}")
