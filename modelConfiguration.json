@@ -1,6 +1,6 @@
 {
     "paSanctuary": {
-        "checkpointName": "PaSanctuary_v4.safetensors",
+        "checkpointName": "PaSanctuary_v5.safetensors",
         "vae": "sdxl_vae.safetensors",
         "steps": 20,
         "imageHeight": 1024,

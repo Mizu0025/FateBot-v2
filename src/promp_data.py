@@ -9,7 +9,7 @@ class PromptData:
         return self.data["Checkpoint"]["inputs"]["ckpt_name"]
     
     @model.setter
-    def model(self, value) -> str:
+    def model(self, value) -> None:
         """Set the model name."""
         self.data["Checkpoint"]["inputs"]["ckpt_name"] = value
 
@@ -19,7 +19,7 @@ class PromptData:
         return self.data["VAELoader"]["inputs"]["vae_name"]
     
     @vae.setter
-    def vae(self, value) -> str:
+    def vae(self, value) -> None:
         """Set the VAE name."""
         self.data["VAELoader"]["inputs"]["vae_name"] = value
 
@@ -29,7 +29,7 @@ class PromptData:
         return self.data["KSampler"]["inputs"]["seed"]
     
     @seed.setter
-    def seed(self, value) -> int:
+    def seed(self, value) -> None:
         """Set the seed."""
         self.data["KSampler"]["inputs"]["seed"] = value
 
@@ -39,7 +39,7 @@ class PromptData:
         return self.data["KSampler"]["inputs"]["steps"]
 
     @steps.setter
-    def steps(self, value) -> int:
+    def steps(self, value) -> None:
         """Set the number of steps."""
         self.data["KSampler"]["inputs"]["steps"] = value
 
@@ -49,7 +49,7 @@ class PromptData:
         return self.data["EmptyLatentImage"]["inputs"]["width"]
 
     @width.setter
-    def width(self, value) -> int:
+    def width(self, value) -> None:
         """Set the width of the image."""
         self.data["EmptyLatentImage"]["inputs"]["width"] = value
 
@@ -59,7 +59,7 @@ class PromptData:
         return self.data["EmptyLatentImage"]["inputs"]["height"]
 
     @height.setter
-    def height(self, value) -> int:
+    def height(self, value) -> None:
         """Set the height of the image."""
         self.data["EmptyLatentImage"]["inputs"]["height"] = value
 
@@ -69,7 +69,7 @@ class PromptData:
         return self.data["EmptyLatentImage"]["inputs"]["batch_size"]
 
     @batch_size.setter
-    def batch_size(self, value) -> int:
+    def batch_size(self, value) -> None:
         """Set the batch size."""
         self.data["EmptyLatentImage"]["inputs"]["batch_size"] = value
 
@@ -79,7 +79,7 @@ class PromptData:
         return self.data["PositivePrompt"]["inputs"]["text"]
 
     @positive_prompt.setter
-    def positive_prompt(self, value) -> str:
+    def positive_prompt(self, value) -> None:
         """Set the positive prompt."""
         self.data["PositivePrompt"]["inputs"]["text"] = value
 
@@ -89,6 +89,28 @@ class PromptData:
         return self.data["NegativePrompt"]["inputs"]["text"]
 
     @negative_prompt.setter
-    def negative_prompt(self, value) -> str:
+    def negative_prompt(self, value) -> None:
         """Set the negative prompt."""
         self.data["NegativePrompt"]["inputs"]["text"] = value
+
+    # add cfg
+    @property
+    def cfg(self) -> float:
+        """Get the cfg."""
+        return self.data["KSampler"]["inputs"]["cfg"]
+    
+    @cfg.setter
+    def cfg(self, value) -> None:
+        """Set the cfg."""
+        self.data["KSampler"]["inputs"]["cfg"] = value
+
+    # add sampler
+    @property
+    def sampler(self) -> str:
+        """Get the sampler."""
+        return self.data["KSampler"]["inputs"]["sampler_name"]
+    
+    @sampler.setter
+    def sampler(self, value) -> None:
+        """Set the sampler."""
+        self.data["KSampler"]["inputs"]["sampler_name"] = value

@@ -1,142 +1,95 @@
 import json
+import irc.bot
 from config import IRC_CONFIG
 from comfyui import generate_image
 from image_grid import generate_image_grid
 from text_filter import extract_prompts
-import socket
 
-class IRCBot:
-    def __init__(self, server, port, channel, bot_nick, bot_user, trigger_word):
-        self.server = server
-        self.port = port
+class ImageGenBot(irc.bot.SingleServerIRCBot):
+    def __init__(self, channel, trigger_word, server_list):
+        # The library handles the server connection details
+        super().__init__(server_list, IRC_CONFIG["bot_nick"], IRC_CONFIG["bot_user"])
+        
+        # Your application-specific config
         self.channel = channel
-        self.bot_nick = bot_nick
-        self.bot_user = bot_user
         self.trigger_word = trigger_word
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def handle_ping(self, response) -> None:
-        """Handle PING messages from the server."""
-        if response.startswith("PING"):
-            self.socket.sendall(f"PONG {response.split()[1]}\r\n".encode("utf-8"))
-            print("PONG sent to server")
+    def on_welcome(self, c, e):
+        """Called when the bot has successfully connected to the server."""
+        print(f"Successfully connected to {e.source}!")
+        print(f"Joining channel: {self.channel}")
+        c.join(self.channel)
 
-    def handle_decode_response(self) -> str:
-        """Decode the response from the server."""
-        response = self.socket.recv(2048)
-        return response.decode("utf-8").strip()
-    
-    def handle_sendall(self, message) -> None:
-        """Send a message to the server."""
-        self.socket.sendall(f"{message}\r\n".encode("utf-8"))
-        print(f"Sent: {message}")
+    def on_pubmsg(self, c, e):
+        """Called when a public message is received in a channel."""
+        user_nick = e.source.nick
+        message = e.arguments[0]
 
-    def connect(self) -> None:
-        """Connect to the IRC server and join the channel."""
-        print(f"Connecting to {self.server}:{self.port}...")
-        self.socket.connect((self.server, self.port))
-        
-        # Send NICK and USER in sequence
-        self.handle_sendall(f"NICK {self.bot_nick}")
-        self.handle_sendall(f"USER {self.bot_user} 0 * :{self.bot_nick}")
-        
-        # Wait for server welcome message before joining
-        while True:
-            response = self.handle_decode_response()
-            
-            # Check for successful registration (numeric 001)
-            if f"001 {self.bot_nick}" in response:
-                # Now join the channel
-                self.handle_sendall(f"JOIN {self.channel}")
-                print(f"Joined channel {self.channel}")
-                break
-            
-            # Respond to PINGs during connection
-            self.handle_ping(response)
+        # Check if the message contains our trigger word
+        if self.trigger_word in message:
+            print(f"Trigger word received from {user_nick}: {message}")
+            self.dispatch_command(c, user_nick, message)
 
-    def listen(self) -> None:
-        """Listen for messages in the channel and respond to the trigger word."""
-        while True:
-            response = self.handle_decode_response()
+    def dispatch_command(self, c, user, message):
+        """Determines which command to execute based on the message."""
+        if '--help' in message:
+            self.handle_help_request(c, user)
+        elif '--models' in message:
+            self.handle_models_list(c, user)
+        else:
+            self.handle_image_generation(c, user, message)
 
-            # Respond to PINGs while in a channel
-            self.handle_ping(response)
-            
-            # Check for messages containing the trigger word
-            if f"PRIVMSG {self.channel}" in response:
-                print(f"Received: {response}")
-                user = response.split("!")[0][1:]  # Extract the user
-                message = response.split(f"PRIVMSG {self.channel} :")[1]  # Extract the message
+    def handle_models_list(self, c, user):
+        try:
+            models = self.get_models_list()
+                # Use c.notice to send a private message to the user
+            c.notice(user, f"Available models: {models}")
+        except Exception as e:
+            c.notice(user, f"Error getting models: {e}")
 
-                # check for both trigger word and --help immediately after in message
-                if self.trigger_word and '--help' in message:
-                    self.handle_help_request(user)
-                elif self.trigger_word and '--models' in message:
-                    models = self.get_models_list()
-                    self.send_user_message(user, f"The current models are: {models}")
-                elif self.trigger_word in message:
-                    self.handle_image_generation(user, message)
-
-    def handle_help_request(self, user) -> None:
-        """Send a help message to the channel."""
-        help_message = f"{user}: To generate an image, type '{self.trigger_word} <prompt>'"
-        prompt_help = f"Prompt structure: '{self.trigger_word}' <positive_text> <width> <height> <model> <negative_text>"
-        prompt_help_continued = "Most options use the following format: --option=value. <negative_text> is --no."
-
-        for message in [help_message, prompt_help, prompt_help_continued]:
-            self.send_user_message(user, message)
+    def handle_help_request(self, c, user):
+        """Sends a help message to a user via NOTICE."""
+        help_messages = [
+            f"To generate an image, type: {IRC_CONFIG} <your_prompt>",
+            f"Prompt structure: '{self.trigger_word}' <positive_text> --width=<w> --height=<h> --model=<m> --no=<negative_text>",
+            "Example: !gen a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry"
+        ]
+        for msg in help_messages:
+            # c.notice sends a private message that avoids triggering other bots
+            c.notice(user, msg)
 
     def get_models_list(self) -> str:
-        """Return a list of available models."""
-        # open modelConfiguration.json and extract the model names from root lvl
+        """Returns a comma-separated list of available models."""
         with open('modelConfiguration.json', 'r') as file:
             data = json.load(file)
-            model_names = list(data.keys())
-            joined_names = ', '.join(model_names)
-        
-        return joined_names            
-    
-    def handle_image_generation(self, user, message) -> None:
-            """Handle the image generation process."""
-            try:
-                # Extract the prompt and negative prompt
-                filtered_prompt = extract_prompts(message)
+            return ', '.join(data.keys())
 
-                # Generate the image
-                api_images = generate_image(filtered_prompt)
+    def handle_image_generation(self, c, user, message):
+        """Handles the image generation process."""
+        # Use c.privmsg to send a public message to the channel
+        try:
+            filtered_prompt = extract_prompts(message)
+            api_images = generate_image(filtered_prompt)
+            grid_image_info = generate_image_grid(api_images) # Assuming this returns a URL or file path
+            
+            c.privmsg(self.channel, f"{user}: Your image is ready! {grid_image_info}")
 
-                # Generate the image grid
-                grid_image = generate_image_grid(api_images)
+        except Exception as e:
+            print(f"ERROR during image generation: {e}")
+            c.privmsg(self.channel, f"{user}: An error occurred during image generation: {e}")
 
-                # Return the grid image
-                self.handle_image_reply(user, grid_image)
-
-            except Exception as errorMsg:
-                self.handle_image_reply(user, errorMsg)
-
-    def handle_image_reply(self, user, message) -> None:
-        """Send a message back to the channel notifying the image request user."""
-        response_message = f"{user}: {message}"
-        self.send_message(response_message)
-
-    def send_message(self, message) -> None:
-        """Send a message to the channel."""
-        self.handle_sendall(f"PRIVMSG {self.channel} :{message}")
-        print(f"Sent: {message}")
-
-    def send_user_message(self, user, message) -> None:
-        """Send a message to a specific user."""
-        self.handle_sendall(f"PRIVMSG {user} :{message}")
-        print(f"Sent: {message}")
 
 if __name__ == "__main__":
-    bot = IRCBot(
-        server=IRC_CONFIG["server"],
-        port=IRC_CONFIG["port"],
+    # The server list is a list of tuples: [(server, port), ...]
+    server_list = [(IRC_CONFIG["server"], IRC_CONFIG["port"])]
+    
+    bot = ImageGenBot(
         channel=IRC_CONFIG["channel"],
-        bot_nick=IRC_CONFIG["bot_nick"],
-        bot_user=IRC_CONFIG["bot_user"],
-        trigger_word=IRC_CONFIG['bot_trigger']
+        trigger_word=IRC_CONFIG['bot_trigger'],
+        server_list=server_list
     )
-    bot.connect()
-    bot.listen()
+    
+    print("Starting bot...")
+    # The start() method runs the bot's main loop and handles everything.
+    # It will block here until the bot is terminated.
+    bot.start()
