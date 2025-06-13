@@ -23,7 +23,7 @@ def save_image_files(images: List[bytes], seed: str) -> List[str]:
     saved_images = []
 
     for index, image_bytes in enumerate(images):
-        filename = f"{seed}.{index + 1:03d}.png"
+        filename = f"{seed}_{index + 1:03d}.png"
         filepath = os.path.join(FOLDER_PATH, filename)
         try:
             with open(filepath, "wb") as file:
