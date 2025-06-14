@@ -1,5 +1,4 @@
 import os
-from typing import Tuple
 
 bot_trigger = os.getenv('BOT_TRIGGER', '')
 
@@ -22,13 +21,14 @@ def extract_prompts(message: str) -> FilteredPrompt:
         !trigger <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text>
     """
 
-    if not bot_trigger:
+    # if message doesn't begin with the bot trigger, raise an error
+    if not message.startswith(bot_trigger):
         raise ValueError("Prompt trigger is missing or empty!")
 
     # Default values
     prompt = ""
-    width = ""
-    height = ""
+    width = 1024
+    height = 1024
     model = ""
     negative_prompt = ""
 
@@ -44,9 +44,9 @@ def extract_prompts(message: str) -> FilteredPrompt:
     # Process each part to extract width, height, model, and negative prompt
     for part in parts[1:]:
         if part.startswith("width="):
-            width = part[len("width="):].strip()
+            width = int(part[len("width="):].strip())
         elif part.startswith("height="):
-            height = part[len("height="):].strip()
+            height = int(part[len("height="):].strip())
         elif part.startswith("model="):
             model = part[len("model="):].strip()
         elif part.startswith("no"):

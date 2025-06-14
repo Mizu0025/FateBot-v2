@@ -10,7 +10,7 @@ def open_images(filepaths: list[str]) -> list[Image.Image]:
     '''Opens all images from the provided filepaths.'''
     return [Image.open(filepath) for filepath in filepaths]
 
-def get_image_dimensions(images: list[Image.Image]) -> tuple[list[int], list[int]]:
+def get_image_dimensions(images: list[Image.Image]) -> tuple[tuple[int, int], tuple[int, int]]:
     '''Gets the dimensions of each image.'''
     widths, heights = zip(*(image.size for image in images))
     return widths, heights
@@ -46,6 +46,11 @@ def save_grid(grid: Image.Image, seed: str) -> str:
 
 def get_domain_path(grid_path: str) -> str:
     '''Returns the domain path of the grid.'''
+    if domain_path is None:
+        raise ValueError("Domain path is not set in the configuration.")
+    if folder_path is None:
+        raise ValueError("Folder path is not set in the configuration.")
+
     path = grid_path.replace(folder_path, domain_path)
 
     return path
