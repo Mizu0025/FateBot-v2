@@ -1,16 +1,14 @@
 import json
 import irc.bot
 from config import IRC_CONFIG
-from comfyui import generate_image
-from image_grid import generate_image_grid
+from src.comfyui.image_generation import generate_image
+from images.image_grid import generate_image_grid
 from text_filter import extract_prompts
 
 class ImageGenBot(irc.bot.SingleServerIRCBot):
     def __init__(self, channel, trigger_word, server_list):
-        # The library handles the server connection details
         super().__init__(server_list, IRC_CONFIG["bot_nick"], IRC_CONFIG["bot_user"])
         
-        # Your application-specific config
         self.channel = channel
         self.trigger_word = trigger_word
 
@@ -25,7 +23,6 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
         user_nick = e.source.nick
         message = e.arguments[0]
 
-        # Check if the message contains our trigger word
         if self.trigger_word in message:
             print(f"Trigger word received from {user_nick}: {message}")
             self.dispatch_command(c, user_nick, message)
@@ -42,7 +39,6 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
     def handle_models_list(self, c, user):
         try:
             models = self.get_models_list()
-                # Use c.notice to send a private message to the user
             c.notice(user, f"Available models: {models}")
         except Exception as e:
             c.notice(user, f"Error getting models: {e}")
@@ -55,7 +51,6 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
             "Example: !gen a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry"
         ]
         for msg in help_messages:
-            # c.notice sends a private message that avoids triggering other bots
             c.notice(user, msg)
 
     def get_models_list(self) -> str:
@@ -66,11 +61,10 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
 
     def handle_image_generation(self, c, user, message):
         """Handles the image generation process."""
-        # Use c.privmsg to send a public message to the channel
         try:
             filtered_prompt = extract_prompts(message)
             api_images = generate_image(filtered_prompt)
-            grid_image_info = generate_image_grid(api_images) # Assuming this returns a URL or file path
+            grid_image_info = generate_image_grid(api_images)
             
             c.privmsg(self.channel, f"{user}: Your image is ready! {grid_image_info}")
 
@@ -80,7 +74,6 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
 
 
 if __name__ == "__main__":
-    # The server list is a list of tuples: [(server, port), ...]
     server_list = [(IRC_CONFIG["server"], IRC_CONFIG["port"])]
     
     bot = ImageGenBot(
@@ -90,6 +83,4 @@ if __name__ == "__main__":
     )
     
     print("Starting bot...")
-    # The start() method runs the bot's main loop and handles everything.
-    # It will block here until the bot is terminated.
     bot.start()
