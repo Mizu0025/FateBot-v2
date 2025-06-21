@@ -4,6 +4,7 @@ from config import IRC_CONFIG
 from src.comfyui.image_generation import generate_image
 from images.image_grid import generate_image_grid
 from text_filter import extract_prompts
+from constants.help_request import imageGenerationHelp, promptStructureHelp, promptExampleHelp
 
 class ImageGenBot(irc.bot.SingleServerIRCBot):
     def __init__(self, channel, trigger_word, server_list):
@@ -45,11 +46,7 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
 
     def handle_help_request(self, c, user):
         """Sends a help message to a user via NOTICE."""
-        help_messages = [
-            f"To generate an image, type: {IRC_CONFIG} <your_prompt>",
-            f"Prompt structure: '{self.trigger_word}' <positive_text> --width=<w> --height=<h> --model=<m> --no=<negative_text>",
-            "Example: !gen a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry"
-        ]
+        help_messages = [imageGenerationHelp, promptStructureHelp, promptExampleHelp]
         for msg in help_messages:
             c.notice(user, msg)
 
