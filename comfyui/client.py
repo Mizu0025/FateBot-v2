@@ -4,22 +4,19 @@ import json
 import urllib.request
 from urllib.error import URLError
 from typing import List, Dict, Optional
+from configuration.config import COMFYUI_ADDRESS
 
-from config import COMFYUI_CONFIG
-
-SERVER_ADDRESS = COMFYUI_CONFIG.get("address")
-FOLDER_PATH = COMFYUI_CONFIG.get("folder_path")
 CLIENT_ID = str(uuid.uuid4())
 
 def queue_prompt(prompt: Dict) -> Optional[str]:
     """Queues a prompt to the ComfyUI server."""
-    if SERVER_ADDRESS is None:
+    if COMFYUI_ADDRESS is None:
         raise ValueError("ComfyUI server address not configured.")
 
     try:
         p = {"prompt": prompt, "client_id": CLIENT_ID}
         data = json.dumps(p).encode('utf-8')
-        req = urllib.request.Request(f"http://{SERVER_ADDRESS}/prompt", data=data)
+        req = urllib.request.Request(f"http://{COMFYUI_ADDRESS}/prompt", data=data)
         response = urllib.request.urlopen(req)
         return json.loads(response.read())['prompt_id']
     except URLError as e:
@@ -68,7 +65,7 @@ def connect_websocket_comfyui() -> Optional[websocket.WebSocket]:
     """Connects to the ComfyUI websocket."""
     try:
         ws = websocket.WebSocket()
-        ws.connect(f"ws://{SERVER_ADDRESS}/ws?clientId={CLIENT_ID}")
+        ws.connect(f"ws://{COMFYUI_ADDRESS}/ws?clientId={CLIENT_ID}")
         return ws
     except ConnectionRefusedError as e:
         print(f"Error connecting to ComfyUI server: {e}")

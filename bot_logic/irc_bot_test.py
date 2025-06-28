@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from irc_bot import ImageGenBot
-from config import IRC_CONFIG  # Import to access IRC_CONFIG
+from bot_logic.irc_bot import ImageGenBot
+from configuration.config import BOT_NICK, BOT_TRIGGER, BOT_USER, CHANNEL
 
 class TestImageGenBotDispatch(unittest.TestCase):
     def setUp(self):
@@ -9,9 +9,12 @@ class TestImageGenBotDispatch(unittest.TestCase):
         self.mock_irc_channel = MagicMock()
         self.mock_user = "test_user"
         self.mock_bot = ImageGenBot(
-            channel=IRC_CONFIG["channel"], 
-            trigger_word=IRC_CONFIG['bot_trigger'], 
-            server_list=[])  # Dummy server list
+            bot_nick=BOT_NICK,
+            bot_user=BOT_USER,
+            channel=CHANNEL,
+            trigger_word=BOT_TRIGGER,
+            server_list=[]  # Dummy server list
+        )
 
     # --- Help Command Tests ---
     @patch('irc_bot.ImageGenBot.handle_help_request')

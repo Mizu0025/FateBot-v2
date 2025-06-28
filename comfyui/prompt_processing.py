@@ -1,7 +1,7 @@
 import random
 from typing import Dict, Optional
-from prompt_data import PromptData
-from text_filter import FilteredPrompt
+from configuration.prompt_data import PromptData
+from text_filter.text_filter import FilteredPrompt
 
 def create_prompt_data(workflow_data: Dict) -> PromptData:
     """Creates a PromptData object from workflow data."""

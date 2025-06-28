@@ -1,10 +1,7 @@
 from PIL import Image
 import math
 
-from config import COMFYUI_CONFIG
-
-domain_path = COMFYUI_CONFIG["domain_path"]
-folder_path = COMFYUI_CONFIG["folder_path"]
+from configuration.config import COMFYUI_DOMAIN_PATH, COMFYUI_FOLDER_PATH
 
 def open_images(filepaths: list[str]) -> list[Image.Image]:
     '''Opens all images from the provided filepaths.'''
@@ -39,19 +36,19 @@ def paste_images_to_grid(images: list[Image.Image], grid: Image.Image, cols: int
 def save_grid(grid: Image.Image, seed: str) -> str:
     '''Saves the grid to a file.'''
     grid_filename = f"{seed}.0.png"
-    grid_path = f"{folder_path}/{grid_filename}"
+    grid_path = f"{COMFYUI_FOLDER_PATH}/{grid_filename}"
     grid.save(grid_path)
 
     return grid_path
 
 def get_domain_path(grid_path: str) -> str:
     '''Returns the domain path of the grid.'''
-    if domain_path is None:
+    if COMFYUI_DOMAIN_PATH is None:
         raise ValueError("Domain path is not set in the configuration.")
-    if folder_path is None:
+    if COMFYUI_FOLDER_PATH is None:
         raise ValueError("Folder path is not set in the configuration.")
 
-    path = grid_path.replace(folder_path, domain_path)
+    path = grid_path.replace(COMFYUI_FOLDER_PATH, COMFYUI_DOMAIN_PATH)
 
     return path
 

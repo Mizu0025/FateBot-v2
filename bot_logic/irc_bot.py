@@ -1,14 +1,13 @@
 import json
 import irc.bot
-from config import IRC_CONFIG
-from src.comfyui.image_generation import generate_image
+from comfyui.image_generation import generate_image
 from images.image_grid import generate_image_grid
-from text_filter import extract_prompts
+from text_filter.text_filter import extract_prompts
 from constants.help_request import imageGenerationHelp, promptStructureHelp, promptExampleHelp
 
 class ImageGenBot(irc.bot.SingleServerIRCBot):
-    def __init__(self, channel, trigger_word, server_list):
-        super().__init__(server_list, IRC_CONFIG["bot_nick"], IRC_CONFIG["bot_user"])
+    def __init__(self, bot_nick: str, bot_user: str, channel: str, trigger_word: str, server_list: list[tuple[str, int]]):
+        super().__init__(server_list, bot_nick, bot_user)
         
         self.channel = channel
         self.trigger_word = trigger_word
@@ -68,16 +67,3 @@ class ImageGenBot(irc.bot.SingleServerIRCBot):
         except Exception as e:
             print(f"ERROR during image generation: {e}")
             c.privmsg(self.channel, f"{user}: An error occurred during image generation: {e}")
-
-
-if __name__ == "__main__":
-    server_list = [(IRC_CONFIG["server"], IRC_CONFIG["port"])]
-    
-    bot = ImageGenBot(
-        channel=IRC_CONFIG["channel"],
-        trigger_word=IRC_CONFIG['bot_trigger'],
-        server_list=server_list
-    )
-    
-    print("Starting bot...")
-    bot.start()

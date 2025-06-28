@@ -6,7 +6,7 @@ from comfyui.model_loader import load_model_configuration
 from comfyui.prompt_processing import create_prompt_data, update_prompt_with_model_config
 from comfyui.workflow_loader import load_workflow_data
 from images.file_management import save_image_files
-from text_filter import FilteredPrompt
+from text_filter.text_filter import FilteredPrompt
 
 def generate_image(filteredPrompt: FilteredPrompt) -> List[str]:
     """Generates one or more images based on the given filtered prompt."""
