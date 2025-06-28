@@ -1,15 +1,20 @@
+import logging
 import random
 from typing import Dict, Optional
 from configuration.prompt_data import PromptData
 from text_filter.text_filter import FilteredPrompt
 
+logger = logging.getLogger(__name__)
+
 def create_prompt_data(workflow_data: Dict) -> PromptData:
     """Creates a PromptData object from workflow data."""
+    logger.info("Creating PromptData object from workflow data.")
     return PromptData(workflow_data)
 
 def update_prompt_with_model_config(prompt_data: PromptData, model_config: Optional[Dict], filteredPrompt: FilteredPrompt):
     """Updates the PromptData object with model-specific configuration."""
     if not model_config:
+        logger.error("Model configuration not found for the specified model.")
         raise ValueError("Model configuration not found.")
 
     prompt_data.model = model_config.get("checkpointName")
@@ -25,3 +30,5 @@ def update_prompt_with_model_config(prompt_data: PromptData, model_config: Optio
     prompt_data.batch_size = batch_size
     prompt_data.positive_prompt = f"{default_positive_prompt}, {filteredPrompt.prompt or ''}"
     prompt_data.negative_prompt = f"nsfw, nude, {default_negative_prompt}, {filteredPrompt.negative_prompt or ''}"
+    
+    logger.info(f"PromptData updated with model configuration")

@@ -1,6 +1,7 @@
-import os
+import logging
+from configuration.config import BOT_TRIGGER
 
-bot_trigger = os.getenv('BOT_TRIGGER', '')
+logger = logging.getLogger(__name__)
 
 class FilteredPrompt:
     """Exracted data from the prompt message."""
@@ -22,7 +23,8 @@ def extract_prompts(message: str) -> FilteredPrompt:
     """
 
     # if message doesn't begin with the bot trigger, raise an error
-    if not message.startswith(bot_trigger):
+    if not message.startswith(BOT_TRIGGER):
+        logger.error("Prompt trigger is missing or empty!")
         raise ValueError("Prompt trigger is missing or empty!")
 
     # Default values
@@ -33,7 +35,7 @@ def extract_prompts(message: str) -> FilteredPrompt:
     negative_prompt = ""
 
     # Remove the !trigger keyword and leading/trailing spaces
-    message = message.replace(bot_trigger, "").strip()
+    message = message.replace(BOT_TRIGGER, "").strip()
 
     # Split the message into parts based on known keywords
     parts = message.split("--")
@@ -52,4 +54,5 @@ def extract_prompts(message: str) -> FilteredPrompt:
         elif part.startswith("no"):
             negative_prompt = part[len("no"):].strip()
 
+    logger.info("Extracted prompt data for image generation")
     return FilteredPrompt(prompt, width, height, model, negative_prompt)

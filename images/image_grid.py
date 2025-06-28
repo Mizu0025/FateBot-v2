@@ -1,7 +1,10 @@
+import logging
 from PIL import Image
 import math
 
 from configuration.config import COMFYUI_DOMAIN_PATH, COMFYUI_FOLDER_PATH
+
+logger = logging.getLogger(__name__)
 
 def open_images(filepaths: list[str]) -> list[Image.Image]:
     '''Opens all images from the provided filepaths.'''
@@ -44,8 +47,10 @@ def save_grid(grid: Image.Image, seed: str) -> str:
 def get_domain_path(grid_path: str) -> str:
     '''Returns the domain path of the grid.'''
     if COMFYUI_DOMAIN_PATH is None:
+        logger.error("Domain path is not set in the configuration.")
         raise ValueError("Domain path is not set in the configuration.")
     if COMFYUI_FOLDER_PATH is None:
+        logger.error("Folder path is not set in the configuration.")
         raise ValueError("Folder path is not set in the configuration.")
 
     path = grid_path.replace(COMFYUI_FOLDER_PATH, COMFYUI_DOMAIN_PATH)
@@ -66,4 +71,5 @@ def generate_image_grid(filepaths: list[str]) -> str:
     grid_path = save_grid(grid, seed)
     domain_path = get_domain_path(grid_path)
 
+    logger.info(f"Image grid generated and saved")
     return domain_path

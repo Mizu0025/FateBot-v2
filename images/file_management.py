@@ -1,13 +1,16 @@
+import logging
 import os
 import uuid
 from typing import List
 from configuration.config import COMFYUI_FOLDER_PATH
 
 CLIENT_ID = str(uuid.uuid4())
+logger = logging.getLogger(__name__)
 
 def save_image_files(images: List[bytes], seed: str) -> List[str]:
     """Saves the provided image byte data to PNG files."""
     if COMFYUI_FOLDER_PATH is None:
+        logger.error("Image save folder path not configured.")
         raise ValueError("Image save folder path not configured.")
 
     saved_images = []
@@ -20,5 +23,5 @@ def save_image_files(images: List[bytes], seed: str) -> List[str]:
                 file.write(image_bytes)
             saved_images.append(filepath)
         except Exception as e:
-            print(f"Error saving image {filename}: {e}")
+            logger.exception(f"Error saving image {filename}: {e}")
     return saved_images

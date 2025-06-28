@@ -1,3 +1,4 @@
+import logging
 import websocket
 import uuid
 import json
@@ -7,10 +8,12 @@ from typing import List, Dict, Optional
 from configuration.config import COMFYUI_ADDRESS
 
 CLIENT_ID = str(uuid.uuid4())
+logger = logging.getLogger(__name__)
 
 def queue_prompt(prompt: Dict) -> Optional[str]:
     """Queues a prompt to the ComfyUI server."""
     if COMFYUI_ADDRESS is None:
+        logger.error("ComfyUI server address is not configured.")
         raise ValueError("ComfyUI server address not configured.")
 
     try:
@@ -18,12 +21,14 @@ def queue_prompt(prompt: Dict) -> Optional[str]:
         data = json.dumps(p).encode('utf-8')
         req = urllib.request.Request(f"http://{COMFYUI_ADDRESS}/prompt", data=data)
         response = urllib.request.urlopen(req)
+
+        logger.info("Prompt queued successfully.")
         return json.loads(response.read())['prompt_id']
     except URLError as e:
-        print(f"Error queuing prompt: {e}")
+        logger.exception(f"Error queuing prompt: {e}")
         return None
     except json.JSONDecodeError as e:
-        print(f"Error decoding prompt queue response: {e}")
+        logger.exception(f"Error decoding prompt queue response: {e}")
         return None
 
 def get_images_from_websocket(ws: websocket.WebSocket, prompt_id: str) -> Dict[str, List[bytes]]:
@@ -48,17 +53,19 @@ def get_images_from_websocket(ws: websocket.WebSocket, prompt_id: str) -> Dict[s
                     images_output.append(out[8:])
                     output_images[current_node] = images_output
         except websocket.WebSocketTimeoutException:
-            print("Websocket timeout during image retrieval.")
-            break
+            logger.exception("Websocket timeout during image retrieval.")
+            raise websocket.WebSocketTimeoutException("Websocket timeout while waiting for images.")
         except websocket.WebSocketException as e:
-            print(f"Websocket error during image retrieval: {e}")
-            break
+            logger.exception(f"Websocket error during image retrieval: {e}")
+            raise websocket.WebSocketException(f"Websocket error: {e}")
         except json.JSONDecodeError as e:
-            print(f"Error decoding websocket message: {e}")
-            break
+            logger.exception(f"Error decoding websocket message: {e}")
+            raise ValueError(f"Error decoding websocket message: {e}")
         except Exception as e:
-            print(f"Unexpected error during websocket communication: {e}")
-            break
+            logger.exception(f"Unexpected error during websocket communication: {e}")
+            raise Exception(f"Unexpected error during websocket communication: {e}")
+
+    logger.info("Image retrieval complete.")
     return output_images
 
 def connect_websocket_comfyui() -> Optional[websocket.WebSocket]:
@@ -66,10 +73,12 @@ def connect_websocket_comfyui() -> Optional[websocket.WebSocket]:
     try:
         ws = websocket.WebSocket()
         ws.connect(f"ws://{COMFYUI_ADDRESS}/ws?clientId={CLIENT_ID}")
+
+        logger.info(f"Connected to ComfyUI server at {COMFYUI_ADDRESS}")
         return ws
     except ConnectionRefusedError as e:
-        print(f"Error connecting to ComfyUI server: {e}")
-        return None
+        logger.exception(f"Error connecting to ComfyUI server: {e}")
+        raise ConnectionRefusedError(f"Could not connect to ComfyUI server at {COMFYUI_ADDRESS}. Is the server running?")
     except websocket.WebSocketException as e:
-        print(f"WebSocket connection error: {e}")
-        return None
+        logger.exception(f"WebSocket connection error: {e}")
+        raise websocket.WebSocketException(f"WebSocket connection error: {e}")

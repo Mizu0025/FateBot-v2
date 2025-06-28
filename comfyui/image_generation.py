@@ -1,3 +1,4 @@
+import logging
 import websocket
 from typing import List, Optional
 
@@ -8,6 +9,8 @@ from comfyui.workflow_loader import load_workflow_data
 from images.file_management import save_image_files
 from text_filter.text_filter import FilteredPrompt
 
+logger = logging.getLogger(__name__)
+
 def generate_image(filteredPrompt: FilteredPrompt) -> List[str]:
     """Generates one or more images based on the given filtered prompt."""
     ws: Optional[websocket.WebSocket] = None
@@ -15,6 +18,7 @@ def generate_image(filteredPrompt: FilteredPrompt) -> List[str]:
 
     workflow_data = load_workflow_data('workflows/SDXL.json')
     if not workflow_data:
+        logger.error("Failed to load workflow data.")
         raise ValueError("Failed to load workflow data.")
 
     prompt_data = create_prompt_data(workflow_data)
@@ -24,12 +28,14 @@ def generate_image(filteredPrompt: FilteredPrompt) -> List[str]:
 
     ws = connect_websocket_comfyui()
     if not ws:
+        logger.error("Failed to connect to ComfyUI server.")
         raise ValueError("Failed to connect to ComfyUI server.")
 
     prompt_id = queue_prompt(prompt_data.data)
     if not prompt_id:
         if ws.connected:
             ws.close()
+        logger.error("Failed to queue prompt.")
         raise ValueError("Failed to queue prompt.")
 
     images = get_images_from_websocket(ws, prompt_id)
