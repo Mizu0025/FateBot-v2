@@ -4,6 +4,7 @@ import { FilteredPrompt } from '../types';
 import { ModelLoader } from '../config/model-loader';
 import { PromptProcessor } from './prompt-processor';
 import { ComfyUIClient } from './comfyui-client';
+import { getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
 import SDXL from '../workflows/SDXL.json';
@@ -49,7 +50,7 @@ export class ImageGenerator {
             const images = await client.getImagesFromWebSocket(promptId);
             
             // Save individual images
-            const savedImagePaths = await this.saveImageFiles(images, promptData.data["KSampler"]["inputs"]["seed"]);
+            const savedImagePaths = await this.saveImageFiles(images, client.clientId);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 0) {
@@ -70,7 +71,7 @@ export class ImageGenerator {
     /**
      * Saves the provided image data to PNG files.
      */
-    private static async saveImageFiles(images: Map<string, Buffer[]>, seed: number): Promise<string[]> {
+    private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string): Promise<string[]> {
         const savedImages: string[] = [];
         const imageData = images.get('SaveImageWebsocket');
         
@@ -81,9 +82,9 @@ export class ImageGenerator {
 
         for (let index = 0; index < imageData.length; index++) {
             const imageBytes = imageData[index];
-            const filename = `${seed}_${(index + 1).toString().padStart(3, '0')}.png`;
+            // Index 1,2,... for individual images (grid will be 0)
+            const filename = getImageFilename(clientId, index + 1);
             const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
-            
             try {
                 writeFileSync(filepath, imageBytes);
                 savedImages.push(filepath);

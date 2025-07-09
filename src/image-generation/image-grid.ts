@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import { join } from 'path';
 import { COMFYUI_CONFIG } from '../config/constants';
+import { getImageFilename } from './filename-utils';
 
 export class ImageGrid {
     /**
@@ -76,10 +77,9 @@ export class ImageGrid {
     /**
      * Saves the grid to a file.
      */
-    private static async saveGrid(grid: sharp.Sharp, seed: string): Promise<string> {
-        const gridFilename = `${seed}.0.png`;
+    private static async saveGrid(grid: sharp.Sharp, clientId: string): Promise<string> {
+        const gridFilename = getImageFilename(clientId, 0);
         const gridPath = join(COMFYUI_CONFIG.FOLDER_PATH, gridFilename);
-        
         await grid.toFile(gridPath);
         return gridPath;
     }
@@ -108,35 +108,36 @@ export class ImageGrid {
             throw new Error("No filepaths provided for grid generation");
         }
 
-        // Extract seed from first filename
-        const seed = filepaths[0].split('/').pop()?.split('.')[0] || 'unknown';
-        
+        // Extract clientId from the first filename
+        const firstFile = filepaths[0].split('/').pop() || '';
+        const clientId = firstFile.split('_')[0];
+
         // Open all images
         const images = await this.openImages(filepaths);
-        
+
         // Get dimensions
         const { widths, heights } = await this.getImageDimensions(images);
-        
+
         // Determine grid layout
         const numImages = images.length;
         const { cols, rows } = this.determineGridLayout(numImages);
-        
+
         // Find max dimensions
         const maxWidth = Math.max(...widths);
         const maxHeight = Math.max(...heights);
-        
+
         // Create grid
         const grid = this.createBlankCanvas(cols, rows, maxWidth, maxHeight);
-        
+
         // Paste images into grid
         const finalGrid = await this.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
-        
-        // Save grid
-        const gridPath = await this.saveGrid(finalGrid, seed);
-        
+
+        // Save grid as index 0
+        const gridPath = await this.saveGrid(finalGrid, clientId);
+
         // Get domain path
         const domainPath = this.getDomainPath(gridPath);
-        
+
         console.log("Image grid generated and saved");
         return domainPath;
     }

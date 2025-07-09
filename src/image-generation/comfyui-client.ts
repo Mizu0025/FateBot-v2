@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { WorkflowData } from '../types';
 import { COMFYUI_CONFIG } from '../config/constants';
+import { getImageFilename } from './filename-utils';
 
 export interface ComfyUIMessage {
     type: string;
@@ -15,7 +16,7 @@ export interface ComfyUIExecutingData {
 
 export class ComfyUIClient {
     private ws: WebSocket | null = null;
-    private clientId: string;
+    public clientId: string;
 
     constructor() {
         this.clientId = uuidv4();
