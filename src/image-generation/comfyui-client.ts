@@ -3,8 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { WorkflowData } from '../types';
 import { COMFYUI_CONFIG } from '../config/constants';
 
-const CLIENT_ID = uuidv4();
-
 export interface ComfyUIMessage {
     type: string;
     data?: any;
@@ -17,6 +15,11 @@ export interface ComfyUIExecutingData {
 
 export class ComfyUIClient {
     private ws: WebSocket | null = null;
+    private clientId: string;
+
+    constructor() {
+        this.clientId = uuidv4();
+    }
 
     /**
      * Queues a prompt to the ComfyUI server.
@@ -28,7 +31,8 @@ export class ComfyUIClient {
         }
 
         try {
-            const payload = { prompt, client_id: CLIENT_ID };
+            const payload = { prompt, client_id: this.clientId };
+            console.log(`Queueing prompt with client ID: ${this.clientId}`);
             const response = await fetch(`http://${COMFYUI_CONFIG.ADDRESS}/prompt`, {
                 method: 'POST',
                 headers: {
@@ -55,7 +59,7 @@ export class ComfyUIClient {
      */
     async connectWebSocket(): Promise<WebSocket> {
         try {
-            this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}/ws?clientId=${CLIENT_ID}`);
+            this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}/ws?clientId=${this.clientId}`);
             
             return new Promise((resolve, reject) => {
                 if (!this.ws) {

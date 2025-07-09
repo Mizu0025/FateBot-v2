@@ -1,9 +1,9 @@
 export const BOT_CONFIG = {
-    SERVER: 'hayate',
-    CHANNEL: '#nanobot',
+    SERVER: process.env.SERVER || 'hayate', // Now loaded from env
+    CHANNEL: process.env.CHANNEL || '#nanobot', // Now loaded from env
     NICK: 'FateBotTS',
     TRIGGER_WORD: '!fate',
-    PORT: 6667
+    PORT: process.env.PORT || 6667
 } as const;
 
 export const COMFYUI_CONFIG = {
