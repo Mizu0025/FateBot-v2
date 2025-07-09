@@ -7,6 +7,7 @@ import { ComfyUIClient } from './comfyui-client';
 import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
 import SDXL from '../workflows/SDXL.json';
+import { COMFYUI_CONFIG } from '../config/constants';
 
 export class ImageGenerator {
     /**
@@ -78,21 +79,10 @@ export class ImageGenerator {
             return savedImages;
         }
 
-        // Create images directory if it doesn't exist
-        const imagesDir = join(__dirname, '../../images');
-        try {
-            const fs = require('fs');
-            if (!fs.existsSync(imagesDir)) {
-                fs.mkdirSync(imagesDir, { recursive: true });
-            }
-        } catch (error) {
-            console.error("Error creating images directory:", error);
-        }
-
         for (let index = 0; index < imageData.length; index++) {
             const imageBytes = imageData[index];
             const filename = `${seed}_${(index + 1).toString().padStart(3, '0')}.png`;
-            const filepath = join(imagesDir, filename);
+            const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
             
             try {
                 writeFileSync(filepath, imageBytes);
