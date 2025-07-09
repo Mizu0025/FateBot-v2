@@ -1,0 +1,24 @@
+{
+  "name": "fatebot-ts",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "cp -r src/workflows dist/workflows",
+    "start": "node dist/bot.js",
+    "dev": "tsc && node dist/bot.js",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@types/node": "^24.0.12",
+    "@types/sharp": "^0.31.1",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.13",
+    "irc-framework": "^4.14.0",
+    "sharp": "^0.34.2",
+    "uuid": "^11.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
