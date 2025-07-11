@@ -7,7 +7,6 @@ import { ComfyUIClient } from './comfyui-client';
 import { getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
-import SDXL from '../workflows/SDXL.json';
 import { COMFYUI_CONFIG } from '../config/constants';
 
 export class ImageGenerator {
@@ -21,8 +20,7 @@ export class ImageGenerator {
             console.log("Starting image generation process...");
             
             // Load workflow data
-            const workflowData = SDXL;
-            // await WorkflowLoader.loadWorkflowData(SDXL);
+            const workflowData = await WorkflowLoader.loadWorkflowData(COMFYUI_CONFIG.WORKFLOW_PATH);
             if (!workflowData) {
                 throw new Error("Failed to load workflow data.");
             }
