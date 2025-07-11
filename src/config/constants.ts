@@ -9,7 +9,8 @@ export const BOT_CONFIG = {
 export const COMFYUI_CONFIG = {
     ADDRESS: process.env.COMFYUI_ADDRESS || 'hayate:8188',
     DOMAIN_PATH: process.env.COMFYUI_DOMAIN_PATH || 'mock_domain_path',
-    FOLDER_PATH: process.env.COMFYUI_FOLDER_PATH || '/home/mizu/Pictures/artbot/'
+    FOLDER_PATH: process.env.COMFYUI_FOLDER_PATH || '/home/mizu/Pictures/artbot/',
+    WORKFLOW_PATH: process.env.COMFYUI_WORKFLOW_PATH || 'src/workflows/SDXL.json'
 } as const;
 
 export const HELP_MESSAGES = {
