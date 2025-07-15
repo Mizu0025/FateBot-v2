@@ -8,6 +8,7 @@ import { getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
 import { COMFYUI_CONFIG } from '../config/constants';
+import { ensureServiceRunning, scheduleStop } from './comfyui-service';
 
 export class ImageGenerator {
     /**
@@ -18,6 +19,7 @@ export class ImageGenerator {
         
         try {
             console.log("Starting image generation process...");
+            await ensureServiceRunning();
             
             // Load workflow data
             const workflowData = await WorkflowLoader.loadWorkflowData(COMFYUI_CONFIG.WORKFLOW_PATH);
@@ -63,6 +65,7 @@ export class ImageGenerator {
             throw error;
         } finally {
             client.close();
+            scheduleStop();
         }
     }
 
@@ -94,4 +97,5 @@ export class ImageGenerator {
 
         return savedImages;
     }
-} 
+}
+ 
