@@ -1,6 +1,5 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { systemPassword } from '../config/credentials';
 
 const execAsync = promisify(exec);
 
@@ -17,9 +16,8 @@ let inactivityTimer: NodeJS.Timeout | null = null;
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 
 async function executeCommand(command: string): Promise<string> {
-    const sudoCommand = `echo '${systemPassword}' | sudo -S ${command}`;
     try {
-        const { stdout, stderr } = await execAsync(sudoCommand);
+        const { stdout, stderr } = await execAsync(command);
         if (stderr) {
             // sudo sends some messages to stderr, so we check for specific errors
             if (!stderr.includes('is not a tty')) {
