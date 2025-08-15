@@ -47,8 +47,6 @@ bot.on('message', async (event: any) => {
                 // Parse the prompt
                 const filteredPrompt = await PromptParser.extractPrompts(event.message);
                 
-                // Send initial response
-                
                 // Queue the image generation task
                 const position = queue.addTask(async () => {
                     try {
