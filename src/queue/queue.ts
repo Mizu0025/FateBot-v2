@@ -3,9 +3,10 @@ export class PromptQueue {
     private queue: Array<() => Promise<void>> = [];
     private running = false;
 
-    addTask(task: () => Promise<void>) {
+    addTask(task: () => Promise<void>): number {
         this.queue.push(task);
         this.processQueue();
+        return this.queue.length;
     }
 
     private async processQueue() {

@@ -48,10 +48,9 @@ bot.on('message', async (event: any) => {
                 const filteredPrompt = await PromptParser.extractPrompts(event.message);
                 
                 // Send initial response
-                bot.say(BOT_CONFIG.CHANNEL, `${event.nick}: Starting image generation...`);
                 
                 // Queue the image generation task
-                queue.addTask(async () => {
+                const position = queue.addTask(async () => {
                     try {
                         const gridPath = await ImageGenerator.generateImage(filteredPrompt);
                         bot.say(BOT_CONFIG.CHANNEL, `${event.nick}: Your image is ready! ${gridPath}`);
@@ -60,6 +59,7 @@ bot.on('message', async (event: any) => {
                         bot.say(BOT_CONFIG.CHANNEL, `${event.nick}: An error occurred during image generation: ${error.message}`);
                     }
                 });
+                bot.say(BOT_CONFIG.CHANNEL, `${event.nick}: Starting image generation... You are #${position} in the queue.`);
                 
             } catch (error: any) {
                 console.error("Error parsing prompt:", error);
