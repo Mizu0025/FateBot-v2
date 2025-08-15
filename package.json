@@ -1,10 +1,6 @@
 {
   "name": "fatebot-ts",
   "version": "1.0.0",
-  "engines":{
-    "node": ">=22.0.0",
-    "npm": ">=10.0.0"
-  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/bot.js",
