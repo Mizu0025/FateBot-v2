@@ -3,9 +3,9 @@ import { BOT_CONFIG } from '../config/constants';
 
 export class PromptParser {
     /**
-     * Extracts the prompt, width, height, model, and negative prompt from the message.
+     * Extracts the prompt, width, height, model, negative prompt, count, and seed from the message.
      * Assumes the format is:
-     *    !trigger <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text>
+     *    !trigger <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text> --count=<count> --seed=<seed>
      */
     static async extractPrompts(message: string): Promise<FilteredPrompt> {
         // if message doesn't begin with the bot trigger, raise an error
@@ -20,6 +20,8 @@ export class PromptParser {
         let height = 1024;
         let model = "";
         let negative_prompt = "";
+        let count = 4;
+        let seed = -1;
 
         // Remove the trigger keyword and leading/trailing spaces
         message = message.replace(BOT_CONFIG.TRIGGER_WORD, "").trim();
@@ -40,6 +42,10 @@ export class PromptParser {
                 model = part.substring("model=".length).trim();
             } else if (part.startsWith("no")) {
                 negative_prompt = part.substring("no".length).trim();
+            } else if (part.startsWith("count=")) {
+                count = parseInt(part.substring("count=".length).trim());
+            } else if (part.startsWith("seed=")) {
+                seed = parseInt(part.substring("seed=".length).trim());
             }
         }
 
@@ -49,7 +55,9 @@ export class PromptParser {
             width,
             height,
             model,
-            negative_prompt
+            negative_prompt,
+            count,
+            seed
         };
     }
 } 
