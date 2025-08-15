@@ -44,14 +44,16 @@ export class PromptProcessor {
         
         const defaultPositivePrompt = modelConfig.defaultPositivePrompt;
         const defaultNegativePrompt = modelConfig.defaultNegativePrompt;
-        const batchSize = 4; // Default batch size
-
-        // Generate random seed
-        promptData.data["KSampler"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000) + 1;
-        promptData.data["EmptyLatentImage"]["inputs"]["batch_size"] = batchSize;
+        
+        promptData.data["KSampler"]["inputs"]["seed"] = filteredPrompt.seed === -1 ? this.generateRandomSeed() : filteredPrompt.seed;
+        promptData.data["EmptyLatentImage"]["inputs"]["batch_size"] = filteredPrompt.count;
         promptData.data["PositivePrompt"]["inputs"]["text"] = `${defaultPositivePrompt}, ${filteredPrompt.prompt || ''}`.trim();
         promptData.data["NegativePrompt"]["inputs"]["text"] = `nsfw, nude, ${defaultNegativePrompt}, ${filteredPrompt.negative_prompt || ''}`.trim();
         
         console.log("PromptData updated with model configuration");
+    }
+
+    private static generateRandomSeed(): number {
+        return Math.floor(Math.random() * 1000000) + 1;
     }
 } 
