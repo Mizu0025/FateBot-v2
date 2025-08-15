@@ -12,17 +12,15 @@ export class PromptQueue {
     private async processQueue() {
         if (this.running || this.queue.length === 0) return;
         this.running = true;
-        const task = this.queue.shift();
-        if (task) {
-            try {
-                await task();
-            } catch (e) {
-                console.error("Error processing task:", e);
-                // Optionally log error
-            }
-        }
-        this.running = false;
-        if (this.queue.length > 0) {
+        const task = this.queue[0];
+        try {
+            await task();
+        } catch (e) {
+            console.error("Error processing task:", e);
+            // Optionally log error
+        } finally {
+            this.queue.shift();
+            this.running = false;
             this.processQueue();
         }
     }

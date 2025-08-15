@@ -51,7 +51,7 @@ export class ComfyUIClient {
             return result.prompt_id;
         } catch (error) {
             console.error("Error queuing prompt:", error);
-            return null;
+            throw new Error(`Failed to queue prompt: ${error}`);
         }
     }
 
