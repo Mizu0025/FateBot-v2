@@ -4,6 +4,8 @@ export interface FilteredPrompt {
     height: number;
     model: string;
     negative_prompt: string;
+    count: number;
+    seed: number;
 }
 
 export interface ModelConfiguration {

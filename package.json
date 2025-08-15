@@ -8,7 +8,8 @@
     "watch": "tsc --watch",
     "start:dev": "dotenv -e .env -e .env.dev -- ts-node src/bot.ts",
     "start:test": "dotenv -e .env -e .env.test -- ts-node src/bot.ts",
-    "start:prod": "dotenv -e .env -e .env.prod -- node dist/bot.js"
+    "start:prod": "dotenv -e .env -e .env.prod -- node dist/bot.js",
+    "test": "jest"
   },
   "dependencies": {
     "@types/node": "^24.0.12",
@@ -22,7 +23,10 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "dotenv-cli": "^7.0.0",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.1",
     "typescript": "^5.8.3"
   }
 }

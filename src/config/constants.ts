@@ -15,6 +15,6 @@ export const COMFYUI_CONFIG = {
 
 export const HELP_MESSAGES = {
     imageGeneration: `To generate an image, type: ${BOT_CONFIG.TRIGGER_WORD} <your_prompt>`,
-    promptStructure: `Prompt structure: '${BOT_CONFIG.TRIGGER_WORD}' <positive_text> --width=<w> --height=<h> --model=<m> --no=<negative_text>`,
+    promptStructure: `${BOT_CONFIG.TRIGGER_WORD} <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text> --count=<count> --seed=<seed>`,
     promptExample: 'Example:  a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry'
 } as const; 
