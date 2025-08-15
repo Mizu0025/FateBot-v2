@@ -20,7 +20,7 @@ bot.on('registered', () => {
 
 bot.on('join', (event: any) => {
     if (event.nick === BOT_CONFIG.NICK && event.channel === BOT_CONFIG.CHANNEL) {
-        bot.say(BOT_CONFIG.CHANNEL, 'FateBotTS has joined the channel!');
+        bot.say(BOT_CONFIG.CHANNEL, `${BOT_CONFIG.NICK} has joined the channel!`);
     }
 });
 

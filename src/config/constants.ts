@@ -1,7 +1,7 @@
 export const BOT_CONFIG = {
-    SERVER: process.env.SERVER || 'hayate', // Now loaded from env
-    CHANNEL: process.env.CHANNEL || '#nanobot', // Now loaded from env
-    NICK: 'FateBotTS',
+    SERVER: process.env.SERVER || 'hayate',
+    CHANNEL: process.env.CHANNEL || '#nanobot',
+    NICK: 'FateBot',
     TRIGGER_WORD: '!fate',
     PORT: process.env.PORT || 6667
 } as const;
