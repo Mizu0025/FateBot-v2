@@ -1,3 +1,4 @@
+import 'dotenv/config';
 // Add this at the top to declare the module for TypeScript
 // @ts-ignore: No type definitions for 'irc-framework'
 import IRC from 'irc-framework';

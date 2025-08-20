@@ -1,11 +1,6 @@
 import { cleanEnv, str, port } from 'envalid';
 
 describe('env validation', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-  });
   it('validates all required variables and applies defaults', () => {
     // arrange
     const inputEnv = {

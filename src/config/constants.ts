@@ -1,16 +1,19 @@
+
+import env from './env';
+
 export const BOT_CONFIG = {
-    SERVER: process.env.SERVER || 'hayate',
-    CHANNEL: process.env.CHANNEL || '#nanobot',
-    NICK: 'FateBot',
-    TRIGGER_WORD: '!fate',
-    PORT: process.env.PORT || 6667
+    SERVER: env.SERVER,
+    CHANNEL: env.CHANNEL,
+    NICK: env.NICK,
+    TRIGGER_WORD: env.TRIGGER_WORD,
+    PORT: env.PORT
 } as const;
 
 export const COMFYUI_CONFIG = {
-    ADDRESS: process.env.COMFYUI_ADDRESS || 'hayate:8188',
-    DOMAIN_PATH: process.env.COMFYUI_DOMAIN_PATH || 'mock_domain_path',
-    FOLDER_PATH: process.env.COMFYUI_FOLDER_PATH || '/home/mizu/Pictures/artbot/',
-    WORKFLOW_PATH: process.env.COMFYUI_WORKFLOW_PATH || 'src/workflows/SDXL.json'
+    ADDRESS: env.COMFYUI_ADDRESS,
+    DOMAIN_PATH: env.COMFYUI_DOMAIN_PATH,
+    FOLDER_PATH: env.COMFYUI_FOLDER_PATH,
+    WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH
 } as const;
 
 export const HELP_MESSAGES = {
