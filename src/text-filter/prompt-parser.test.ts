@@ -2,6 +2,11 @@ import { PromptParser } from './prompt-parser';
 import { BOT_CONFIG } from '../config/constants';
 
 describe('PromptParser', () => {
+    beforeEach(() => {
+        jest.resetAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
     it('should extract the prompt, width, height, model, negative prompt, count, and seed from the message', async () => {
         const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape --width=800 --height=600 --model=test-model --no ugly, blurry --count=2 --seed=12345`;
         const result = await PromptParser.extractPrompts(message);

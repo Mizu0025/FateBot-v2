@@ -11,6 +11,11 @@ const createMockTask = (id: number, callback: (id: number) => void): () => Promi
 };
 
 describe('PromptQueue', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
   it('should process tasks in FIFO order', async () => {
     const queue = new PromptQueue();
     const executionOrder: number[] = [];
