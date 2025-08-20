@@ -1,15 +1,15 @@
 import { ModelLoader } from './model-loader';
-import { readFileSync } from 'fs';
-
-// Mock the fs module
-jest.mock('fs', () => ({
-    ...jest.requireActual('fs'),
-    readFileSync: jest.fn(),
-}));
-
-const mockedReadFileSync = readFileSync as jest.Mock;
+jest.mock('fs');
+const fs = require('fs');
+fs.readFileSync = jest.fn();
+const mockedReadFileSync = fs.readFileSync;
 
 describe('ModelLoader', () => {
+    beforeEach(() => {
+        jest.resetAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
     afterEach(() => {
         jest.clearAllMocks();
     });
