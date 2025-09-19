@@ -128,9 +128,13 @@ export class ComfyUIClient {
                         }
                     } else {
                         // Binary data (image)
+                        // The SaveImageWebsocket node in ComfyUI typically sends raw image data.
+                        // We assume it's the correct format (e.g., WebP) as per ComfyUI's configuration.
                         if (currentNode === 'SaveImageWebsocket') {
                             const images = outputImages.get(currentNode) || [];
-                            // Remove the first 8 bytes (header) and add the image data
+                            // The websocket message for images might include a header.
+                            // For ComfyUI's SaveImageWebsocket, it's often an 8-byte header.
+                            // We slice it off to get the raw image data.
                             images.push(data.slice(8));
                             outputImages.set(currentNode, images);
                         }
