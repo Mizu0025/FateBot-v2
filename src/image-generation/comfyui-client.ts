@@ -51,7 +51,7 @@ export class ComfyUIClient {
             return result.prompt_id;
         } catch (error) {
             console.error("Error queuing prompt:", error);
-            throw new Error(`Failed to queue prompt: ${error}`);
+            throw error;
         }
     }
 
@@ -61,7 +61,7 @@ export class ComfyUIClient {
     async connectWebSocket(): Promise<WebSocket> {
         try {
             this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}/ws?clientId=${this.clientId}`);
-            
+
             return new Promise((resolve, reject) => {
                 if (!this.ws) {
                     reject(new Error("Failed to create WebSocket"));
@@ -108,14 +108,14 @@ export class ComfyUIClient {
                 try {
                     // Check if it's a text message (JSON) or binary data (image)
                     const messageStr = data.toString();
-                    
+
                     if (messageStr.startsWith('{')) {
                         // JSON message
                         const message: ComfyUIMessage = JSON.parse(messageStr);
-                        
+
                         if (message.type === 'executing') {
                             const executingData: ComfyUIExecutingData = message.data;
-                            
+
                             if (executingData.prompt_id === promptId) {
                                 if (executingData.node === null) {
                                     // Execution is done
@@ -171,4 +171,4 @@ export class ComfyUIClient {
     isConnected(): boolean {
         return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
     }
-} 
+}
