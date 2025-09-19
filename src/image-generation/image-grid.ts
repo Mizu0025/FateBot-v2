@@ -78,7 +78,7 @@ export class ImageGrid {
      * Saves the grid to a file.
      */
     private static async saveGrid(grid: sharp.Sharp, clientId: string): Promise<string> {
-        const gridFilename = getImageFilename(clientId, 0);
+        const gridFilename = getImageFilename(clientId, 0, 'webp');
         const gridPath = join(COMFYUI_CONFIG.FOLDER_PATH, gridFilename);
         await grid.toFile(gridPath);
         return gridPath;

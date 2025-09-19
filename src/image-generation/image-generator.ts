@@ -1,6 +1,7 @@
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { FilteredPrompt } from '../types';
+import sharp from 'sharp';
+import { FilteredPrompt, PromptData } from '../types';
 import { ModelLoader } from '../config/model-loader';
 import { PromptProcessor } from './prompt-processor';
 import { ComfyUIClient } from './comfyui-client';
@@ -26,7 +27,7 @@ export class ImageGenerator {
             }
 
             // Create prompt data
-            const promptData = PromptProcessor.createPromptData(workflowData);
+            const promptData: PromptData = PromptProcessor.createPromptData(workflowData);
             
             // Load model configuration
             const modelName = filteredPrompt.model || 'paSanctuary';
@@ -48,7 +49,7 @@ export class ImageGenerator {
             const images = await client.getImagesFromWebSocket(promptId);
             
             // Save individual images
-            const savedImagePaths = await this.saveImageFiles(images, client.clientId);
+            const savedImagePaths = await this.saveImageFiles(images, client.clientId, promptData);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 0) {
@@ -67,9 +68,9 @@ export class ImageGenerator {
     }
 
     /**
-     * Saves the provided image data to PNG files.
+     * Saves the provided image data to files.
      */
-    private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string): Promise<string[]> {
+    private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string, promptData: PromptData): Promise<string[]> {
         const savedImages: string[] = [];
         const imageData = images.get('SaveImageWebsocket');
         
@@ -81,10 +82,21 @@ export class ImageGenerator {
         for (let index = 0; index < imageData.length; index++) {
             const imageBytes = imageData[index];
             // Index 1,2,... for individual images (grid will be 0)
-            const filename = getImageFilename(clientId, index + 1);
+            const filename = getImageFilename(clientId, index + 1, 'webp');
             const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
+
             try {
-                writeFileSync(filepath, imageBytes);
+                const webpImage = await sharp(imageBytes)
+                    .webp()
+                    .withMetadata({
+                        exif: {
+                            IFD0: {
+                                UserComment: JSON.stringify(promptData)
+                            }
+                        }
+                    })
+                    .toBuffer();
+                writeFileSync(filepath, webpImage);
                 savedImages.push(filepath);
                 console.log(`Saved image: ${filepath}`);
             } catch (error) {
@@ -94,4 +106,4 @@ export class ImageGenerator {
 
         return savedImages;
     }
-} 
+}
