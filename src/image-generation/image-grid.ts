@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import { join } from 'path';
 import { COMFYUI_CONFIG } from '../config/constants';
-import { getImageFilename } from './filename-utils';
+import { getDomainPath, getImageFilename } from './filename-utils';
 
 export class ImageGrid {
     /**
@@ -85,22 +85,6 @@ export class ImageGrid {
     }
 
     /**
-     * Returns the domain path of the grid.
-     */
-    private static getDomainPath(gridPath: string): string {
-        if (!COMFYUI_CONFIG.DOMAIN_PATH) {
-            console.error("Domain path is not set in the configuration.");
-            throw new Error("Domain path is not set in the configuration.");
-        }
-        if (!COMFYUI_CONFIG.FOLDER_PATH) {
-            console.error("Folder path is not set in the configuration.");
-            throw new Error("Folder path is not set in the configuration.");
-        }
-
-        return gridPath.replace(COMFYUI_CONFIG.FOLDER_PATH, COMFYUI_CONFIG.DOMAIN_PATH);
-    }
-
-    /**
      * Generates a grid of images based on the filepaths provided.
      */
     static async generateImageGrid(filepaths: string[]): Promise<string> {
@@ -136,9 +120,9 @@ export class ImageGrid {
         const gridPath = await this.saveGrid(finalGrid, clientId);
 
         // Get domain path
-        const domainPath = this.getDomainPath(gridPath);
+        const domainPath = getDomainPath(gridPath);
 
         console.log("Image grid generated and saved");
         return domainPath;
     }
-} 
+}

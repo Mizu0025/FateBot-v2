@@ -5,7 +5,7 @@ import { FilteredPrompt, PromptData } from '../types';
 import { ModelLoader } from '../config/model-loader';
 import { PromptProcessor } from './prompt-processor';
 import { ComfyUIClient } from './comfyui-client';
-import { getImageFilename } from './filename-utils';
+import { getDomainPath, getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
 import { COMFYUI_CONFIG } from '../config/constants';
@@ -52,9 +52,11 @@ export class ImageGenerator {
             const savedImagePaths = await this.saveImageFiles(images, client.clientId);
 
             // Generate grid from saved images
-            if (savedImagePaths.length > 0) {
+            if (savedImagePaths.length > 1) {
                 const gridPath = await ImageGrid.generateImageGrid(savedImagePaths);
                 return gridPath;
+            } else if (savedImagePaths.length === 1) {
+                return getDomainPath(savedImagePaths[0]);
             } else {
                 throw new Error("No images were generated");
             }
