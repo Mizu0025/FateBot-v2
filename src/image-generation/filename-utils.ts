@@ -1,7 +1,7 @@
 import { COMFYUI_CONFIG } from '../config/constants';
 
 export function getImageFilename(clientId: string, index: number, extension: string): string {
-    return `${clientId}_${index.toString().padStart(3, '0')}.${extension}`;
+    return `${clientId}_${index.toString()}.${extension}`;
 }
 
 export function getDomainPath(imagePath: string): string {

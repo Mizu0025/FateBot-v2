@@ -9,7 +9,7 @@ describe('getImageFilename', () => {
   it('should return a filename with the client ID and a zero-padded index', () => {
     const clientId = 'test-client';
     const index = 1;
-    const expectedFilename = 'test-client_001.png';
+    const expectedFilename = 'test-client_1.png';
     const actualFilename = getImageFilename(clientId, index, 'png');
     expect(actualFilename).toBe(expectedFilename);
   });
