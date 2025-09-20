@@ -10,7 +10,7 @@ describe('getImageFilename', () => {
     const clientId = 'test-client';
     const index = 1;
     const expectedFilename = 'test-client_001.png';
-    const actualFilename = getImageFilename(clientId, index);
+    const actualFilename = getImageFilename(clientId, index, 'png');
     expect(actualFilename).toBe(expectedFilename);
   });
 
@@ -18,7 +18,7 @@ describe('getImageFilename', () => {
     const clientId = 'test-client';
     const index = 123;
     const expectedFilename = 'test-client_123.png';
-    const actualFilename = getImageFilename(clientId, index);
+    const actualFilename = getImageFilename(clientId, index, 'png');
     expect(actualFilename).toBe(expectedFilename);
   });
 });

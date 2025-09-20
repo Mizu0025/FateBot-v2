@@ -49,7 +49,7 @@ export class ImageGenerator {
             const images = await client.getImagesFromWebSocket(promptId);
             
             // Save individual images
-            const savedImagePaths = await this.saveImageFiles(images, client.clientId, promptData);
+            const savedImagePaths = await this.saveImageFiles(images, client.clientId);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 0) {
@@ -70,7 +70,7 @@ export class ImageGenerator {
     /**
      * Saves the provided image data to files.
      */
-    private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string, promptData: PromptData): Promise<string[]> {
+    private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string): Promise<string[]> {
         const savedImages: string[] = [];
         const imageData = images.get('SaveImageWebsocket');
         
@@ -88,13 +88,6 @@ export class ImageGenerator {
             try {
                 const webpImage = await sharp(imageBytes)
                     .webp()
-                    .withMetadata({
-                        exif: {
-                            IFD0: {
-                                UserComment: JSON.stringify(promptData)
-                            }
-                        }
-                    })
                     .toBuffer();
                 writeFileSync(filepath, webpImage);
                 savedImages.push(filepath);
