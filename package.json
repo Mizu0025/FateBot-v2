@@ -6,9 +6,9 @@
     "start": "node dist/bot.js",
     "dev": "tsc && node dist/bot.js",
     "watch": "tsc --watch",
-    "start:dev": "dotenv -e .env -e .env.dev -- ts-node src/bot.ts",
-    "start:test": "dotenv -e .env -e .env.test -- ts-node src/bot.ts",
-    "start:prod": "dotenv -e .env -e .env.prod -- node dist/bot.js",
+    "start:dev": "dotenv -e .env.dev -- ts-node src/bot.ts",
+    "start:test": "dotenv -e .env.test -- ts-node src/bot.ts",
+    "start:prod": "dotenv -e .env.prod -- node dist/bot.js",
     "test": "jest"
   },
   "dependencies": {
