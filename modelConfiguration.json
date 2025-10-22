@@ -16,5 +16,16 @@
         "imageWidth": 1024,
         "defaultPositivePrompt": "",
         "defaultNegativePrompt": "worst quality, comic, multiple views, bad quality, low quality, lowres, displeasing, very displeasing, bad anatomy, bad hands, scan artifacts, monochrome, greyscale, signature, twitter username, jpeg artifacts, 2koma, 4koma, guro, extra digits, fewer digits"
+    },
+    "AnimagineXL": {
+        "checkpointName": "animagine-xl-4.0.safetensors",
+        "vae": "sdxl_vae.safetensors",
+        "steps": 28,
+        "cfg": 5.0,
+        "sampler_name": "euler_ancestral",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, high score, great score, absurdres",
+        "defaultNegativePrompt": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
     }
 }
