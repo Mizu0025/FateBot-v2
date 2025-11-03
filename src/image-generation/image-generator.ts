@@ -20,18 +20,26 @@ export class ImageGenerator {
         try {
             console.log("Starting image generation process...");
             
+            // Load model configuration
+            const modelName = filteredPrompt.model || 'paSanctuary';
+            const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
+
+            if (!modelConfig) {
+                throw new Error(`Model configuration for ${modelName} not found.`);
+            }
+
+            if (!modelConfig.workflow_path) {
+                throw new Error(`Workflow path not defined for model ${modelName}.`);
+            }
+            
             // Load workflow data
-            const workflowData = await WorkflowLoader.loadWorkflowData(COMFYUI_CONFIG.WORKFLOW_PATH);
+            const workflowData = await WorkflowLoader.loadWorkflowData(modelConfig.workflow_path);
             if (!workflowData) {
                 throw new Error("Failed to load workflow data.");
             }
 
             // Create prompt data
             const promptData: PromptData = PromptProcessor.createPromptData(workflowData);
-            
-            // Load model configuration
-            const modelName = filteredPrompt.model || 'paSanctuary';
-            const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
             
             // Update prompt with model configuration
             PromptProcessor.updatePromptWithModelConfig(promptData, modelConfig, filteredPrompt);

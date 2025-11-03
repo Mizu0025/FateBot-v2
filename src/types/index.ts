@@ -18,6 +18,7 @@ export interface ModelConfiguration {
     imageWidth: number;
     defaultPositivePrompt: string;
     defaultNegativePrompt: string;
+    workflow_path: string;
 }
 
 export interface WorkflowData {

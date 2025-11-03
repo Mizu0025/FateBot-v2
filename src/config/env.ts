@@ -9,7 +9,6 @@ const env = cleanEnv(process.env, {
   COMFYUI_ADDRESS:    str({ default: 'hayate:8188' }),
   COMFYUI_DOMAIN_PATH: str({ default: 'mock_domain_path' }),
   COMFYUI_FOLDER_PATH: str({ default: '/home/mizu/Pictures/artbot/' }),
-  COMFYUI_WORKFLOW_PATH: str({ default: 'src/workflows/SDXL.json' }),
 });
 
 export default env;
