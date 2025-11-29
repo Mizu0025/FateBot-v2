@@ -1,5 +1,5 @@
 import { FilteredPrompt } from '../types';
-import { BOT_CONFIG } from '../config/constants';
+import { BOT_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 
 export class PromptParser {
     /**
@@ -15,13 +15,13 @@ export class PromptParser {
         }
 
         // Default values
-        let prompt = "";
-        let width = 1024;
-        let height = 1024;
-        let model = "";
-        let negative_prompt = "";
-        let count = 4;
-        let seed = -1;
+        let prompt: string = "";
+        let width: number = GENERATION_DEFAULTS.WIDTH;
+        let height: number = GENERATION_DEFAULTS.HEIGHT;
+        let model: string = "";
+        let negative_prompt: string = "";
+        let count: number = GENERATION_DEFAULTS.COUNT;
+        let seed: number = -1;
 
         // Remove the trigger keyword and leading/trailing spaces
         message = message.replace(BOT_CONFIG.TRIGGER_WORD, "").trim();

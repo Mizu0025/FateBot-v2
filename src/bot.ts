@@ -4,6 +4,7 @@ import 'dotenv/config';
 import IRC from 'irc-framework';
 import { BOT_CONFIG, HELP_MESSAGES } from './config/constants';
 import { ModelLoader } from './config/model-loader';
+import { RuntimeConfig } from './config/runtime-config';
 import { PromptParser } from './text-filter/prompt-parser';
 import { ImageGenerator } from './image-generation/image-generator';
 import { PromptQueue } from './queue/queue';
@@ -42,12 +43,32 @@ bot.on('message', async (event: any) => {
             } catch (error) {
                 bot.notice(event.nick, `Error getting models: ${error}`);
             }
+        } else if (event.message.includes('--set-default-model')) {
+            // Handle changing default model
+            const parts = event.message.split('--set-default-model');
+            const newModel = parts[1].trim();
+
+            if (!newModel) {
+                bot.notice(event.nick, "Usage: --set-default-model <model_name>");
+            } else {
+                try {
+                    const config = await ModelLoader.loadModelConfiguration(newModel);
+                    if (config) {
+                        RuntimeConfig.defaultModel = newModel;
+                        bot.say(BOT_CONFIG.CHANNEL, `Default model changed to: ${newModel}`);
+                    } else {
+                        bot.notice(event.nick, `Model '${newModel}' not found. Use --models to see available models.`);
+                    }
+                } catch (error) {
+                    bot.notice(event.nick, `Error setting model: ${error}`);
+                }
+            }
         } else {
             // Handle image generation request
             try {
                 // Parse the prompt
                 const filteredPrompt = await PromptParser.extractPrompts(event.message);
-                
+
                 // Queue the image generation task
                 const position = queue.addTask(async () => {
                     try {
@@ -59,7 +80,7 @@ bot.on('message', async (event: any) => {
                     }
                 });
                 bot.say(BOT_CONFIG.CHANNEL, `${event.nick}: Starting image generation... You are #${position} in the queue.`);
-                
+
             } catch (error: any) {
                 console.error("Error parsing prompt:", error);
                 bot.say(BOT_CONFIG.CHANNEL, `${event.nick}: Error parsing your request: ${error.message}`);
