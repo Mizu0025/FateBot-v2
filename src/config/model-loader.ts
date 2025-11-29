@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ModelConfiguration } from '../types';
+import { logger } from '../config/logger';
 
 export class ModelLoader {
     /**
@@ -8,11 +9,18 @@ export class ModelLoader {
      */
     static async loadModelConfiguration(modelName: string): Promise<ModelConfiguration | null> {
         try {
+            logger.info(`Loading model configuration: ${modelName}`);
             const configPath = join(__dirname, '../../modelConfiguration.json');
             const configData = JSON.parse(readFileSync(configPath, 'utf8'));
-            return configData[modelName] || null;
+            const config = configData[modelName] || null;
+            if (config) {
+                logger.debug(`Model configuration found for ${modelName}`);
+            } else {
+                logger.warn(`Model configuration not found for ${modelName}`);
+            }
+            return config;
         } catch (error) {
-            console.error('Error loading model configuration:', error);
+            logger.error('Error loading model configuration:', error);
             throw new Error('modelConfiguration.json not found. Please ensure it exists in the current directory.');
         }
     }
@@ -22,11 +30,12 @@ export class ModelLoader {
      */
     static async getModelsList(): Promise<string> {
         try {
+            logger.info('Retrieving available models list');
             const configPath = join(__dirname, '../../modelConfiguration.json');
             const data = JSON.parse(readFileSync(configPath, 'utf8'));
             return Object.keys(data).join(', ');
         } catch (error) {
-            console.error('Error getting models:', error);
+            logger.error('Error getting models:', error);
             throw new Error('modelConfiguration.json not found.');
         }
     }

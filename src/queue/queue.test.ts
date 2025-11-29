@@ -1,4 +1,5 @@
 import { PromptQueue } from './queue';
+import { logger } from '../config/logger';
 
 // Helper to create a mock task that resolves after a delay
 const createMockTask = (id: number, callback: (id: number) => void): () => Promise<void> => {
@@ -13,8 +14,9 @@ const createMockTask = (id: number, callback: (id: number) => void): () => Promi
 describe('PromptQueue', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(logger, 'error').mockImplementation(() => logger);
+    jest.spyOn(logger, 'debug').mockImplementation(() => logger);
+    jest.spyOn(logger, 'info').mockImplementation(() => logger);
   });
   it('should process tasks in FIFO order', async () => {
     const queue = new PromptQueue();
@@ -33,7 +35,7 @@ describe('PromptQueue', () => {
 
   it('should return the correct queue length', () => {
     const queue = new PromptQueue();
-    const taskCallback = () => {};
+    const taskCallback = () => { };
 
     expect(queue.addTask(createMockTask(1, taskCallback))).toBe(1);
     expect(queue.addTask(createMockTask(2, taskCallback))).toBe(2);
@@ -62,8 +64,8 @@ describe('PromptQueue', () => {
   });
 
   it('should continue processing if a task fails', async () => {
-    // Suppress console.error for this test
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // Suppress logger.error for this test
+    const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
 
     const queue = new PromptQueue();
     const executionOrder: number[] = [];
@@ -78,8 +80,8 @@ describe('PromptQueue', () => {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     expect(executionOrder).toEqual([1, 2]);
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Error processing task:', 'Task failed');
+    expect(loggerErrorSpy).toHaveBeenCalledWith('Error processing task:', 'Task failed');
 
-    consoleErrorSpy.mockRestore();
+    loggerErrorSpy.mockRestore();
   });
 });

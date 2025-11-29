@@ -1,5 +1,6 @@
 import { FilteredPrompt } from '../types';
 import { BOT_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
+import { logger } from '../config/logger';
 
 export class PromptParser {
     /**
@@ -10,7 +11,7 @@ export class PromptParser {
     static async extractPrompts(message: string): Promise<FilteredPrompt> {
         // if message doesn't begin with the bot trigger, raise an error
         if (!message.startsWith(BOT_CONFIG.TRIGGER_WORD)) {
-            console.error("Prompt trigger is missing or empty!");
+            logger.error("Prompt trigger is missing or empty!");
             throw new Error("Prompt trigger is missing or empty!");
         }
 
@@ -49,7 +50,14 @@ export class PromptParser {
             }
         }
 
-        console.log("Extracted prompt data for image generation");
+        logger.debug('Extracted prompt parameters', {
+            width,
+            height,
+            model: model || 'default',
+            count,
+            seed: seed === -1 ? 'random' : seed
+        });
+
         return {
             prompt,
             width,

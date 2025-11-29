@@ -10,6 +10,7 @@ import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
 import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { RuntimeConfig } from '../config/runtime-config';
+import { logger } from '../config/logger';
 
 export class ImageGenerator {
     /**
@@ -19,25 +20,28 @@ export class ImageGenerator {
         const client = new ComfyUIClient();
 
         try {
-            console.log("Starting image generation process...");
+            logger.info("Starting image generation process");
 
             // Load workflow data
             const workflowData = await WorkflowLoader.loadWorkflowData(COMFYUI_CONFIG.WORKFLOW_PATH);
             if (!workflowData) {
                 throw new Error("Failed to load workflow data.");
             }
+            logger.debug("Workflow data loaded successfully");
 
             // Create prompt data
             const promptData: PromptData = PromptProcessor.createPromptData(workflowData);
 
             // Load model configuration
             const modelName = filteredPrompt.model || RuntimeConfig.defaultModel;
+            logger.info(`Using model: ${modelName}`);
             const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
 
             // Update prompt with model configuration
             PromptProcessor.updatePromptWithModelConfig(promptData, modelConfig, filteredPrompt);
 
             // Connect to ComfyUI
+            logger.debug("Connecting to ComfyUI WebSocket");
             await client.connectWebSocket();
 
             // Queue the prompt
@@ -45,15 +49,19 @@ export class ImageGenerator {
             if (!promptId) {
                 throw new Error("Failed to queue prompt.");
             }
+            logger.info(`Prompt queued with ID: ${promptId}`);
 
             // Get images from WebSocket
             const images = await client.getImagesFromWebSocket(promptId);
+            const imageCount = images.get('SaveImageWebsocket')?.length || 0;
+            logger.info(`Received ${imageCount} image(s) from ComfyUI`);
 
             // Save individual images
             const savedImagePaths = await this.saveImageFiles(images, client.clientId);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {
+                logger.info(`Generating image grid from ${savedImagePaths.length} images`);
                 const gridPath = await ImageGrid.generateImageGrid(savedImagePaths);
                 return gridPath;
             } else if (savedImagePaths.length === 1) {
@@ -63,7 +71,7 @@ export class ImageGenerator {
             }
 
         } catch (error) {
-            console.error("Error during image generation:", error);
+            logger.error("Error during image generation:", error);
             throw error;
         } finally {
             client.close();
@@ -78,7 +86,7 @@ export class ImageGenerator {
         const imageData = images.get('SaveImageWebsocket');
 
         if (!imageData || imageData.length === 0) {
-            console.warn("No images received from ComfyUI");
+            logger.warn("No images received from ComfyUI");
             return savedImages;
         }
 
@@ -94,9 +102,9 @@ export class ImageGenerator {
                     .toBuffer();
                 writeFileSync(filepath, webpImage);
                 savedImages.push(filepath);
-                console.log(`Saved image: ${filepath}`);
+                logger.debug(`Saved image: ${filename}`);
             } catch (error) {
-                console.error(`Error saving image ${filename}:`, error);
+                logger.error(`Error saving image ${filename}:`, error);
             }
         }
 
