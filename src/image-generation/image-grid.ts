@@ -1,7 +1,9 @@
 import sharp from 'sharp';
+import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { COMFYUI_CONFIG } from '../config/constants';
+import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { getDomainPath, getImageFilename } from './filename-utils';
+import { logger } from '../config/logger';
 
 export class ImageGrid {
     /**
@@ -50,27 +52,27 @@ export class ImageGrid {
      * Pastes each image into the grid.
      */
     private static async pasteImagesToGrid(
-        images: sharp.Sharp[], 
-        grid: sharp.Sharp, 
-        cols: number, 
-        maxWidth: number, 
+        images: sharp.Sharp[],
+        grid: sharp.Sharp,
+        cols: number,
+        maxWidth: number,
         maxHeight: number
     ): Promise<sharp.Sharp> {
         const composites = [];
-        
+
         for (let index = 0; index < images.length; index++) {
             const row = Math.floor(index / cols);
             const col = index % cols;
             const xOffset = col * maxWidth;
             const yOffset = row * maxHeight;
-            
+
             composites.push({
                 input: await images[index].toBuffer(),
                 left: xOffset,
                 top: yOffset
             });
         }
-        
+
         return grid.composite(composites);
     }
 
@@ -122,7 +124,7 @@ export class ImageGrid {
         // Get domain path
         const domainPath = getDomainPath(gridPath);
 
-        console.log("Image grid generated and saved");
+        logger.info("Image grid generated and saved");
         return domainPath;
     }
 }

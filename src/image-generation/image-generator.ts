@@ -8,7 +8,9 @@ import { ComfyUIClient } from './comfyui-client';
 import { getDomainPath, getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';
 import { WorkflowLoader } from './workflow-loader';
-import { COMFYUI_CONFIG } from '../config/constants';
+import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
+import { RuntimeConfig } from '../config/runtime-config';
+import { logger } from '../config/logger';
 
 export class ImageGenerator {
     /**
@@ -16,43 +18,50 @@ export class ImageGenerator {
      */
     static async generateImage(filteredPrompt: FilteredPrompt): Promise<string> {
         const client = new ComfyUIClient();
-        
+
         try {
-            console.log("Starting image generation process...");
-            
+            logger.info("Starting image generation process");
+
             // Load workflow data
             const workflowData = await WorkflowLoader.loadWorkflowData(COMFYUI_CONFIG.WORKFLOW_PATH);
             if (!workflowData) {
                 throw new Error("Failed to load workflow data.");
             }
+            logger.debug("Workflow data loaded successfully");
 
             // Create prompt data
             const promptData: PromptData = PromptProcessor.createPromptData(workflowData);
-            
+
             // Load model configuration
-            const modelName = filteredPrompt.model || 'paSanctuary';
+            const modelName = filteredPrompt.model || RuntimeConfig.defaultModel;
+            logger.info(`Using model: ${modelName}`);
             const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
-            
+
             // Update prompt with model configuration
             PromptProcessor.updatePromptWithModelConfig(promptData, modelConfig, filteredPrompt);
 
             // Connect to ComfyUI
+            logger.debug("Connecting to ComfyUI WebSocket");
             await client.connectWebSocket();
-            
+
             // Queue the prompt
             const promptId = await client.queuePrompt(promptData.data);
             if (!promptId) {
                 throw new Error("Failed to queue prompt.");
             }
+            logger.info(`Prompt queued with ID: ${promptId}`);
 
             // Get images from WebSocket
             const images = await client.getImagesFromWebSocket(promptId);
-            
+            const imageCount = images.get('SaveImageWebsocket')?.length || 0;
+            logger.info(`Received ${imageCount} image(s) from ComfyUI`);
+
             // Save individual images
             const savedImagePaths = await this.saveImageFiles(images, client.clientId);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {
+                logger.info(`Generating image grid from ${savedImagePaths.length} images`);
                 const gridPath = await ImageGrid.generateImageGrid(savedImagePaths);
                 return gridPath;
             } else if (savedImagePaths.length === 1) {
@@ -62,7 +71,7 @@ export class ImageGenerator {
             }
 
         } catch (error) {
-            console.error("Error during image generation:", error);
+            logger.error("Error during image generation:", error);
             throw error;
         } finally {
             client.close();
@@ -75,16 +84,16 @@ export class ImageGenerator {
     private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string): Promise<string[]> {
         const savedImages: string[] = [];
         const imageData = images.get('SaveImageWebsocket');
-        
+
         if (!imageData || imageData.length === 0) {
-            console.warn("No images received from ComfyUI");
+            logger.warn("No images received from ComfyUI");
             return savedImages;
         }
 
         for (let index = 0; index < imageData.length; index++) {
             const imageBytes = imageData[index];
             // Index 1,2,... for individual images (grid will be 0)
-            const filename = getImageFilename(clientId, index + 1, 'webp');
+            const filename = getImageFilename(clientId, index + 1, GENERATION_DEFAULTS.OUTPUT_FORMAT);
             const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
 
             try {
@@ -93,9 +102,9 @@ export class ImageGenerator {
                     .toBuffer();
                 writeFileSync(filepath, webpImage);
                 savedImages.push(filepath);
-                console.log(`Saved image: ${filepath}`);
+                logger.debug(`Saved image: ${filename}`);
             } catch (error) {
-                console.error(`Error saving image ${filename}:`, error);
+                logger.error(`Error saving image ${filename}:`, error);
             }
         }
 

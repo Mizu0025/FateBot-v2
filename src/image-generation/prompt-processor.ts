@@ -1,11 +1,12 @@
 import { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
+import { logger } from '../config/logger';
 
 export class PromptProcessor {
     /**
      * Creates a PromptData object from workflow data.
      */
     static createPromptData(workflowData: WorkflowData): PromptData {
-        console.log("Creating PromptData object from workflow data.");
+        logger.debug("Creating PromptData object from workflow data");
 
         const checkpointInputs = workflowData.Checkpoint?.inputs;
         const vaeLoaderInputs = workflowData.VAELoader?.inputs;
@@ -34,12 +35,12 @@ export class PromptProcessor {
      * Updates the PromptData object with model-specific configuration.
      */
     static updatePromptWithModelConfig(
-        promptData: PromptData, 
-        modelConfig: ModelConfiguration | null, 
+        promptData: PromptData,
+        modelConfig: ModelConfiguration | null,
         filteredPrompt: FilteredPrompt
     ): void {
         if (!modelConfig) {
-            console.error("Model configuration not found for the specified model.");
+            logger.error("Model configuration not found for the specified model.");
             throw new Error("Model configuration not found.");
         }
 
@@ -62,11 +63,20 @@ export class PromptProcessor {
 
         promptData.data.PositivePrompt.inputs.text = `${modelConfig.defaultPositivePrompt}, ${filteredPrompt.prompt || ''}`.trim();
         promptData.data.NegativePrompt.inputs.text = `nsfw, nude, ${modelConfig.defaultNegativePrompt}, ${filteredPrompt.negative_prompt || ''}`.trim();
-        
-        console.log("PromptData updated with model configuration");
+
+        logger.debug('PromptData updated with model configuration', {
+            steps: promptData.data.KSampler.inputs.steps,
+            cfg: promptData.data.KSampler.inputs.cfg,
+            sampler: promptData.data.KSampler.inputs.sampler_name,
+            width: promptData.data.EmptyLatentImage.inputs.width,
+            height: promptData.data.EmptyLatentImage.inputs.height,
+            batch_size: promptData.data.EmptyLatentImage.inputs.batch_size
+        });
     }
 
     private static generateRandomSeed(): number {
-        return Math.floor(Math.random() * 1000000) + 1;
+        const seed = Math.floor(Math.random() * 1000000) + 1;
+        logger.debug(`Generated random seed: ${seed}`);
+        return seed;
     }
 }
