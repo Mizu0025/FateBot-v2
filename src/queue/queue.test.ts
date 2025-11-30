@@ -18,6 +18,7 @@ describe('PromptQueue', () => {
     jest.spyOn(logger, 'debug').mockImplementation(() => logger);
     jest.spyOn(logger, 'info').mockImplementation(() => logger);
   });
+
   it('should process tasks in FIFO order', async () => {
     const queue = new PromptQueue();
     const executionOrder: number[] = [];
@@ -83,5 +84,51 @@ describe('PromptQueue', () => {
     expect(loggerErrorSpy).toHaveBeenCalledWith('Error processing task:', 'Task failed');
 
     loggerErrorSpy.mockRestore();
+  });
+
+  it('should handle tasks with mixed durations correctly', async () => {
+    const queue = new PromptQueue();
+    const executionOrder: number[] = [];
+
+    // Fast task
+    queue.addTask(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      executionOrder.push(1);
+    });
+
+    // Slow task
+    queue.addTask(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      executionOrder.push(2);
+    });
+
+    // Fast task
+    queue.addTask(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      executionOrder.push(3);
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 200));
+    expect(executionOrder).toEqual([1, 2, 3]);
+  });
+
+  it('should not stop processing if a task throws an exception', async () => {
+    const queue = new PromptQueue();
+    const executionOrder: number[] = [];
+
+    queue.addTask(async () => {
+      executionOrder.push(1);
+    });
+
+    queue.addTask(async () => {
+      throw new Error("I failed!");
+    });
+
+    queue.addTask(async () => {
+      executionOrder.push(3);
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(executionOrder).toEqual([1, 3]);
   });
 });
