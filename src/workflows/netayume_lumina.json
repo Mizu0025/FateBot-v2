@@ -1,14 +1,14 @@
 {
   "KSampler": {
     "inputs": {
-      "seed": 950384147293269,
+      "seed": 724704340924490,
       "steps": 30,
-      "cfg": 6,
-      "sampler_name": "euler_ancestral",
-      "scheduler": "normal",
+      "cfg": 4,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
       "denoise": 1,
       "model": [
-        "Checkpoint",
+        "ModelSamplingAuraFlow",
         0
       ],
       "positive": [
@@ -38,17 +38,6 @@
       "title": "Load Checkpoint"
     }
   },
-  "EmptyLatentImage": {
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    },
-    "class_type": "EmptyLatentImage",
-    "_meta": {
-      "title": "Empty Latent Image"
-    }
-  },
   "PositivePrompt": {
     "inputs": {
       "text": [
@@ -62,7 +51,7 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
+      "title": "CLIP Text Encode (Positive Prompt)"
     }
   },
   "NegativePrompt": {
@@ -75,7 +64,7 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
+      "title": "CLIP Text Encode (Negative Prompt)"
     }
   },
   "VAEDecode": {
@@ -85,8 +74,8 @@
         0
       ],
       "vae": [
-        "VAELoader",
-        0
+        "Checkpoint",
+        2
       ]
     },
     "class_type": "VAEDecode",
@@ -94,13 +83,28 @@
       "title": "VAE Decode"
     }
   },
-  "VAELoader": {
+  "ModelSamplingAuraFlow": {
     "inputs": {
-      "vae_name": "sdxl_vae.safetensors"
+      "shift": 4,
+      "model": [
+        "Checkpoint",
+        0
+      ]
     },
-    "class_type": "VAELoader",
+    "class_type": "ModelSamplingAuraFlow",
     "_meta": {
-      "title": "Load VAE"
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
+  "EmptyLatentImage": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "EmptySD3LatentImage"
     }
   },
   "SaveImageWebsocket": {
@@ -117,8 +121,8 @@
   },
   "PromptConcatenate": {
     "inputs": {
-      "string_a": "",
-      "string_b": "",
+      "string_a": "You are an assistant designed to generate high quality anime images based on textual prompts. <Prompt Start>",
+      "string_b": "1girl, shirakami fubuki, hoodie, shorts, smiling, city streets",
       "delimiter": ""
     },
     "class_type": "StringConcatenate",

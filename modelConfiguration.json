@@ -2,6 +2,7 @@
     "paSanctuary": {
         "checkpointName": "PaSanctuary_v5.safetensors",
         "vae": "sdxl_vae.safetensors",
+        "workflow": "SDXL",
         "steps": 20,
         "imageHeight": 1024,
         "imageWidth": 1024,
@@ -11,6 +12,7 @@
     "illustriousXL": {
         "checkpointName": "Illustrious-XL_v0-1.safetensors",
         "vae": "sdxl_vae.safetensors",
+        "workflow": "SDXL",
         "steps": 20,
         "imageHeight": 1024,
         "imageWidth": 1024,
@@ -20,6 +22,7 @@
     "AnimagineXL": {
         "checkpointName": "animagine-xl-4.0.safetensors",
         "vae": "sdxl_vae.safetensors",
+        "workflow": "SDXL",
         "steps": 28,
         "cfg": 5.0,
         "sampler_name": "euler_ancestral",
@@ -27,5 +30,15 @@
         "imageWidth": 1024,
         "defaultPositivePrompt": "masterpiece, high score, great score, absurdres",
         "defaultNegativePrompt": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
+    },
+    "NetayumeLumina": {
+        "checkpointName": "NetaYumev35_pretrained_all_in_one.safetensors",
+        "workflow": "netayume_lumina",
+        "steps": 30,
+        "cfg": 4,
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "You are an assistant designed to generate high quality anime images based on textual prompts <Prompt Start>",
+        "defaultNegativePrompt": "You are an assistant designed to generate low-quality images based on textual prompts <Prompt Start> blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped"
     }
 }

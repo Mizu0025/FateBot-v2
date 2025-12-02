@@ -1,7 +1,6 @@
 import sharp from 'sharp';
-import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
+import { COMFYUI_CONFIG } from '../config/constants';
 import { getDomainPath, getImageFilename } from './filename-utils';
 import { logger } from '../config/logger';
 
@@ -79,8 +78,8 @@ export class ImageGrid {
     /**
      * Saves the grid to a file.
      */
-    private static async saveGrid(grid: sharp.Sharp, clientId: string): Promise<string> {
-        const gridFilename = getImageFilename(clientId, 0, 'webp');
+    private static async saveGrid(grid: sharp.Sharp): Promise<string> {
+        const gridFilename = getImageFilename(0, 'webp');
         const gridPath = join(COMFYUI_CONFIG.FOLDER_PATH, gridFilename);
         await grid.toFile(gridPath);
         return gridPath;
@@ -119,7 +118,7 @@ export class ImageGrid {
         const finalGrid = await this.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
 
         // Save grid as index 0
-        const gridPath = await this.saveGrid(finalGrid, clientId);
+        const gridPath = await this.saveGrid(finalGrid);
 
         // Get domain path
         const domainPath = getDomainPath(gridPath);
