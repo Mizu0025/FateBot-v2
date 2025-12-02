@@ -22,20 +22,26 @@ export class ImageGenerator {
         try {
             logger.info("Starting image generation process");
 
-            // Load workflow data
-            const workflowData = await WorkflowLoader.loadWorkflowData(COMFYUI_CONFIG.WORKFLOW_PATH);
+            // Load model configuration first
+            const modelName = filteredPrompt.model || RuntimeConfig.defaultModel;
+            logger.info(`Using model: ${modelName}`);
+            const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
+
+            if (!modelConfig) {
+                throw new Error(`Model configuration not found for: ${modelName}`);
+            }
+
+            // Load workflow based on model configuration
+            const workflowName = modelConfig.workflow;
+            logger.info(`Loading workflow: ${workflowName}`);
+            const workflowData = await WorkflowLoader.loadWorkflowByName(workflowName);
             if (!workflowData) {
-                throw new Error("Failed to load workflow data.");
+                throw new Error(`Failed to load workflow: ${workflowName}`);
             }
             logger.debug("Workflow data loaded successfully");
 
             // Create prompt data
             const promptData: PromptData = PromptProcessor.createPromptData(workflowData);
-
-            // Load model configuration
-            const modelName = filteredPrompt.model || RuntimeConfig.defaultModel;
-            logger.info(`Using model: ${modelName}`);
-            const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
 
             // Update prompt with model configuration
             PromptProcessor.updatePromptWithModelConfig(promptData, modelConfig, filteredPrompt);
@@ -57,7 +63,7 @@ export class ImageGenerator {
             logger.info(`Received ${imageCount} image(s) from ComfyUI`);
 
             // Save individual images
-            const savedImagePaths = await this.saveImageFiles(images, client.clientId);
+            const savedImagePaths = await this.saveImageFiles(images);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {
@@ -81,7 +87,7 @@ export class ImageGenerator {
     /**
      * Saves the provided image data to files.
      */
-    private static async saveImageFiles(images: Map<string, Buffer[]>, clientId: string): Promise<string[]> {
+    private static async saveImageFiles(images: Map<string, Buffer[]>): Promise<string[]> {
         const savedImages: string[] = [];
         const imageData = images.get('SaveImageWebsocket');
 
@@ -93,7 +99,7 @@ export class ImageGenerator {
         for (let index = 0; index < imageData.length; index++) {
             const imageBytes = imageData[index];
             // Index 1,2,... for individual images (grid will be 0)
-            const filename = getImageFilename(clientId, index + 1, GENERATION_DEFAULTS.OUTPUT_FORMAT);
+            const filename = getImageFilename(index + 1, GENERATION_DEFAULTS.OUTPUT_FORMAT);
             const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
 
             try {

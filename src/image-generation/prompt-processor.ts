@@ -15,6 +15,21 @@ export class PromptProcessor {
         const positivePromptInputs = workflowData.PositivePrompt?.inputs;
         const negativePromptInputs = workflowData.NegativePrompt?.inputs;
 
+        // Extract positive prompt - handle both direct string and PromptConcatenate reference
+        let positivePrompt = "";
+        if (typeof positivePromptInputs?.text === 'string') {
+            positivePrompt = positivePromptInputs.text;
+        } else if (Array.isArray(positivePromptInputs?.text) && workflowData.PromptConcatenate) {
+            // If it's a reference to PromptConcatenate, get string_b (user prompt)
+            positivePrompt = workflowData.PromptConcatenate.inputs.string_b || "";
+        }
+
+        // Extract negative prompt - handle both direct string and potential reference
+        let negativePrompt = "";
+        if (typeof negativePromptInputs?.text === 'string') {
+            negativePrompt = negativePromptInputs.text;
+        }
+
         return {
             data: workflowData,
             model: checkpointInputs?.ckpt_name || "",
@@ -24,8 +39,8 @@ export class PromptProcessor {
             width: latentImageInputs?.width || 1024,
             height: latentImageInputs?.height || 1024,
             batch_size: latentImageInputs?.batch_size || 1,
-            positive_prompt: positivePromptInputs?.text || "",
-            negative_prompt: negativePromptInputs?.text || "",
+            positive_prompt: positivePrompt,
+            negative_prompt: negativePrompt,
             cfg: ksamplerInputs?.cfg || 8,
             sampler: ksamplerInputs?.sampler_name || "euler"
         };
@@ -61,8 +76,22 @@ export class PromptProcessor {
             batch_size: filteredPrompt.count,
         });
 
-        promptData.data.PositivePrompt.inputs.text = `${modelConfig.defaultPositivePrompt}, ${filteredPrompt.prompt || ''}`.trim();
-        promptData.data.NegativePrompt.inputs.text = `nsfw, nude, ${modelConfig.defaultNegativePrompt}, ${filteredPrompt.negative_prompt || ''}`.trim();
+        // Handle prompt concatenation
+        if (promptData.data.PromptConcatenate) {
+            // If workflow uses PromptConcatenate, update string_a with default prompt and string_b with user prompt
+            promptData.data.PromptConcatenate.inputs.string_a = modelConfig.defaultPositivePrompt;
+            promptData.data.PromptConcatenate.inputs.string_b = filteredPrompt.prompt || '';
+        } else {
+            // Fallback to direct text assignment for workflows without PromptConcatenate
+            if (typeof promptData.data.PositivePrompt.inputs.text === 'string') {
+                promptData.data.PositivePrompt.inputs.text = `${modelConfig.defaultPositivePrompt}, ${filteredPrompt.prompt || ''}`.trim();
+            }
+        }
+
+        // Update negative prompt
+        if (typeof promptData.data.NegativePrompt.inputs.text === 'string') {
+            promptData.data.NegativePrompt.inputs.text = `nsfw, nude, ${modelConfig.defaultNegativePrompt}, ${filteredPrompt.negative_prompt || ''}`.trim();
+        }
 
         logger.debug('PromptData updated with model configuration', {
             steps: promptData.data.KSampler.inputs.steps,

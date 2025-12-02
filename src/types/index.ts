@@ -10,7 +10,8 @@ export interface FilteredPrompt {
 
 export interface ModelConfiguration {
     checkpointName: string;
-    vae: string;
+    vae?: string;
+    workflow: string;
     steps: number;
     cfg?: number;
     sampler_name?: string;
@@ -29,6 +30,7 @@ export interface WorkflowData {
     VAEDecode: VAEDecodeNode;
     SaveImageWebsocket: SaveImageWebsocketNode;
     VAELoader: VAELoaderNode;
+    PromptConcatenate?: PromptConcatenateNode;
 }
 
 interface BaseNode<T> {
@@ -36,13 +38,14 @@ interface BaseNode<T> {
     class_type: string;
 }
 
-interface KSamplerNode extends BaseNode<KSamplerInputs> {}
-interface CheckpointNode extends BaseNode<CheckpointInputs> {}
-interface EmptyLatentImageNode extends BaseNode<EmptyLatentImageInputs> {}
-interface PromptNode extends BaseNode<PromptInputs> {}
-interface VAEDecodeNode extends BaseNode<VAEDecodeInputs> {}
-interface SaveImageWebsocketNode extends BaseNode<SaveImageWebsocketInputs> {}
-interface VAELoaderNode extends BaseNode<VAELoaderInputs> {}
+interface KSamplerNode extends BaseNode<KSamplerInputs> { }
+interface CheckpointNode extends BaseNode<CheckpointInputs> { }
+interface EmptyLatentImageNode extends BaseNode<EmptyLatentImageInputs> { }
+interface PromptNode extends BaseNode<PromptInputs> { }
+interface VAEDecodeNode extends BaseNode<VAEDecodeInputs> { }
+interface SaveImageWebsocketNode extends BaseNode<SaveImageWebsocketInputs> { }
+interface VAELoaderNode extends BaseNode<VAELoaderInputs> { }
+interface PromptConcatenateNode extends BaseNode<PromptConcatenateInputs> { }
 
 interface KSamplerInputs {
     seed: number;
@@ -68,8 +71,14 @@ interface EmptyLatentImageInputs {
 }
 
 interface PromptInputs {
-    text: string;
+    text: string | [string, number];
     clip: [string, number];
+}
+
+interface PromptConcatenateInputs {
+    string_a: string;
+    string_b: string;
+    delimiter: string;
 }
 
 interface VAEDecodeInputs {
@@ -82,13 +91,13 @@ interface SaveImageWebsocketInputs {
 }
 
 interface VAELoaderInputs {
-    vae_name: string;
+    vae_name: string | undefined;
 }
 
 export interface PromptData {
     data: WorkflowData;
     model: string;
-    vae: string;
+    vae: string | undefined;
     seed: number;
     steps: number;
     width: number;

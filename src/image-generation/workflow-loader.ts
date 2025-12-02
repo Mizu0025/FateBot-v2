@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import { join } from 'path';
 import { WorkflowData } from '../types';
 import { logger } from '../config/logger';
 
@@ -27,5 +28,16 @@ export class WorkflowLoader {
                 throw error;
             }
         }
+    }
+
+    /**
+     * Loads a workflow by name from the workflows directory.
+     * @param workflowName Name of the workflow (without .json extension)
+     * @returns Parsed workflow data or throws an error
+     */
+    static async loadWorkflowByName(workflowName: string): Promise<WorkflowData | null> {
+        const workflowPath = join(__dirname, `../workflows/${workflowName}.json`);
+        logger.info(`Loading workflow: ${workflowName}`);
+        return this.loadWorkflowData(workflowPath);
     }
 } 

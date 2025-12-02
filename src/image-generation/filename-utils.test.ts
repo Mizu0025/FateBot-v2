@@ -3,22 +3,20 @@ import { getImageFilename } from './filename-utils';
 describe('getImageFilename', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => { });
+    jest.spyOn(console, 'log').mockImplementation(() => { });
   });
   it('should return a filename with the client ID and a zero-padded index', () => {
-    const clientId = 'test-client';
     const index = 1;
-    const expectedFilename = 'test-client_1.png';
-    const actualFilename = getImageFilename(clientId, index, 'png');
+    const expectedFilename = '1.png';
+    const actualFilename = getImageFilename(index, 'png');
     expect(actualFilename).toBe(expectedFilename);
   });
 
   it('should handle multi-digit indices correctly', () => {
-    const clientId = 'test-client';
     const index = 123;
-    const expectedFilename = 'test-client_123.png';
-    const actualFilename = getImageFilename(clientId, index, 'png');
+    const expectedFilename = '123.png';
+    const actualFilename = getImageFilename(index, 'png');
     expect(actualFilename).toBe(expectedFilename);
   });
 });
