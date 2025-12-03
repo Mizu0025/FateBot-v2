@@ -18,8 +18,8 @@ export const COMFYUI_CONFIG = {
 
 export const HELP_MESSAGES = {
     imageGeneration: `To generate an image, type: ${BOT_CONFIG.TRIGGER_WORD} <your_prompt>`,
-    promptStructure: `${BOT_CONFIG.TRIGGER_WORD} <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text> --count=<count> --seed=<seed>`,
-    promptExample: 'Example:  a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry'
+    promptStructure: `${BOT_CONFIG.TRIGGER_WORD} <prompt_text> [-w|--width <num>] [-h|--height <num>] [-m|--model <name>] [-n|--neg <text>] [-c|--count <num>] [-s|--seed <num>]`,
+    promptExample: `Example: ${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape -w 832 -h 1216 --model epicMode --neg ugly, blurry -c 2`
 } as const;
 
 export const GENERATION_DEFAULTS = {

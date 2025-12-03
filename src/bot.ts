@@ -75,7 +75,7 @@ bot.on('message', async (event: any) => {
             // Handle image generation request
             try {
                 // Parse the prompt
-                const filteredPrompt = await PromptParser.extractPrompts(event.message);
+                const filteredPrompt = PromptParser.extractPrompts(event.message);
                 logger.debug(`Parsed prompt from ${event.nick}`, {
                     width: filteredPrompt.width,
                     height: filteredPrompt.height,
