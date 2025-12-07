@@ -13,78 +13,63 @@ describe('getImageFilename', () => {
     jest.resetAllMocks();
   });
 
-  it('should return a filename with timestamp format YYYY-MM-DD_HHMMSS_index.extension', () => {
+  it('should return a filename with format promptId_index.extension', () => {
     // Arrange
+    const promptId = 'test-prompt-id';
     const index = 1;
     const extension = 'png';
-    const pattern = /^\d{4}-\d{2}-\d{2}_\d{6}_\d+\.png$/;
+    const expectedFilename = `${promptId}_${index}.${extension}`;
 
     // Act
-    const filename = getImageFilename(index, extension);
+    const filename = getImageFilename(promptId, index, extension);
 
     // Assert
-    expect(filename).toMatch(pattern);
-    expect(filename).toContain(`_${index}.${extension}`);
+    expect(filename).toBe(expectedFilename);
   });
 
   it('should handle multi-digit indices correctly', () => {
     // Arrange
+    const promptId = 'test-prompt-id';
     const index = 123;
     const extension = 'png';
-    const pattern = /^\d{4}-\d{2}-\d{2}_\d{6}_123\.png$/;
+    const expectedFilename = `${promptId}_${index}.${extension}`;
 
     // Act
-    const filename = getImageFilename(index, extension);
+    const filename = getImageFilename(promptId, index, extension);
 
     // Assert
-    expect(filename).toMatch(pattern);
-    expect(filename).toContain(`_${index}.${extension}`);
+    expect(filename).toBe(expectedFilename);
   });
 
   it('should handle different file extensions', () => {
     // Arrange
+    const promptId = 'test-prompt-id';
     const index = 5;
     const extension = 'jpg';
-    const expectedPattern = /^\d{4}-\d{2}-\d{2}_\d{6}_5\.jpg$/;
-    const extensionPattern = new RegExp(`\\.${extension}$`);
+    const expectedFilename = `${promptId}_${index}.${extension}`;
 
     // Act
-    const filename = getImageFilename(index, extension);
+    const filename = getImageFilename(promptId, index, extension);
 
     // Assert
-    expect(filename).toMatch(expectedPattern);
-    expect(filename).toMatch(extensionPattern);
+    expect(filename).toBe(expectedFilename);
   });
 
-  it('should generate unique filenames for sequential calls', () => {
+  it('should generate unique filenames for sequential calls with different indices', () => {
     // Arrange
+    const promptId = 'test-prompt-id';
     const index1 = 1;
     const index2 = 2;
     const extension = 'png';
 
     // Act
-    const filename1 = getImageFilename(index1, extension);
-    const filename2 = getImageFilename(index2, extension);
+    const filename1 = getImageFilename(promptId, index1, extension);
+    const filename2 = getImageFilename(promptId, index2, extension);
 
     // Assert
     expect(filename1).not.toBe(filename2);
-    expect(filename1).toContain('_1.png');
-    expect(filename2).toContain('_2.png');
-  });
-
-  it('should use current date and time in filename', () => {
-    // Arrange
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const expectedDatePrefix = `${year}-${month}-${day}`;
-
-    // Act
-    const filename = getImageFilename(0, 'png');
-
-    // Assert
-    expect(filename).toContain(expectedDatePrefix);
+    expect(filename1).toBe(`${promptId}_1.png`);
+    expect(filename2).toBe(`${promptId}_2.png`);
   });
 });
 
@@ -107,8 +92,8 @@ describe('getDomainPath', () => {
 
   it('should return domain path with filename extracted from filepath', () => {
     // Arrange
-    const filepath = '/var/comfyui/output/2024-12-02_123456_1.png';
-    const expectedUrl = 'https://example.com/images/2024-12-02_123456_1.png';
+    const filepath = '/var/comfyui/output/test-prompt-id_1.png';
+    const expectedUrl = 'https://example.com/images/test-prompt-id_1.png';
 
     // Act
     const result = getDomainPath(filepath);
