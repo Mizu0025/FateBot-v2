@@ -78,8 +78,8 @@ export class ImageGrid {
     /**
      * Saves the grid to a file.
      */
-    private static async saveGrid(grid: sharp.Sharp): Promise<string> {
-        const gridFilename = getImageFilename(0, 'webp');
+    private static async saveGrid(grid: sharp.Sharp, promptId: string): Promise<string> {
+        const gridFilename = getImageFilename(promptId, 0, 'webp');
         const gridPath = join(COMFYUI_CONFIG.FOLDER_PATH, gridFilename);
         await grid.toFile(gridPath);
         return gridPath;
@@ -93,9 +93,9 @@ export class ImageGrid {
             throw new Error("No filepaths provided for grid generation");
         }
 
-        // Extract clientId from the first filename
+        // Extract promptId from the first filename
         const firstFile = filepaths[0].split('/').pop() || '';
-        const clientId = firstFile.split('_')[0];
+        const promptId = firstFile.split('_')[0];
 
         // Open all images
         const images = await this.openImages(filepaths);
@@ -118,7 +118,7 @@ export class ImageGrid {
         const finalGrid = await this.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
 
         // Save grid as index 0
-        const gridPath = await this.saveGrid(finalGrid);
+        const gridPath = await this.saveGrid(finalGrid, promptId);
 
         // Get domain path
         const domainPath = getDomainPath(gridPath);

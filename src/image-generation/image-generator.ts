@@ -63,7 +63,7 @@ export class ImageGenerator {
             logger.info(`Received ${imageCount} image(s) from ComfyUI`);
 
             // Save individual images
-            const savedImagePaths = await this.saveImageFiles(images);
+            const savedImagePaths = await this.saveImageFiles(images, promptId);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {
@@ -87,7 +87,7 @@ export class ImageGenerator {
     /**
      * Saves the provided image data to files.
      */
-    private static async saveImageFiles(images: Map<string, Buffer[]>): Promise<string[]> {
+    private static async saveImageFiles(images: Map<string, Buffer[]>, promptId: string): Promise<string[]> {
         const savedImages: string[] = [];
         const imageData = images.get('SaveImageWebsocket');
 
@@ -99,7 +99,7 @@ export class ImageGenerator {
         for (let index = 0; index < imageData.length; index++) {
             const imageBytes = imageData[index];
             // Index 1,2,... for individual images (grid will be 0)
-            const filename = getImageFilename(index + 1, GENERATION_DEFAULTS.OUTPUT_FORMAT);
+            const filename = getImageFilename(promptId, index + 1, GENERATION_DEFAULTS.OUTPUT_FORMAT);
             const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
 
             try {
