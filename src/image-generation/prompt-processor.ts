@@ -60,8 +60,13 @@ export class PromptProcessor {
         }
 
         // Update the workflow data with model configuration
-        promptData.data.Checkpoint.inputs.ckpt_name = modelConfig.checkpointName;
-        promptData.data.VAELoader.inputs.vae_name = modelConfig.vae;
+        if (promptData.data.Checkpoint) {
+            promptData.data.Checkpoint.inputs.ckpt_name = modelConfig.checkpointName;
+        }
+
+        if (promptData.data.VAELoader && modelConfig.vae) {
+            promptData.data.VAELoader.inputs.vae_name = modelConfig.vae;
+        }
 
         Object.assign(promptData.data.KSampler.inputs, {
             steps: modelConfig.steps,

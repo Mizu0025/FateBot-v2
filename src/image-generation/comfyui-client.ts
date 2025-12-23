@@ -35,7 +35,7 @@ export class ComfyUIClient {
         try {
             const payload = { prompt, client_id: this.clientId };
             logger.debug(`Queueing prompt with client ID: ${this.clientId}`);
-            const response = await fetch(`http://${COMFYUI_CONFIG.ADDRESS}/prompt`, {
+            const response = await fetch(`http://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/prompt`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -44,7 +44,9 @@ export class ComfyUIClient {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                logger.error(`ComfyUI Error (${response.status}): ${errorText}`);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const result = await response.json();
@@ -61,7 +63,7 @@ export class ComfyUIClient {
      */
     async connectWebSocket(): Promise<WebSocket> {
         try {
-            this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}/ws?clientId=${this.clientId}`);
+            this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/ws?clientId=${this.clientId}`);
 
             return new Promise((resolve, reject) => {
                 if (!this.ws) {
