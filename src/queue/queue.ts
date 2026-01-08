@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 export class PromptQueue {
     private queue: Array<() => Promise<void>> = [];
     private running = false;
+    public onIdle?: () => void;
 
     addTask(task: () => Promise<void>): number {
         this.queue.push(task);
@@ -29,8 +30,23 @@ export class PromptQueue {
             this.running = false;
             if (this.queue.length === 0) {
                 logger.info('Queue is empty, all tasks processed');
+                if (this.onIdle) {
+                    this.onIdle();
+                }
             }
             this.processQueue();
         }
+    }
+
+    get length(): number {
+        return this.queue.length;
+    }
+
+    isProcessing(): boolean {
+        return this.running;
+    }
+
+    isIdle(): boolean {
+        return !this.running && this.queue.length === 0;
     }
 } 

@@ -182,4 +182,37 @@ export class ComfyUIClient {
     isConnected(): boolean {
         return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
     }
+
+    /**
+     * Sends a request to unload models from VRAM.
+     */
+    async unloadModels(): Promise<void> {
+        if (!COMFYUI_CONFIG.ADDRESS) {
+            logger.error("ComfyUI server address is not configured.");
+            return;
+        }
+
+        try {
+            logger.info("Requesting ComfyUI to unload models...");
+            const response = await fetch(`http://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/free`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    unload_models: true,
+                    free_memory: true
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                logger.error(`ComfyUI Unload Models Error (${response.status}): ${errorText}`);
+            } else {
+                logger.info("Successfully requested model unloading.");
+            }
+        } catch (error) {
+            logger.error("Error requesting model unloading:", error);
+        }
+    }
 } 
