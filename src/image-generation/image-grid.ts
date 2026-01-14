@@ -88,7 +88,7 @@ export class ImageGrid {
     /**
      * Generates a grid of images based on the filepaths provided.
      */
-    static async generateImageGrid(filepaths: string[]): Promise<string> {
+    public static async generateImageGrid(filepaths: string[]): Promise<string> {
         if (filepaths.length === 0) {
             throw new Error("No filepaths provided for grid generation");
         }

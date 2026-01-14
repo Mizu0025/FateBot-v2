@@ -66,10 +66,14 @@ export const logger = winston.createLogger({
     transports,
     // Don't exit on handled exceptions
     exitOnError: false,
+    silent: process.env.NODE_ENV === 'test',
 });
 
-// Log the logger configuration on startup
-logger.info('Logger initialized', {
-    logLevel: LOG_LEVEL,
-    fileLogging: LOG_TO_FILE,
-});
+// Log the logger configuration on startup, except during tests
+if (process.env.NODE_ENV !== 'test') {
+    logger.info('Logger initialized', {
+        logLevel: LOG_LEVEL,
+        fileLogging: LOG_TO_FILE,
+    });
+}
+
