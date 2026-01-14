@@ -39,7 +39,7 @@ describe('env validation', () => {
   it('throws on invalid types', () => {
     // arrange
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit called'); });
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
     // act & assert
     expect(() => {

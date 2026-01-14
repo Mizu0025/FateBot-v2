@@ -4,8 +4,8 @@ import { BOT_CONFIG } from '../config/constants';
 describe('PromptParser', () => {
     beforeEach(() => {
         jest.resetAllMocks();
-        jest.spyOn(console, 'error').mockImplementation(() => {});
-        jest.spyOn(console, 'log').mockImplementation(() => {});
+        jest.spyOn(console, 'error').mockImplementation(() => { });
+        jest.spyOn(console, 'log').mockImplementation(() => { });
     });
     it('should extract the prompt, width, height, model, negative prompt, count, and seed from the message', async () => {
         // arrange
@@ -70,5 +70,54 @@ describe('PromptParser', () => {
 
         // act & assert
         await expect(PromptParser.extractPrompts(message)).rejects.toThrow('Prompt trigger is missing or empty!');
+    });
+
+    it('should support shortened modifiers and flexible formatting', async () => {
+        // arrange
+        const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape -w 800 -h 600 -m test-model -n ugly, blurry -c 2 -s 12345`;
+
+        // act
+        const result = await PromptParser.extractPrompts(message);
+
+        // assert
+        expect(result).toEqual({
+            prompt: 'a beautiful landscape',
+            width: 800,
+            height: 600,
+            model: 'test-model',
+            negative_prompt: 'ugly, blurry',
+            count: 2,
+            seed: 12345,
+        });
+    });
+
+    it('should support mixed long and short modifiers with equals and spaces', async () => {
+        // arrange
+        const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape --width 800 -h=600 --model test-model -n=ugly, blurry --count 2 -s=12345`;
+
+        // act
+        const result = await PromptParser.extractPrompts(message);
+
+        // assert
+        expect(result).toEqual({
+            prompt: 'a beautiful landscape',
+            width: 800,
+            height: 600,
+            model: 'test-model',
+            negative_prompt: 'ugly, blurry',
+            count: 2,
+            seed: 12345,
+        });
+    });
+
+    it('should correctly parse seed=0', async () => {
+        // arrange
+        const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape --seed 0`;
+
+        // act
+        const result = await PromptParser.extractPrompts(message);
+
+        // assert
+        expect(result.seed).toBe(0);
     });
 });
