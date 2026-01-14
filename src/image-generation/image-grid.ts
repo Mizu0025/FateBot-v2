@@ -4,16 +4,24 @@ import { COMFYUI_CONFIG } from '../config/constants';
 import { getDomainPath, getImageFilename } from './filename-utils';
 import { logger } from '../config/logger';
 
+/**
+ * Handles the creation of composite image grids (montages) from multiple individual images
+ * using the Sharp image processing library.
+ */
 export class ImageGrid {
     /**
-     * Opens all images from the provided filepaths.
+     * Opens all images from the provided filepaths using Sharp.
+     * @param filepaths Array of absolute paths to images.
+     * @returns Array of Sharp image instances.
      */
     private static async openImages(filepaths: string[]): Promise<sharp.Sharp[]> {
         return filepaths.map(filepath => sharp(filepath));
     }
 
     /**
-     * Gets the dimensions of each image.
+     * Retrieves the width and height of each image in the provided array.
+     * @param images Array of Sharp image instances.
+     * @returns An object containing arrays of widths and heights.
      */
     private static async getImageDimensions(images: sharp.Sharp[]): Promise<{ widths: number[], heights: number[] }> {
         const dimensions = await Promise.all(images.map(img => img.metadata()));
@@ -23,7 +31,9 @@ export class ImageGrid {
     }
 
     /**
-     * Determines the grid layout based on the number of images.
+     * Calculates the optimal number of columns and rows for a grid based on image count.
+     * @param numImages Total number of images to place in the grid.
+     * @returns An object with cols and rows.
      */
     private static determineGridLayout(numImages: number): { cols: number, rows: number } {
         const cols = Math.ceil(Math.sqrt(numImages));
@@ -32,7 +42,12 @@ export class ImageGrid {
     }
 
     /**
-     * Creates a blank canvas for the grid.
+     * Initializes a transparent canvas of the appropriate size for the grid.
+     * @param cols Number of columns.
+     * @param rows Number of rows.
+     * @param maxWidth Width of the widest image.
+     * @param maxHeight Height of the tallest image.
+     * @returns A Sharp instance representing the blank canvas.
      */
     private static createBlankCanvas(cols: number, rows: number, maxWidth: number, maxHeight: number): sharp.Sharp {
         const gridWidth = cols * maxWidth;
@@ -48,7 +63,13 @@ export class ImageGrid {
     }
 
     /**
-     * Pastes each image into the grid.
+     * Composes the individual images onto the blank grid canvas.
+     * @param images Array of source images.
+     * @param grid The blank canvas instance.
+     * @param cols Grid column count.
+     * @param maxWidth Target width for each cell.
+     * @param maxHeight Target height for each cell.
+     * @returns The Sharp instance containing the composed grid.
      */
     private static async pasteImagesToGrid(
         images: sharp.Sharp[],
@@ -76,7 +97,10 @@ export class ImageGrid {
     }
 
     /**
-     * Saves the grid to a file.
+     * Saves the final grid image to the configured output folder.
+     * @param grid The Sharp instance containing the final grid.
+     * @param promptId The prompt ID for filename generation.
+     * @returns The absolute path to the saved file.
      */
     private static async saveGrid(grid: sharp.Sharp, promptId: string): Promise<string> {
         const gridFilename = getImageFilename(promptId, 0, 'webp');
@@ -86,7 +110,10 @@ export class ImageGrid {
     }
 
     /**
-     * Generates a grid of images based on the filepaths provided.
+     * Orchestrates the grid generation process from a list of local file paths.
+     * @param filepaths Array of local image file paths.
+     * @returns The public URL/domain path to the generated grid.
+     * @throws Error if no filepaths are provided.
      */
     public static async generateImageGrid(filepaths: string[]): Promise<string> {
         if (filepaths.length === 0) {

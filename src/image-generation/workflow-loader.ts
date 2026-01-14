@@ -3,11 +3,15 @@ import { join } from 'path';
 import { WorkflowData } from '../types';
 import { logger } from '../config/logger';
 
+/**
+ * Handles the loading of ComfyUI workflow definitions from JSON files stored on disk.
+ */
 export class WorkflowLoader {
     /**
-     * Loads the ComfyUI workflow data from a JSON file asynchronously.
-     * @param workflowPath Path to the workflow JSON file
-     * @returns Parsed workflow data or throws an error
+     * Loads and parses a raw ComfyUI workflow JSON file from a specific absolute path.
+     * @param workflowPath The absolute filesystem path to the workflow JSON file.
+     * @returns A promise resolving to the parsed workflow data.
+     * @throws Error if the file is missing or contains invalid JSON.
      */
     static async loadWorkflowData(workflowPath: string): Promise<WorkflowData | null> {
         try {
@@ -31,13 +35,13 @@ export class WorkflowLoader {
     }
 
     /**
-     * Loads a workflow by name from the workflows directory.
-     * @param workflowName Name of the workflow (without .json extension)
-     * @returns Parsed workflow data or throws an error
+     * Loads a named workflow from the predefined 'src/workflows' directory.
+     * @param workflowName The filename of the workflow (without the .json extension).
+     * @returns A promise resolving to the parsed workflow data.
      */
     static async loadWorkflowByName(workflowName: string): Promise<WorkflowData | null> {
         const workflowPath = join(__dirname, `../workflows/${workflowName}.json`);
         logger.info(`Loading workflow: ${workflowName}`);
         return this.loadWorkflowData(workflowPath);
     }
-} 
+}

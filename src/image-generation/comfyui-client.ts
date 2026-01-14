@@ -14,17 +14,28 @@ export interface ComfyUIExecutingData {
     node: string | null;
 }
 
+/**
+ * A client for interacting with the ComfyUI API and WebSocket server.
+ * Handles prompt queueing, model unloading, and real-time image retrieval.
+ */
 export class ComfyUIClient {
     private ws: WebSocket | null = null;
+    /** The unique identifier for this client session. */
     public clientId: string;
 
+    /**
+     * Initializes a new client with a unique ID.
+     */
     constructor() {
         this.clientId = uuidv4();
         logger.debug(`Created ComfyUI client with ID: ${this.clientId}`);
     }
 
     /**
-     * Queues a prompt to the ComfyUI server.
+     * Queues a prompt to the ComfyUI server for processing.
+     * @param prompt The workflow data to be processed.
+     * @returns The generated prompt ID if successful.
+     * @throws Error if the server address is missing or the request fails.
      */
     public async queuePrompt(prompt: WorkflowData): Promise<string | null> {
         if (!COMFYUI_CONFIG.ADDRESS) {
@@ -59,7 +70,9 @@ export class ComfyUIClient {
     }
 
     /**
-     * Connects to the ComfyUI websocket.
+     * Connects to the ComfyUI WebSocket server for real-time updates.
+     * @returns A promise that resolves to the connected WebSocket instance.
+     * @throws Error if connection fails.
      */
     public async connectWebSocket(): Promise<WebSocket> {
         try {
@@ -92,7 +105,10 @@ export class ComfyUIClient {
     }
 
     /**
-     * Retrieves generated images from the websocket connection.
+     * Monitors the WebSocket for status updates and binary image data.
+     * @param promptId The ID of the prompt to wait for.
+     * @returns A map of output keys to arrays of image buffers.
+     * @throws Error if the WebSocket is not connected or the request times out.
      */
     public async getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
         if (!this.ws) {
@@ -167,7 +183,7 @@ export class ComfyUIClient {
     }
 
     /**
-     * Closes the WebSocket connection.
+     * Closes the active WebSocket connection.
      */
     public close(): void {
         if (this.ws) {
@@ -177,7 +193,7 @@ export class ComfyUIClient {
     }
 
     /**
-     * Sends a request to unload models from VRAM.
+     * Sends a request to the server's /free endpoint to unload models and free VRAM.
      */
     public async unloadModels(): Promise<void> {
         if (!COMFYUI_CONFIG.ADDRESS) {
@@ -208,4 +224,4 @@ export class ComfyUIClient {
             logger.error("Error requesting model unloading:", error);
         }
     }
-} 
+}

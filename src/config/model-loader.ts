@@ -3,9 +3,16 @@ import { join } from 'path';
 import { ModelConfiguration } from '../types';
 import { logger } from '../config/logger';
 
+/**
+ * Handles the loading and listing of model configurations 
+ * from the external modelConfiguration.json file.
+ */
 export class ModelLoader {
     /**
-     * Loads the configuration for a specific model.
+     * Loads the configuration for a specific model from modelConfiguration.json.
+     * @param modelName The unique identifier of the model to load.
+     * @returns The model configuration if found, or null if it doesn't exist.
+     * @throws Error if the configuration file cannot be read.
      */
     static async loadModelConfiguration(modelName: string): Promise<ModelConfiguration | null> {
         try {
@@ -26,7 +33,9 @@ export class ModelLoader {
     }
 
     /**
-     * Returns a comma-separated list of available models.
+     * Retrieves a list of all models defined in the configuration file.
+     * @returns A comma-separated string containing the names of all available models.
+     * @throws Error if the configuration file cannot be read.
      */
     static async getModelsList(): Promise<string> {
         try {
@@ -39,4 +48,4 @@ export class ModelLoader {
             throw new Error('modelConfiguration.json not found.');
         }
     }
-} 
+}
