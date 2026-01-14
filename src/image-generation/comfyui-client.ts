@@ -26,7 +26,7 @@ export class ComfyUIClient {
     /**
      * Queues a prompt to the ComfyUI server.
      */
-    async queuePrompt(prompt: WorkflowData): Promise<string | null> {
+    public async queuePrompt(prompt: WorkflowData): Promise<string | null> {
         if (!COMFYUI_CONFIG.ADDRESS) {
             logger.error("ComfyUI server address is not configured.");
             throw new Error("ComfyUI server address not configured.");
@@ -61,7 +61,7 @@ export class ComfyUIClient {
     /**
      * Connects to the ComfyUI websocket.
      */
-    async connectWebSocket(): Promise<WebSocket> {
+    public async connectWebSocket(): Promise<WebSocket> {
         try {
             this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/ws?clientId=${this.clientId}`);
 
@@ -94,7 +94,7 @@ export class ComfyUIClient {
     /**
      * Retrieves generated images from the websocket connection.
      */
-    async getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
+    public async getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
         if (!this.ws) {
             throw new Error("WebSocket not connected");
         }
@@ -169,7 +169,7 @@ export class ComfyUIClient {
     /**
      * Closes the WebSocket connection.
      */
-    close(): void {
+    public close(): void {
         if (this.ws) {
             this.ws.close();
             this.ws = null;
@@ -177,16 +177,9 @@ export class ComfyUIClient {
     }
 
     /**
-     * Checks if the WebSocket is connected.
-     */
-    isConnected(): boolean {
-        return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
-    }
-
-    /**
      * Sends a request to unload models from VRAM.
      */
-    async unloadModels(): Promise<void> {
+    public async unloadModels(): Promise<void> {
         if (!COMFYUI_CONFIG.ADDRESS) {
             logger.error("ComfyUI server address is not configured.");
             return;
