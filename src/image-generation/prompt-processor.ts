@@ -1,9 +1,16 @@
 import { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
 import { logger } from '../config/logger';
 
+/**
+ * Handles the extraction and transformation of workflow data into 
+ * a structured PromptData object, and applies model-specific configurations.
+ */
 export class PromptProcessor {
     /**
-     * Creates a PromptData object from workflow data.
+     * Extracts and flattens core generation parameters from a raw 
+     * ComfyUI workflow into a structures PromptData object.
+     * @param workflowData The full workflow object from a JSON file.
+     * @returns A structured representation of the workflow's default parameters.
      */
     static createPromptData(workflowData: WorkflowData): PromptData {
         logger.debug("Creating PromptData object from workflow data");
@@ -47,7 +54,12 @@ export class PromptProcessor {
     }
 
     /**
-     * Updates the PromptData object with model-specific configuration.
+     * Maps user-provided prompt data and model-specific configurations 
+     * onto the internal ComfyUI workflow nodes.
+     * @param promptData The target PromptData object containing the workflow.
+     * @param modelConfig The configuration for the selected AI model.
+     * @param filteredPrompt The user's requested generation parameters (prompt, count, size, etc).
+     * @throws Error if model configuration is missing.
      */
     static updatePromptWithModelConfig(
         promptData: PromptData,
@@ -108,6 +120,10 @@ export class PromptProcessor {
         });
     }
 
+    /**
+     * Generates a random integer between 1 and 1,000,000 for use as a seed.
+     * @returns A random seed number.
+     */
     private static generateRandomSeed(): number {
         const seed = Math.floor(Math.random() * 1000000) + 1;
         logger.debug(`Generated random seed: ${seed}`);

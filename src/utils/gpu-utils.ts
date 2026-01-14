@@ -12,7 +12,7 @@ export interface MemoryInfo {
 
 /**
  * Queries NVIDIA GPU memory usage using nvidia-smi.
- * Returns null if nvidia-smi is not available or fails.
+ * @returns A MemoryInfo object if successful, or null if nvidia-smi is not available or fails.
  */
 export async function getGpuMemoryInfo(): Promise<MemoryInfo | null> {
     try {
@@ -36,7 +36,9 @@ export async function getGpuMemoryInfo(): Promise<MemoryInfo | null> {
 }
 
 /**
- * Formats memory info for logging/display.
+ * Formats memory info into a human-readable string.
+ * @param info The MemoryInfo object to format.
+ * @returns A formatted string like "500MB / 8000MB (6%)".
  */
 export function formatMemoryInfo(info: MemoryInfo): string {
     return `${info.used}MB / ${info.total}MB (${info.percentage}%)`;

@@ -12,9 +12,16 @@ import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { RuntimeConfig } from '../config/runtime-config';
 import { logger } from '../config/logger';
 
+/**
+ * Orchestrates the entire image generation process including model configuration,
+ * workflow loading, ComfyUI interaction, and image saving.
+ */
 export class ImageGenerator {
     /**
      * Generates one or more images based on the given filtered prompt.
+     * @param filteredPrompt The parsed and filtered prompt details.
+     * @returns The local path or URL to the generated image or grid.
+     * @throws Error if generation fails at any stage.
      */
     static async generateImage(filteredPrompt: FilteredPrompt): Promise<string> {
         const client = new ComfyUIClient();
@@ -85,7 +92,10 @@ export class ImageGenerator {
     }
 
     /**
-     * Saves the provided image data to files.
+     * Saves the provided image data buffers to files on disk.
+     * @param images A map of output keys to image buffers.
+     * @param promptId The ID of the prompt that generated these images.
+     * @returns An array of absolute file paths to the saved images.
      */
     private static async saveImageFiles(images: Map<string, Buffer[]>, promptId: string): Promise<string[]> {
         const savedImages: string[] = [];
@@ -118,7 +128,7 @@ export class ImageGenerator {
     }
 
     /**
-     * Unloads models from VRAM.
+     * Manually unloads all models from VRAM on the ComfyUI server.
      */
     static async unloadModels(): Promise<void> {
         const client = new ComfyUIClient();

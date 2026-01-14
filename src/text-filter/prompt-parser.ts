@@ -2,11 +2,16 @@ import { FilteredPrompt } from '../types';
 import { BOT_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { logger } from '../config/logger';
 
+/**
+ * Parses user input message into structured image generation parameters.
+ * Supports various flags (e.g., --width, --height, --model) and their short aliases.
+ */
 export class PromptParser {
     /**
-     * Extracts the prompt, width, height, model, negative prompt, count, and seed from the message.
-     * Assumes the format is:
-     *    !trigger <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text> --count=<count> --seed=<seed>
+     * Extracts variables from a raw IRC message.
+     * @param message The full message including the trigger word.
+     * @returns A promise resolving to a structured FilteredPrompt object.
+     * @throws Error if the message does not start with the valid trigger word.
      */
     public static async extractPrompts(message: string): Promise<FilteredPrompt> {
         // if message doesn't begin with the bot trigger, raise an error
@@ -31,7 +36,9 @@ export class PromptParser {
     }
 
     /**
-     * Parses the input string (after the trigger word) into a FilteredPrompt object.
+     * Internal logic for splitting the message into a main prompt and various modifiers.
+     * @param input The input string with the trigger word already removed.
+     * @returns A populated FilteredPrompt object.
      */
     private static parseInput(input: string): FilteredPrompt {
         const result: FilteredPrompt = {
@@ -67,7 +74,9 @@ export class PromptParser {
     }
 
     /**
-     * Finds all modifier flags and their positions in the input string.
+     * Uses regex to identify all registered modifier flags in the input string.
+     * @param input The raw input string.
+     * @returns An array of match objects containing the flag, its index and length.
      */
     private static findModifierMatches(input: string): { flag: string, index: number, length: number }[] {
         const allAliases = Object.values(this.MODIFIER_MAP).flat();
@@ -88,7 +97,12 @@ export class PromptParser {
     }
 
     /**
-     * Extracts the value string associated with a modifier.
+     * Extracts the specific value string following a modifier.
+     * Handles both space-separated and equals-sign formats.
+     * @param input The raw input string.
+     * @param current The current flag match details.
+     * @param next The optional next flag match details (to determine the end of the current value).
+     * @returns The extracted value string.
      */
     private static extractValue(input: string, current: { index: number, length: number }, next?: { index: number }): string {
         const start = current.index + current.length;
@@ -102,7 +116,10 @@ export class PromptParser {
     }
 
     /**
-     * Maps a flag/value pair to the corresponding property in the FilteredPrompt object.
+     * Applies a specific flag/value pair to the corresponding field in the FilteredPrompt result.
+     * @param result The FilteredPrompt object being built.
+     * @param flag The modifier flag (e.g., "-w" or "--width").
+     * @param value The value associated with the flag.
      */
     private static applyModifier(result: FilteredPrompt, flag: string, value: string): void {
         for (const [key, aliases] of Object.entries(this.MODIFIER_MAP)) {
@@ -148,4 +165,4 @@ export class PromptParser {
         count: ['--count', '-c'],
         seed: ['--seed', '-s']
     };
-} 
+}
