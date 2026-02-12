@@ -1,41 +1,48 @@
-# FateBot TypeScript
+# FateBot IRC Client
 
-A TypeScript implementation of the FateBot IRC bot for image generation using ComfyUI.
+A lightweight IRC bot client that connects to an external **Image Generation Service** to facilitate AI image generation using ComfyUI.
+
+## Architecture
+
+This bot behaves as a proxy. It handles:
+- **IRC Lifecycle**: Connection, channel joining, and message listening.
+- **Command Routing**: Identifies help, model listing, and image generation requests.
+- **Service Communication**: Delegates prompt parsing and image generation to a separate microservice.
 
 ## Features
 
-- **IRC Bot Integration**: Connects to IRC channels and responds to commands
-- **Text Parsing**: Parses user prompts with parameters (width, height, model, negative prompts)
-- **Image Generation**: Generates images using ComfyUI via WebSocket
-- **Image Grid Creation**: Automatically creates grid layouts from multiple generated images
-- **Async Operations**: Non-blocking image generation that doesn't interrupt bot responsiveness
-- **Modular Architecture**: Clean, maintainable code structure
+- **Lightweight**: Minimal dependencies (IRC framework, logger, env management).
+- **Asynchronous**: Non-blocking image generation with queue status updates.
+- **Standalone**: Can connect to any compatible Image Service API.
 
 ## Commands
 
-- `fatebot --help` - Shows help information
-- `fatebot --models` - Lists available models
-- `fatebot <prompt> --width=<w> --height=<h> --model=<m> --no=<negative_prompt>` - Generates an image
+- `!fate --help` - Shows help information and usage guide.
+- `!fate --models` - Lists AI models available on the connected service.
+- `!fate <prompt> [flags]` - Generates an image.
+  - *Example*: `!fate a sunset cityscape --width=1024 --height=768 --model=paSanctuary`
 
 ## Installation
 
-1. Clone the repository
-2. Install dependencies:
+1. Install dependencies:
    ```bash
    npm install
    ```
-3. Build the TypeScript code:
+2. Build the project:
    ```bash
    npm run build
    ```
 
 ## Configuration
 
-The bot uses environment variables for configuration:
+The bot is configured via a `.env` file (or `.env.dev` for development):
 
-- `COMFYUI_ADDRESS` - ComfyUI server address (default: `hayate:8188`)
-- `COMFYUI_DOMAIN_PATH` - Domain path for images (default: `mock_domain_path`)
-- `COMFYUI_FOLDER_PATH` - Folder path for images (default: `mock_folder_path`)
+- `SERVER` - IRC server address.
+- `PORT` - IRC server port.
+- `NICK` - Bot nickname.
+- `CHANNEL` - IRC channel to join.
+- `TRIGGER_WORD` - The keyword used to trigger the bot (e.g., `!fate`).
+- `IMAGE_SERVICE_URL` - URL of the external Image Generation Service (e.g., `http://localhost:8000`).
 
 ## Usage
 
@@ -50,71 +57,6 @@ npm run build
 npm start
 ```
 
-### Watch Mode (Development)
-```bash
-npm run watch
-```
+## Related Projects
 
-## Project Structure
-
-```
-src/
-├── bot.ts                    # Main bot file
-├── types/
-│   └── index.ts             # TypeScript interfaces
-├── config/
-│   ├── constants.ts         # Configuration constants
-│   └── model-loader.ts      # Model configuration loading
-├── text-filter/
-│   └── prompt-parser.ts     # Text parsing logic
-└── image-generation/
-    ├── comfyui-client.ts    # ComfyUI WebSocket client
-    ├── workflow-loader.ts   # Workflow data loading
-    ├── prompt-processor.ts  # Prompt processing
-    ├── image-generator.ts   # Main image generation orchestrator
-    └── image-grid.ts        # Image grid generation
-```
-
-## Dependencies
-
-- `irc-framework` - IRC client library
-- `ws` - WebSocket client for ComfyUI
-- `sharp` - Image processing for grid creation
-- `uuid` - Unique ID generation
-- `@types/node` - Node.js TypeScript definitions
-
-## Architecture
-
-The bot is designed with a modular, async-first architecture:
-
-1. **Text Parsing**: Extracts prompt parameters from user messages
-2. **Model Loading**: Loads model configurations from JSON files
-3. **Workflow Processing**: Processes ComfyUI workflow data
-4. **WebSocket Communication**: Connects to ComfyUI server for image generation
-5. **Image Saving**: Saves generated images to local storage
-6. **Grid Creation**: Creates grid layouts from multiple images
-
-All operations are asynchronous and non-blocking, ensuring the bot remains responsive while generating images.
-
-## Example Usage
-
-```
-User: fatebot a beautiful landscape --width=1024 --height=768 --model=paSanctuary --no=ugly, blurry
-Bot: User: Starting image generation...
-Bot: User: Your image is ready! https://example.com/images/123456.0.png
-```
-
-## Development
-
-The codebase is written in TypeScript with strict type checking. All modules are designed to be testable and maintainable.
-
-### Building
-```bash
-npm run build
-```
-
-### Running Tests
-The project includes comprehensive tests for all components. Run tests to verify functionality:
-```bash
-npm run build && node dist/test-comfyui.js
-``` 
+- **[FateBot Image Service](https://github.com/example/fatebot-image-service)**: The Python-based microservice that handles the actual ComfyUI orchestration and image processing.
