@@ -18,21 +18,15 @@ export const BOT_CONFIG = {
 } as const;
 
 /**
- * Settings for communicating with the ComfyUI backend and handling file output.
+ * Settings for communicating with the external Image Generation microservice.
  */
-export const COMFYUI_CONFIG = {
-    /** ComfyUI server address */
-    ADDRESS: env.COMFYUI_ADDRESS,
-    /** ComfyUI server port */
-    PORT: env.COMFYUI_PORT,
-    /** URL path prefix for served images */
-    DOMAIN_PATH: env.COMFYUI_DOMAIN_PATH,
-    /** Absolute local system path to output directory */
-    FOLDER_PATH: env.COMFYUI_FOLDER_PATH,
-    /** Path to default workflow file */
-    WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH,
-    /** API endpoint for the image microservice */
-    IMAGE_SERVICE_URL: env.IMAGE_SERVICE_URL
+export const IMAGE_SERVICE_CONFIG = {
+    /** Host for the image microservice */
+    HOST: env.IMAGE_SERVICE_HOST,
+    /** Port for the image microservice */
+    PORT: env.IMAGE_SERVICE_PORT,
+    /** Full API base URL */
+    URL: `${env.IMAGE_SERVICE_HOST}:${env.IMAGE_SERVICE_PORT}`
 } as const;
 
 /**
@@ -48,7 +42,7 @@ export const HELP_MESSAGES = {
 } as const;
 
 /**
- * Default fallback values for image generation parameters.
+ * Default fallback values for image generation parameters. (Legacy - mostly handled by service now)
  */
 export const GENERATION_DEFAULTS = {
     /** Fallback AI model name */

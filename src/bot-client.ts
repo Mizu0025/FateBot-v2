@@ -1,7 +1,7 @@
 import 'dotenv/config';
 // @ts-ignore: No type definitions for 'irc-framework'
 import IRC from 'irc-framework';
-import { BOT_CONFIG, HELP_MESSAGES, COMFYUI_CONFIG } from './config/constants';
+import { BOT_CONFIG, HELP_MESSAGES, IMAGE_SERVICE_CONFIG } from './config/constants';
 import { logger } from './config/logger';
 
 /**
@@ -12,7 +12,7 @@ export class FateBot {
     /** The IRC client instance */
     private bot: any;
     /** The base URL for the image generation microservice */
-    private serviceUrl = COMFYUI_CONFIG.IMAGE_SERVICE_URL;
+    private serviceUrl = IMAGE_SERVICE_CONFIG.URL;
 
     /**
      * Initializes the IRC client and sets up event listeners.
