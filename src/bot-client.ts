@@ -96,27 +96,47 @@ export class FateBot {
             // Strip trigger word for the service
             const cleanedMessage = message.replace(BOT_CONFIG.TRIGGER_WORD, "").trim();
 
+            logger.info(`Requesting image generation for ${nick}: ${cleanedMessage}`);
+
             // 1. Request generation (immediate return)
-            const req = await fetch(`${this.serviceUrl}/request`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: cleanedMessage, nick })
-            });
+            let req;
+            try {
+                req = await fetch(`${this.serviceUrl}/request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: cleanedMessage, nick })
+                });
+            } catch (fetchError: any) {
+                throw new Error(`[Network Error] Could not reach the image service. Is it running? (${fetchError.message})`);
+            }
 
-            if (!req.ok) throw new Error("Failed to queue request");
+            if (!req.ok) {
+                const errorDetail = await req.json().catch(() => ({ detail: req.statusText }));
+                throw new Error(`[Service Error] The image service returned an error: ${errorDetail.detail || req.statusText}`);
+            }
+
             const { job_id, queue_position } = await req.json();
-
             this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Starting image generation... You are #${queue_position} in the queue.`);
 
             // 2. Wait for completion
-            const wait = await fetch(`${this.serviceUrl}/wait/${job_id}`);
-            if (!wait.ok) throw new Error("Lost connection to service");
+            let wait;
+            try {
+                wait = await fetch(`${this.serviceUrl}/wait/${job_id}`);
+            } catch (fetchError: any) {
+                throw new Error(`[Network Error] Lost connection to image service while waiting. (${fetchError.message})`);
+            }
+
+            if (!wait.ok) {
+                const errorDetail = await wait.json().catch(() => ({ detail: wait.statusText }));
+                throw new Error(`[Service Error] Failed to get job status: ${errorDetail.detail || wait.statusText}`);
+            }
+
             const result = await wait.json();
 
             if (result.status === 'completed') {
                 this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Your image is ready! ${result.result}`);
             } else {
-                this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Image generation failed: ${result.error || "Unknown error"}`);
+                this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: [Generation Failed] ${result.error || "Unknown error occurred during processing"}`);
             }
         } catch (error: any) {
             logger.error("Error in handleGenerateImage:", error);
