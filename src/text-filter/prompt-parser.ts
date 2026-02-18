@@ -1,6 +1,7 @@
 import { FilteredPrompt } from '../types';
 import { BOT_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { logger } from '../config/logger';
+import { UserError } from '../types/errors';
 
 /**
  * Parses user input message into structured image generation parameters.
@@ -17,7 +18,7 @@ export class PromptParser {
         // if message doesn't begin with the bot trigger, raise an error
         if (!message.startsWith(BOT_CONFIG.TRIGGER_WORD)) {
             logger.error("Prompt trigger is missing or empty!");
-            throw new Error("Prompt trigger is missing or empty!");
+            throw new UserError(`Message must start with ${BOT_CONFIG.TRIGGER_WORD}`);
         }
 
         // Remove the trigger keyword and leading/trailing spaces

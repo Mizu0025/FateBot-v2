@@ -1,5 +1,6 @@
 import { PromptParser } from './prompt-parser';
 import { BOT_CONFIG } from '../config/constants';
+import { UserError } from '../types/errors';
 
 describe('PromptParser', () => {
     beforeEach(() => {
@@ -69,7 +70,8 @@ describe('PromptParser', () => {
         const message = 'a beautiful landscape --width=800 --height=600';
 
         // act & assert
-        await expect(PromptParser.extractPrompts(message)).rejects.toThrow('Prompt trigger is missing or empty!');
+        await expect(PromptParser.extractPrompts(message)).rejects.toThrow(UserError);
+        await expect(PromptParser.extractPrompts(message)).rejects.toThrow(`Message must start with ${BOT_CONFIG.TRIGGER_WORD}`);
     });
 
     it('should support shortened modifiers and flexible formatting', async () => {

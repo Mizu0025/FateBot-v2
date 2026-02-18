@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { WorkflowData } from '../types';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
+import { SystemError } from '../types/errors';
 
 export interface ComfyUIMessage {
     type: string;
@@ -40,7 +41,7 @@ export class ComfyUIClient {
     public async queuePrompt(prompt: WorkflowData): Promise<string | null> {
         if (!COMFYUI_CONFIG.ADDRESS) {
             logger.error("ComfyUI server address is not configured.");
-            throw new Error("ComfyUI server address not configured.");
+            throw new SystemError("ComfyUI server address not configured.");
         }
 
         try {
@@ -57,15 +58,16 @@ export class ComfyUIClient {
             if (!response.ok) {
                 const errorText = await response.text();
                 logger.error(`ComfyUI Error (${response.status}): ${errorText}`);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                throw new SystemError(`ComfyUI backend returned status ${response.status}`, { status: response.status, text: errorText });
             }
 
             const result = await response.json();
             logger.info(`Prompt queued successfully with ID: ${result.prompt_id}`);
             return result.prompt_id;
         } catch (error) {
+            if (error instanceof SystemError) throw error;
             logger.error("Error queuing prompt:", error);
-            throw new Error(`Failed to queue prompt: ${error}`);
+            throw new SystemError(`Failed to queue prompt: ${(error as any).message}`, error);
         }
     }
 
@@ -91,7 +93,7 @@ export class ComfyUIClient {
 
                 this.ws.on('error', (error) => {
                     logger.error("WebSocket connection error:", error);
-                    reject(new Error(`WebSocket connection error: ${error.message}`));
+                    reject(new SystemError(`WebSocket connection error: ${error.message}`, error));
                 });
 
                 this.ws.on('close', () => {
@@ -100,7 +102,7 @@ export class ComfyUIClient {
             });
         } catch (error) {
             logger.error("Error connecting to ComfyUI server:", error);
-            throw new Error(`Could not connect to ComfyUI server at ${COMFYUI_CONFIG.ADDRESS}. Is the server running?`);
+            throw new SystemError(`Could not connect to ComfyUI server at ${COMFYUI_CONFIG.ADDRESS}. Is the server running?`, error);
         }
     }
 
@@ -112,7 +114,7 @@ export class ComfyUIClient {
      */
     public async getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
         if (!this.ws) {
-            throw new Error("WebSocket not connected");
+            throw new SystemError("WebSocket not connected");
         }
 
         const outputImages = new Map<string, Buffer[]>();
@@ -122,7 +124,7 @@ export class ComfyUIClient {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 logger.error(`WebSocket timeout while waiting for images (prompt ID: ${promptId})`);
-                reject(new Error("WebSocket timeout while waiting for images."));
+                reject(new SystemError("WebSocket timeout while waiting for images."));
             }, 300000); // 5 minute timeout
 
             this.ws!.on('message', (data: Buffer) => {
@@ -165,14 +167,14 @@ export class ComfyUIClient {
                 } catch (error) {
                     logger.error("Error processing WebSocket message:", error);
                     clearTimeout(timeout);
-                    reject(new Error(`Error processing WebSocket message: ${error}`));
+                    reject(new SystemError(`Error processing WebSocket message: ${(error as any).message}`, error));
                 }
             });
 
             this.ws!.on('error', (error) => {
                 clearTimeout(timeout);
                 logger.error("WebSocket error during image retrieval:", error);
-                reject(new Error(`WebSocket error: ${error.message}`));
+                reject(new SystemError(`WebSocket error: ${error.message}`, error));
             });
 
             this.ws!.on('close', () => {

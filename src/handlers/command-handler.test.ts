@@ -2,10 +2,9 @@ import { CommandHandler } from './command-handler';
 import { PromptQueue } from '../queue/queue';
 import { InactivityManager } from '../managers/inactivity-manager';
 import { ModelLoader } from '../config/model-loader';
-import { ImageGenerator } from '../image-generation/image-generator';
 import { PromptParser } from '../text-filter/prompt-parser';
-import { RuntimeConfig } from '../config/runtime-config';
 import { BOT_CONFIG } from '../config/constants';
+import { UserError } from '../types/errors';
 
 jest.mock('../config/logger');
 jest.mock('../config/model-loader');
@@ -98,7 +97,7 @@ describe('CommandHandler', () => {
         it('should handle prompt parsing errors', async () => {
             // Arrange
             const nick = 'user123';
-            (PromptParser.extractPrompts as jest.Mock).mockRejectedValue(new Error('Parse error'));
+            (PromptParser.extractPrompts as jest.Mock).mockRejectedValue(new UserError('Parse error'));
 
             // Act
             await commandHandler.handleGenerateImage(nick, 'invalid');
