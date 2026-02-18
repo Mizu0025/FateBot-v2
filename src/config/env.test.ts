@@ -8,7 +8,7 @@ describe('env validation', () => {
       PORT: '1234',
     };
     const validators = {
-      SERVER: str({ default: 'hayate' }),
+      SERVER: str({ default: 'address' }),
       PORT: port({ default: 6667 }),
     };
 
@@ -24,7 +24,7 @@ describe('env validation', () => {
     // arrange
     const inputEnv = {};
     const validators = {
-      SERVER: str({ default: 'hayate' }),
+      SERVER: str({ default: 'address' }),
       PORT: port({ default: 6667 }),
     };
 
@@ -32,7 +32,7 @@ describe('env validation', () => {
     const env = cleanEnv(inputEnv, validators);
 
     // assert
-    expect(env.SERVER).toBe('hayate');
+    expect(env.SERVER).toBe('address');
     expect(env.PORT).toBe(6667);
   });
 
