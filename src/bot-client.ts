@@ -57,10 +57,20 @@ export class FateBot {
      * Connects the bot to the configured IRC server.
      */
     public connect() {
-        this.bot.connect({
+        const connectionOptions: any = {
             host: BOT_CONFIG.SERVER,
             port: BOT_CONFIG.PORT,
             nick: BOT_CONFIG.NICK,
-        });
+        };
+
+        if (BOT_CONFIG.SASL_ACCOUNT && BOT_CONFIG.SASL_PASSWORD) {
+            logger.info(`Using SASL authentication for account: ${BOT_CONFIG.SASL_ACCOUNT}`);
+            connectionOptions.account = {
+                account: BOT_CONFIG.SASL_ACCOUNT,
+                password: BOT_CONFIG.SASL_PASSWORD,
+            };
+        }
+
+        this.bot.connect(connectionOptions);
     }
 }

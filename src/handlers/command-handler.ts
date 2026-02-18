@@ -1,12 +1,12 @@
 import { logger } from '../config/logger';
 import { BOT_CONFIG, HELP_MESSAGES } from '../config/constants';
 import { ModelLoader } from '../config/model-loader';
-import { RuntimeConfig } from '../config/runtime-config';
 import { PromptParser } from '../text-filter/prompt-parser';
 import { ImageGenerator } from '../image-generation/image-generator';
 import { PromptQueue } from '../queue/queue';
 import { getGpuMemoryInfo, formatMemoryInfo } from '../utils/gpu-utils';
 import { InactivityManager } from '../managers/inactivity-manager';
+import { UserError, SystemError } from '../types/errors';
 
 /**
  * Handles specific bot commands and image generation requests.
@@ -95,15 +95,25 @@ export class CommandHandler {
                     const gridPath = await ImageGenerator.generateImage(filteredPrompt);
                     this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Your image is ready! ${gridPath}`);
                 } catch (error: any) {
-                    logger.error("Error during image generation:", error);
-                    this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: An error occurred during image generation: ${error.message}`);
+                    if (error instanceof UserError) {
+                        this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Input error: ${error.message}`);
+                    } else if (error instanceof SystemError) {
+                        this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: A system error occurred. Please try again later. (Error ID: ${error.details?.status || 'INTERNAL'})`);
+                    } else {
+                        logger.error("Unexpected error during image generation:", error);
+                        this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: An unexpected error occurred.`);
+                    }
                 }
             });
             this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Starting image generation... You are #${position} in the queue.`);
 
         } catch (error: any) {
-            logger.error("Error parsing prompt:", error);
-            this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Error parsing your request: ${error.message}`);
+            if (error instanceof UserError) {
+                this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Error parsing your request: ${error.message}`);
+            } else {
+                logger.error("Error during message handling:", error);
+                this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: An error occurred while processing your request.`);
+            }
         }
     }
 }

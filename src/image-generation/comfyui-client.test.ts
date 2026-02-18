@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { ComfyUIClient } from './comfyui-client';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
+import { SystemError } from '../types/errors';
 
 // Mock dependencies
 jest.mock('ws');
@@ -60,6 +61,7 @@ describe('ComfyUIClient', () => {
 
             // Act 
             // Assert
+            await expect(client.queuePrompt(prompt)).rejects.toThrow(SystemError);
             await expect(client.queuePrompt(prompt)).rejects.toThrow("ComfyUI server address not configured.");
             expect(logger.error).toHaveBeenCalledWith("ComfyUI server address is not configured.");
         });
@@ -75,7 +77,8 @@ describe('ComfyUIClient', () => {
 
             // Act
             // Assert
-            await expect(client.queuePrompt(prompt)).rejects.toThrow("Failed to queue prompt: Error: HTTP error! status: 500, message: Internal Server Error");
+            await expect(client.queuePrompt(prompt)).rejects.toThrow(SystemError);
+            await expect(client.queuePrompt(prompt)).rejects.toThrow("ComfyUI backend returned status 500");
             expect(logger.error).toHaveBeenCalledWith("ComfyUI Error (500): Internal Server Error");
         });
 
@@ -86,7 +89,8 @@ describe('ComfyUIClient', () => {
 
             // Act
             // Assert
-            await expect(client.queuePrompt(prompt)).rejects.toThrow("Failed to queue prompt: Error: Network error");
+            await expect(client.queuePrompt(prompt)).rejects.toThrow(SystemError);
+            await expect(client.queuePrompt(prompt)).rejects.toThrow("Failed to queue prompt: Network error");
             expect(logger.error).toHaveBeenCalledWith("Error queuing prompt:", expect.any(Error));
         });
 
@@ -100,7 +104,8 @@ describe('ComfyUIClient', () => {
 
             // Act
             // Assert
-            await expect(client.queuePrompt(prompt)).rejects.toThrow("Failed to queue prompt: Error: Invalid JSON");
+            await expect(client.queuePrompt(prompt)).rejects.toThrow(SystemError);
+            await expect(client.queuePrompt(prompt)).rejects.toThrow("Failed to queue prompt: Invalid JSON");
             expect(logger.error).toHaveBeenCalledWith("Error queuing prompt:", expect.any(Error));
         });
     });
@@ -135,6 +140,7 @@ describe('ComfyUIClient', () => {
 
             // Act
             // Assert
+            await expect(client.connectWebSocket()).rejects.toThrow(SystemError);
             await expect(client.connectWebSocket()).rejects.toThrow("Could not connect to ComfyUI server at localhost. Is the server running?");
             expect(logger.error).toHaveBeenCalledWith("Error connecting to ComfyUI server:", expect.any(Error));
         });
@@ -153,6 +159,7 @@ describe('ComfyUIClient', () => {
 
             // Act
             // Assert
+            await expect(client.connectWebSocket()).rejects.toThrow(SystemError);
             await expect(client.connectWebSocket()).rejects.toThrow("WebSocket connection error: Connection error");
             expect(logger.error).toHaveBeenCalledWith("WebSocket connection error:", expect.any(Error));
         });
@@ -204,6 +211,7 @@ describe('ComfyUIClient', () => {
             // Arrange
             // Act
             // Assert
+            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(SystemError);
             await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow("WebSocket not connected");
         });
 
@@ -219,9 +227,9 @@ describe('ComfyUIClient', () => {
             };
             (client as any).ws = mockWs;
 
-            // Act
             // Assert
-            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(/Error processing WebSocket message: SyntaxError/);
+            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(SystemError);
+            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(/Error processing WebSocket message:/);
             expect(logger.error).toHaveBeenCalledWith("Error processing WebSocket message:", expect.any(Error));
         });
 
@@ -240,6 +248,7 @@ describe('ComfyUIClient', () => {
 
             // Act
             // Assert
+            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(SystemError);
             await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow("WebSocket error: Retrieval error");
             expect(logger.error).toHaveBeenCalledWith("WebSocket error during image retrieval:", expect.any(Error));
         });

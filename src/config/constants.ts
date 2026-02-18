@@ -9,7 +9,9 @@ export const BOT_CONFIG = {
     CHANNEL: env.CHANNEL,
     NICK: env.NICK,
     TRIGGER_WORD: env.TRIGGER_WORD,
-    PORT: env.PORT
+    PORT: env.PORT,
+    SASL_ACCOUNT: env.SASL_ACCOUNT,
+    SASL_PASSWORD: env.SASL_PASSWORD
 } as const;
 
 /**

@@ -11,6 +11,8 @@ const env = cleanEnv(process.env, {
   COMFYUI_DOMAIN_PATH: str({ default: 'mock_domain_path' }),
   COMFYUI_FOLDER_PATH: str({ default: '/home/mizu/Pictures/artbot/' }),
   COMFYUI_WORKFLOW_PATH: str({ default: 'src/workflows/SDXL.json' }),
+  SASL_ACCOUNT: str({ default: undefined }),
+  SASL_PASSWORD: str({ default: undefined }),
 });
 
 export default env;
