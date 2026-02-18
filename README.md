@@ -31,11 +31,40 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 
 ## Configuration
 
-The bot uses environment variables for configuration:
+The bot uses environment variables for configuration. You can use a `.env` file or environment-specific files (e.g., `.env.dev`, `.env.prod`).
 
-- `COMFYUI_ADDRESS` - ComfyUI server address (default: `hayate:8188`)
-- `COMFYUI_DOMAIN_PATH` - Domain path for images (default: `mock_domain_path`)
-- `COMFYUI_FOLDER_PATH` - Folder path for images (default: `mock_folder_path`)
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` with your settings.
+
+### Available Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SERVER` | IRC server address | `address` |
+| `PORT` | IRC server port | `6667` |
+| `CHANNEL` | IRC channel to join | `#channel` |
+| `NICK` | Bot's nickname | `nick` |
+| `TRIGGER_WORD` | Command trigger | `!trigger` |
+| `SASL_ACCOUNT` | SASL account name | (Optional) |
+| `SASL_PASSWORD` | SASL password | (Optional) |
+| `COMFYUI_ADDRESS` | ComfyUI server address | `comfyAddress` |
+| `COMFYUI_PORT` | ComfyUI server port | `8188` |
+| `COMFYUI_DOMAIN_PATH` | Public URL path for images | `mock_domain_path` |
+| `COMFYUI_FOLDER_PATH` | Local path where images are saved | `/path/to/files/` |
+| `COMFYUI_WORKFLOW_PATH`| Path to the ComfyUI workflow JSON | `src/workflows/workflow.json` |
+| `LOG_LEVEL` | Logging level (info, debug, etc.) | `info` |
+| `LOG_TO_FILE` | Enable logging to files in `./logs` | `false` |
+
+### Multi-Environment Setup
+
+The project supports different environment files via npm scripts:
+
+- `npm run start:dev`: Uses `.env.dev`
+- `npm run start:test`: Uses `.env.test`
+- `npm run start:prod`: Uses `.env.prod`
 
 ## Usage
 
