@@ -1,0 +1,361 @@
+Apr 21 08:18:29 hayate systemd[1]: Started comfyui.service - ComfyUI Service.
+░░ Subject: A start job for unit comfyui.service has finished successfully
+░░ Defined-By: systemd
+░░ Support: http://www.ubuntu.com/support
+░░ 
+░░ A start job for unit comfyui.service has finished successfully.
+░░ 
+░░ The job identifier is 204.
+Apr 21 08:18:29 hayate python3[978]: comfy-aimdo failed to load: libcuda.so.1: cannot open shared object file: No such file or directory
+Apr 21 08:18:29 hayate python3[978]: NOTE: comfy-aimdo is currently only support for Nvidia GPUs
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path checkpoints /mnt/ai_data/image_models/checkpoints
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path clip /mnt/ai_data/image_models/clip
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path clip_vision /mnt/ai_data/image_models/clip_vision
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path configs /mnt/ai_data/image_models/configs
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path controlnet /mnt/ai_data/image_models/controlnet
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path diffusion_models /mnt/ai_data/image_models/diffusion_models
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path diffusion_models /mnt/ai_data/image_models/unet
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path embeddings /mnt/ai_data/image_models/embeddings
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path loras /mnt/ai_data/image_models/loras
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path upscale_models /mnt/ai_data/image_models/upscale_models
+Apr 21 08:18:29 hayate python3[978]: Adding extra search path vae /mnt/ai_data/image_models/vae
+Apr 21 08:18:30 hayate python3[978]: [START] Security scan
+Apr 21 08:18:30 hayate python3[978]: [DONE] Security scan
+Apr 21 08:18:30 hayate python3[978]: ## ComfyUI-Manager: installing dependencies done.
+Apr 21 08:18:30 hayate python3[978]: ** ComfyUI startup time: 2026-04-21 08:18:30.749
+Apr 21 08:18:30 hayate python3[978]: ** Platform: Linux
+Apr 21 08:18:30 hayate python3[978]: ** Python version: 3.12.3 (main, Mar  3 2026, 12:15:18) [GCC 13.3.0]
+Apr 21 08:18:30 hayate python3[978]: ** Python executable: /mnt/ai_data/.venv/bin/python3
+Apr 21 08:18:30 hayate python3[978]: ** ComfyUI Path: /mnt/ai_data/ComfyUI
+Apr 21 08:18:30 hayate python3[978]: ** ComfyUI Base Folder Path: /mnt/ai_data/ComfyUI
+Apr 21 08:18:30 hayate python3[978]: ** User directory: /mnt/ai_data/ComfyUI/user
+Apr 21 08:18:30 hayate python3[978]: ** ComfyUI-Manager config path: /mnt/ai_data/ComfyUI/user/__manager/config.ini
+Apr 21 08:18:30 hayate python3[978]: ** Log path: /mnt/ai_data/ComfyUI/user/comfyui.log
+Apr 21 08:18:31 hayate python3[978]: Prestartup times for custom nodes:
+Apr 21 08:18:31 hayate python3[978]:    1.1 seconds: /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-Manager
+Apr 21 08:18:35 hayate python3[978]: Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Apr 21 08:18:35 hayate python3[978]: Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_mxfp8', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_mxfp8', 'scaled_mm_nvfp4']}
+Apr 21 08:18:35 hayate python3[978]: Found comfy_kitchen backend cuda: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Apr 21 08:18:35 hayate python3[978]: Checkpoint files will always be loaded safely.
+Apr 21 08:18:35 hayate python3[978]: Total VRAM 24560 MB, total RAM 31187 MB
+Apr 21 08:18:35 hayate python3[978]: pytorch version: 2.11.0+rocm7.2
+Apr 21 08:18:35 hayate python3[978]: Set: torch.backends.cudnn.enabled = False for better AMD performance.
+Apr 21 08:18:35 hayate python3[978]: AMD arch: gfx1100
+Apr 21 08:18:35 hayate python3[978]: ROCm version: (7, 2)
+Apr 21 08:18:35 hayate python3[978]: Set vram state to: NORMAL_VRAM
+Apr 21 08:18:35 hayate python3[978]: Disabling smart memory management
+Apr 21 08:18:35 hayate python3[978]: Device: cuda:0 AMD Radeon RX 7900 XTX : cudaMallocAsync
+Apr 21 08:18:35 hayate python3[978]: Using async weight offloading with 2 streams
+Apr 21 08:18:35 hayate python3[978]: Enabled pinned memory 28068.0
+Apr 21 08:18:35 hayate python3[978]: Using split optimization for attention
+Apr 21 08:18:36 hayate python3[978]: Python version: 3.12.3 (main, Mar  3 2026, 12:15:18) [GCC 13.3.0]
+Apr 21 08:18:36 hayate python3[978]: ComfyUI version: 0.19.3
+Apr 21 08:18:36 hayate python3[978]: comfy-aimdo version: 0.2.12
+Apr 21 08:18:36 hayate python3[978]: comfy-kitchen version: 0.2.8
+Apr 21 08:18:36 hayate python3[978]: ComfyUI frontend version: 1.42.11
+Apr 21 08:18:36 hayate python3[978]: [Prompt Server] web root: /mnt/ai_data/.venv/lib/python3.12/site-packages/comfyui_frontend_package/static
+Apr 21 08:18:36 hayate python3[978]: Asset seeder disabled
+Apr 21 08:18:37 hayate python3[978]: ### Loading: ComfyUI-Manager (V3.39.2)
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] network_mode: public
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] ComfyUI per-queue preview override detected (PR #11261). Manager's preview method feature is disabled. Use ComfyUI's --preview-method CLI option or 'Settings > Execution > Live preview method'.
+Apr 21 08:18:37 hayate python3[978]: ### ComfyUI Version: v0.19.3-4-gfc5f4a99 | Released on '2026-04-19'
+Apr 21 08:18:37 hayate python3[978]: Traceback (most recent call last):
+Apr 21 08:18:37 hayate python3[978]:   File "/mnt/ai_data/ComfyUI/nodes.py", line 2227, in load_custom_node
+Apr 21 08:18:37 hayate python3[978]:     module_spec.loader.exec_module(module)
+Apr 21 08:18:37 hayate python3[978]:   File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+Apr 21 08:18:37 hayate python3[978]:   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+Apr 21 08:18:37 hayate python3[978]:   File "/mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF/__init__.py", line 7, in <module>
+Apr 21 08:18:37 hayate python3[978]:     from .nodes import NODE_CLASS_MAPPINGS
+Apr 21 08:18:37 hayate python3[978]:   File "/mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF/nodes.py", line 15, in <module>
+Apr 21 08:18:37 hayate python3[978]:     from .ops import GGMLOps, move_patch_to_device
+Apr 21 08:18:37 hayate python3[978]:   File "/mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF/ops.py", line 2, in <module>
+Apr 21 08:18:37 hayate python3[978]:     import gguf
+Apr 21 08:18:37 hayate python3[978]: ModuleNotFoundError: No module named 'gguf'
+Apr 21 08:18:37 hayate python3[978]: Cannot import /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF module for custom nodes: No module named 'gguf'
+Apr 21 08:18:37 hayate python3[978]: Import times for custom nodes:
+Apr 21 08:18:37 hayate python3[978]:    0.0 seconds: /mnt/ai_data/ComfyUI/custom_nodes/websocket_image_save.py
+Apr 21 08:18:37 hayate python3[978]:    0.0 seconds: /mnt/ai_data/ComfyUI/custom_nodes/comfyui_diffusionmodel_fp8_converter
+Apr 21 08:18:37 hayate python3[978]:    0.0 seconds (IMPORT FAILED): /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF
+Apr 21 08:18:37 hayate python3[978]:    0.1 seconds: /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-Manager
+Apr 21 08:18:37 hayate python3[978]: Context impl SQLiteImpl.
+Apr 21 08:18:37 hayate python3[978]: Will assume non-transactional DDL.
+Apr 21 08:18:37 hayate python3[978]: Starting server
+Apr 21 08:18:37 hayate python3[978]: To see the GUI go to: http://0.0.0.0:8188
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/alter-list.json
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/model-list.json
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/github-stats.json
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/extension-node-map.json
+Apr 21 08:18:37 hayate python3[978]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/custom-node-list.json
+Apr 21 08:18:41 hayate python3[978]: FETCH ComfyRegistry Data: 5/139
+Apr 21 08:18:46 hayate python3[978]: FETCH ComfyRegistry Data: 10/139
+Apr 21 08:18:49 hayate python3[978]: FETCH ComfyRegistry Data: 15/139
+Apr 21 08:18:53 hayate python3[978]: FETCH ComfyRegistry Data: 20/139
+Apr 21 08:18:57 hayate python3[978]: FETCH ComfyRegistry Data: 25/139
+Apr 21 08:19:01 hayate python3[978]: FETCH ComfyRegistry Data: 30/139
+Apr 21 08:19:05 hayate python3[978]: FETCH ComfyRegistry Data: 35/139
+Apr 21 08:19:09 hayate python3[978]: FETCH ComfyRegistry Data: 40/139
+Apr 21 08:19:13 hayate python3[978]: FETCH ComfyRegistry Data: 45/139
+Apr 21 08:19:17 hayate python3[978]: FETCH ComfyRegistry Data: 50/139
+Apr 21 08:19:21 hayate python3[978]: FETCH ComfyRegistry Data: 55/139
+Apr 21 08:19:25 hayate python3[978]: FETCH ComfyRegistry Data: 60/139
+Apr 21 08:19:29 hayate python3[978]: FETCH ComfyRegistry Data: 65/139
+Apr 21 08:19:42 hayate python3[978]: FETCH ComfyRegistry Data: 70/139
+Apr 21 08:19:46 hayate python3[978]: FETCH ComfyRegistry Data: 75/139
+Apr 21 08:19:50 hayate python3[978]: FETCH ComfyRegistry Data: 80/139
+Apr 21 08:19:54 hayate python3[978]: FETCH ComfyRegistry Data: 85/139
+Apr 21 08:19:59 hayate python3[978]: FETCH ComfyRegistry Data: 90/139
+Apr 21 08:20:03 hayate python3[978]: FETCH ComfyRegistry Data: 95/139
+Apr 21 08:20:05 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 08:20:06 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 08:20:07 hayate python3[978]: FETCH ComfyRegistry Data: 100/139
+Apr 21 08:20:11 hayate python3[978]: FETCH ComfyRegistry Data: 105/139
+Apr 21 08:20:16 hayate python3[978]: FETCH ComfyRegistry Data: 110/139
+Apr 21 08:20:20 hayate python3[978]: FETCH ComfyRegistry Data: 115/139
+Apr 21 08:20:24 hayate python3[978]: FETCH ComfyRegistry Data: 120/139
+Apr 21 08:20:29 hayate python3[978]: FETCH ComfyRegistry Data: 125/139
+Apr 21 08:20:34 hayate python3[978]: FETCH ComfyRegistry Data: 130/139
+Apr 21 08:20:38 hayate python3[978]: FETCH ComfyRegistry Data: 135/139
+Apr 21 08:20:42 hayate python3[978]: FETCH ComfyRegistry Data [DONE]
+Apr 21 08:20:42 hayate python3[978]: [ComfyUI-Manager] default cache updated: https://api.comfy.org/nodes
+Apr 21 08:20:42 hayate python3[978]: FETCH DATA from: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/custom-node-list.json [DONE]
+Apr 21 08:20:42 hayate python3[978]: [ComfyUI-Manager] All startup tasks have been completed.
+Apr 21 08:49:20 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 08:49:28 hayate systemd[1]: Stopping comfyui.service - ComfyUI Service...
+░░ Subject: A stop job for unit comfyui.service has begun execution
+░░ Defined-By: systemd
+░░ Support: http://www.ubuntu.com/support
+░░ 
+░░ A stop job for unit comfyui.service has begun execution.
+░░ 
+░░ The job identifier is 2849.
+Apr 21 08:49:28 hayate python3[21121]: comfy-aimdo failed to load: libcuda.so.1: cannot open shared object file: No such file or directory
+Apr 21 08:49:28 hayate python3[21121]: NOTE: comfy-aimdo is currently only support for Nvidia GPUs
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path checkpoints /mnt/ai_data/image_models/checkpoints
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path clip /mnt/ai_data/image_models/clip
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path clip_vision /mnt/ai_data/image_models/clip_vision
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path configs /mnt/ai_data/image_models/configs
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path controlnet /mnt/ai_data/image_models/controlnet
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path diffusion_models /mnt/ai_data/image_models/diffusion_models
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path diffusion_models /mnt/ai_data/image_models/unet
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path embeddings /mnt/ai_data/image_models/embeddings
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path loras /mnt/ai_data/image_models/loras
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path upscale_models /mnt/ai_data/image_models/upscale_models
+Apr 21 08:49:28 hayate python3[21121]: Adding extra search path vae /mnt/ai_data/image_models/vae
+Apr 21 08:49:29 hayate python3[21121]: [START] Security scan
+Apr 21 08:49:29 hayate python3[21121]: [DONE] Security scan
+Apr 21 08:49:29 hayate python3[21121]: ## ComfyUI-Manager: installing dependencies done.
+Apr 21 08:49:29 hayate python3[21121]: ** ComfyUI startup time: 2026-04-21 08:49:29.248
+Apr 21 08:49:29 hayate python3[21121]: ** Platform: Linux
+Apr 21 08:49:29 hayate python3[21121]: ** Python version: 3.12.3 (main, Mar  3 2026, 12:15:18) [GCC 13.3.0]
+Apr 21 08:49:29 hayate python3[21121]: ** Python executable: /mnt/ai_data/.venv/bin/python3
+Apr 21 08:49:29 hayate python3[21121]: ** ComfyUI Path: /mnt/ai_data/ComfyUI
+Apr 21 08:49:29 hayate python3[21121]: ** ComfyUI Base Folder Path: /mnt/ai_data/ComfyUI
+Apr 21 08:49:29 hayate python3[21121]: ** User directory: /mnt/ai_data/ComfyUI/user
+Apr 21 08:49:29 hayate python3[21121]: ** ComfyUI-Manager config path: /mnt/ai_data/ComfyUI/user/__manager/config.ini
+Apr 21 08:49:29 hayate python3[21121]: ** Log path: /mnt/ai_data/ComfyUI/user/comfyui.log
+Apr 21 08:49:29 hayate python3[21121]: Prestartup times for custom nodes:
+Apr 21 08:49:29 hayate python3[21121]:    0.8 seconds: /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-Manager
+Apr 21 08:49:32 hayate python3[21121]: Found comfy_kitchen backend cuda: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Apr 21 08:49:32 hayate python3[21121]: Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_mxfp8', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_mxfp8', 'scaled_mm_nvfp4']}
+Apr 21 08:49:32 hayate python3[21121]: Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Apr 21 08:49:32 hayate python3[21121]: Checkpoint files will always be loaded safely.
+Apr 21 08:49:32 hayate python3[21121]: Total VRAM 24560 MB, total RAM 31187 MB
+Apr 21 08:49:32 hayate python3[21121]: pytorch version: 2.11.0+rocm7.2
+Apr 21 08:49:32 hayate python3[21121]: Set: torch.backends.cudnn.enabled = False for better AMD performance.
+Apr 21 08:49:32 hayate python3[21121]: AMD arch: gfx1100
+Apr 21 08:49:32 hayate python3[21121]: ROCm version: (7, 2)
+Apr 21 08:49:32 hayate python3[21121]: Set vram state to: NORMAL_VRAM
+Apr 21 08:49:32 hayate python3[21121]: Disabling smart memory management
+Apr 21 08:49:32 hayate python3[21121]: Device: cuda:0 AMD Radeon RX 7900 XTX : cudaMallocAsync
+Apr 21 08:49:32 hayate python3[21121]: Using async weight offloading with 2 streams
+Apr 21 08:49:32 hayate python3[21121]: Enabled pinned memory 28068.0
+Apr 21 08:49:32 hayate python3[21121]: Using split optimization for attention
+Apr 21 08:49:33 hayate python3[21121]: Python version: 3.12.3 (main, Mar  3 2026, 12:15:18) [GCC 13.3.0]
+Apr 21 08:49:33 hayate python3[21121]: ComfyUI version: 0.19.3
+Apr 21 08:49:33 hayate python3[21121]: comfy-aimdo version: 0.2.12
+Apr 21 08:49:33 hayate python3[21121]: comfy-kitchen version: 0.2.8
+Apr 21 08:49:33 hayate python3[21121]: ComfyUI frontend version: 1.42.11
+Apr 21 08:49:33 hayate python3[21121]: [Prompt Server] web root: /mnt/ai_data/.venv/lib/python3.12/site-packages/comfyui_frontend_package/static
+Apr 21 08:49:33 hayate python3[21121]: Asset seeder disabled
+Apr 21 08:49:34 hayate python3[21121]: ### Loading: ComfyUI-Manager (V3.39.2)
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] network_mode: public
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] ComfyUI per-queue preview override detected (PR #11261). Manager's preview method feature is disabled. Use ComfyUI's --preview-method CLI option or 'Settings > Execution > Live preview method'.
+Apr 21 08:49:34 hayate python3[21121]: ### ComfyUI Version: v0.19.3-4-gfc5f4a99 | Released on '2026-04-19'
+Apr 21 08:49:34 hayate python3[21121]: Traceback (most recent call last):
+Apr 21 08:49:34 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/nodes.py", line 2227, in load_custom_node
+Apr 21 08:49:34 hayate python3[21121]:     module_spec.loader.exec_module(module)
+Apr 21 08:49:34 hayate python3[21121]:   File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+Apr 21 08:49:34 hayate python3[21121]:   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+Apr 21 08:49:34 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF/__init__.py", line 7, in <module>
+Apr 21 08:49:34 hayate python3[21121]:     from .nodes import NODE_CLASS_MAPPINGS
+Apr 21 08:49:34 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF/nodes.py", line 15, in <module>
+Apr 21 08:49:34 hayate python3[21121]:     from .ops import GGMLOps, move_patch_to_device
+Apr 21 08:49:34 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF/ops.py", line 2, in <module>
+Apr 21 08:49:34 hayate python3[21121]:     import gguf
+Apr 21 08:49:34 hayate python3[21121]: ModuleNotFoundError: No module named 'gguf'
+Apr 21 08:49:34 hayate python3[21121]: Cannot import /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF module for custom nodes: No module named 'gguf'
+Apr 21 08:49:34 hayate python3[21121]: Import times for custom nodes:
+Apr 21 08:49:34 hayate python3[21121]:    0.0 seconds: /mnt/ai_data/ComfyUI/custom_nodes/websocket_image_save.py
+Apr 21 08:49:34 hayate python3[21121]:    0.0 seconds: /mnt/ai_data/ComfyUI/custom_nodes/comfyui_diffusionmodel_fp8_converter
+Apr 21 08:49:34 hayate python3[21121]:    0.0 seconds (IMPORT FAILED): /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-GGUF
+Apr 21 08:49:34 hayate python3[21121]:    0.1 seconds: /mnt/ai_data/ComfyUI/custom_nodes/ComfyUI-Manager
+Apr 21 08:49:34 hayate python3[21121]: Context impl SQLiteImpl.
+Apr 21 08:49:34 hayate python3[21121]: Will assume non-transactional DDL.
+Apr 21 08:49:34 hayate python3[21121]: Starting server
+Apr 21 08:49:34 hayate python3[21121]: To see the GUI go to: http://0.0.0.0:8188
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/alter-list.json
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/model-list.json
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/github-stats.json
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/custom-node-list.json
+Apr 21 08:49:34 hayate python3[21121]: [ComfyUI-Manager] default cache updated: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/extension-node-map.json
+Apr 21 08:49:38 hayate python3[21121]: FETCH ComfyRegistry Data: 5/139
+Apr 21 08:49:42 hayate python3[21121]: FETCH ComfyRegistry Data: 10/139
+Apr 21 08:49:46 hayate python3[21121]: FETCH ComfyRegistry Data: 15/139
+Apr 21 08:49:50 hayate python3[21121]: FETCH ComfyRegistry Data: 20/139
+Apr 21 08:49:54 hayate python3[21121]: FETCH ComfyRegistry Data: 25/139
+Apr 21 08:49:58 hayate python3[21121]: FETCH ComfyRegistry Data: 30/139
+Apr 21 08:50:02 hayate python3[21121]: FETCH ComfyRegistry Data: 35/139
+Apr 21 08:50:06 hayate python3[21121]: FETCH ComfyRegistry Data: 40/139
+Apr 21 08:50:10 hayate python3[21121]: FETCH ComfyRegistry Data: 45/139
+Apr 21 08:50:14 hayate python3[21121]: FETCH ComfyRegistry Data: 50/139
+Apr 21 08:50:18 hayate python3[21121]: FETCH ComfyRegistry Data: 55/139
+Apr 21 08:50:22 hayate python3[21121]: FETCH ComfyRegistry Data: 60/139
+Apr 21 08:50:27 hayate python3[21121]: FETCH ComfyRegistry Data: 65/139
+Apr 21 08:50:31 hayate python3[21121]: FETCH ComfyRegistry Data: 70/139
+Apr 21 08:50:35 hayate python3[21121]: FETCH ComfyRegistry Data: 75/139
+Apr 21 08:50:39 hayate python3[21121]: FETCH ComfyRegistry Data: 80/139
+Apr 21 08:50:43 hayate python3[21121]: FETCH ComfyRegistry Data: 85/139
+Apr 21 08:50:47 hayate python3[21121]: FETCH ComfyRegistry Data: 90/139
+Apr 21 08:50:51 hayate python3[21121]: FETCH ComfyRegistry Data: 95/139
+Apr 21 08:50:55 hayate python3[21121]: FETCH ComfyRegistry Data: 100/139
+Apr 21 08:50:59 hayate python3[21121]: FETCH ComfyRegistry Data: 105/139
+Apr 21 08:51:03 hayate python3[21121]: FETCH ComfyRegistry Data: 110/139
+Apr 21 08:51:07 hayate python3[21121]: FETCH ComfyRegistry Data: 115/139
+Apr 21 08:51:11 hayate python3[21121]: FETCH ComfyRegistry Data: 120/139
+Apr 21 08:51:16 hayate python3[21121]: FETCH ComfyRegistry Data: 125/139
+Apr 21 08:51:20 hayate python3[21121]: FETCH ComfyRegistry Data: 130/139
+Apr 21 08:51:24 hayate python3[21121]: FETCH ComfyRegistry Data: 135/139
+Apr 21 08:51:28 hayate python3[21121]: FETCH ComfyRegistry Data [DONE]
+Apr 21 08:51:28 hayate python3[21121]: [ComfyUI-Manager] default cache updated: https://api.comfy.org/nodes
+Apr 21 08:51:28 hayate python3[21121]: FETCH DATA from: https://raw.githubusercontent.com/ltdrdata/ComfyUI-Manager/main/custom-node-list.json [DONE]
+Apr 21 08:51:28 hayate python3[21121]: [ComfyUI-Manager] All startup tasks have been completed.
+Apr 21 11:06:03 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 11:06:40 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 11:07:36 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 11:18:20 hayate systemd[1]: /etc/systemd/system/comfyui.service:10: Invalid environment assignment, ignoring: 
+Apr 21 12:48:35 hayate python3[21121]: got prompt
+Apr 21 12:48:35 hayate python3[21121]: Using split attention in VAE
+Apr 21 12:48:35 hayate python3[21121]: Using split attention in VAE
+Apr 21 12:48:35 hayate python3[21121]: VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
+Apr 21 12:48:36 hayate python3[21121]: model weight dtype torch.float16, manual cast: None
+Apr 21 12:48:36 hayate python3[21121]: model_type EPS
+Apr 21 12:48:40 hayate python3[21121]: Using split attention in VAE
+Apr 21 12:48:40 hayate python3[21121]: Using split attention in VAE
+Apr 21 12:48:40 hayate python3[21121]: VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16
+Apr 21 12:48:40 hayate python3[21121]: !!! Exception during processing !!! Allocation on device 0 would exceed allowed memory. (out of memory)
+Apr 21 12:48:40 hayate python3[21121]: Currently allocated     : 0 bytes
+Apr 21 12:48:40 hayate python3[21121]: Requested               : 72.38 MiB
+Apr 21 12:48:40 hayate python3[21121]: Device limit            : 23.98 GiB
+Apr 21 12:48:40 hayate python3[21121]: Free (according to CUDA): 23.80 GiB
+Apr 21 12:48:40 hayate python3[21121]: PyTorch limit (set by user-supplied memory fraction)
+Apr 21 12:48:40 hayate python3[21121]:                         : 17179869184.00 GiB
+Apr 21 12:48:40 hayate python3[21121]: Traceback (most recent call last):
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/execution.py", line 534, in execute
+Apr 21 12:48:40 hayate python3[21121]:     output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+Apr 21 12:48:40 hayate python3[21121]:                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/execution.py", line 334, in get_output_data
+Apr 21 12:48:40 hayate python3[21121]:     return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+Apr 21 12:48:40 hayate python3[21121]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/execution.py", line 308, in _async_map_node_over_list
+Apr 21 12:48:40 hayate python3[21121]:     await process_inputs(input_dict, i)
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/execution.py", line 296, in process_inputs
+Apr 21 12:48:40 hayate python3[21121]:     result = f(**inputs)
+Apr 21 12:48:40 hayate python3[21121]:              ^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/nodes.py", line 608, in load_checkpoint
+Apr 21 12:48:40 hayate python3[21121]:     out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+Apr 21 12:48:40 hayate python3[21121]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/sd.py", line 1604, in load_checkpoint_guess_config
+Apr 21 12:48:40 hayate python3[21121]:     out = load_state_dict_guess_config(sd, output_vae, output_clip, output_clipvision, embedding_directory, output_model, model_options, te_model_options=te_model_options, metadata=metadata, disable_dynamic=disable_dynamic)
+Apr 21 12:48:40 hayate python3[21121]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/sd.py", line 1714, in load_state_dict_guess_config
+Apr 21 12:48:40 hayate python3[21121]:     clip = CLIP(clip_target, embedding_directory=embedding_directory, tokenizer_data=clip_sd, parameters=parameters, state_dict=clip_sd, model_options=te_model_options, disable_dynamic=disable_dynamic)
+Apr 21 12:48:40 hayate python3[21121]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/sd.py", line 226, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     self.cond_stage_model = clip(**(params))
+Apr 21 12:48:40 hayate python3[21121]:                             ^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/sdxl_clip.py", line 44, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     self.clip_l = sd1_clip.SDClipModel(layer="hidden", layer_idx=-2, device=device, dtype=dtype, layer_norm_hidden_state=False, model_options=model_options)
+Apr 21 12:48:40 hayate python3[21121]:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/sd1_clip.py", line 120, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     self.transformer = model_class(config, dtype, device, self.operations)
+Apr 21 12:48:40 hayate python3[21121]:                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/clip_model.py", line 196, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     self.text_model = CLIPTextModel_(config_dict, dtype, device, operations)
+Apr 21 12:48:40 hayate python3[21121]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/clip_model.py", line 159, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     self.embeddings = CLIPEmbeddings(embed_dim, num_positions=num_positions, dtype=dtype, device=device, operations=operations)
+Apr 21 12:48:40 hayate python3[21121]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/clip_model.py", line 141, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     self.token_embedding = operations.Embedding(vocab_size, embed_dim, dtype=dtype, device=device)
+Apr 21 12:48:40 hayate python3[21121]:                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/ComfyUI/comfy/ops.py", line 576, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     super().__init__(num_embeddings, embedding_dim, padding_idx, max_norm,
+Apr 21 12:48:40 hayate python3[21121]:   File "/mnt/ai_data/.venv/lib/python3.12/site-packages/torch/nn/modules/sparse.py", line 166, in __init__
+Apr 21 12:48:40 hayate python3[21121]:     torch.empty((num_embeddings, embedding_dim), **factory_kwargs),
+Apr 21 12:48:40 hayate python3[21121]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apr 21 12:48:40 hayate python3[21121]: torch.OutOfMemoryError: Allocation on device 0 would exceed allowed memory. (out of memory)
+Apr 21 12:48:40 hayate python3[21121]: Currently allocated     : 0 bytes
+Apr 21 12:48:40 hayate python3[21121]: Requested               : 72.38 MiB
+Apr 21 12:48:40 hayate python3[21121]: Device limit            : 23.98 GiB
+Apr 21 12:48:40 hayate python3[21121]: Free (according to CUDA): 23.80 GiB
+Apr 21 12:48:40 hayate python3[21121]: PyTorch limit (set by user-supplied memory fraction)
+Apr 21 12:48:40 hayate python3[21121]:                         : 17179869184.00 GiB
+Apr 21 12:48:40 hayate python3[21121]: Memory summary: |===========================================================================|
+Apr 21 12:48:40 hayate python3[21121]: |                  PyTorch CUDA memory summary, device ID 0                 |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: |            CUDA OOMs: 0            |        cudaMalloc retries: 0         |
+Apr 21 12:48:40 hayate python3[21121]: |===========================================================================|
+Apr 21 12:48:40 hayate python3[21121]: |        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot Freed  |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Allocated memory      |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Active memory         |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Requested memory      |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | GPU reserved memory   |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Non-releasable memory |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |      0 B   |      0 B   |      0 B   |      0 B   |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Allocations           |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Active allocs         |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | GPU reserved segments |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Non-releasable allocs |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from large pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |       from small pool |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Oversize allocations  |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |---------------------------------------------------------------------------|
+Apr 21 12:48:40 hayate python3[21121]: | Oversize GPU segments |       0    |       0    |       0    |       0    |
+Apr 21 12:48:40 hayate python3[21121]: |===========================================================================|
+Apr 21 12:48:40 hayate python3[21121]: Got an OOM, unloading all loaded models.
+Apr 21 12:48:40 hayate python3[21121]: Prompt executed in 5.11 seconds
