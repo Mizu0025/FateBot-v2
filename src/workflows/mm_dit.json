@@ -1,0 +1,126 @@
+{
+  "KSampler_1": {
+    "inputs": {
+      "seed": 20241201,
+      "steps": 28,
+      "cfg": 7,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "DualAttentionMMDiTWrapper_1",
+        0
+      ],
+      "positive": [
+        "PositivePrompt_1",
+        0
+      ],
+      "negative": [
+        "NegativePrompt_1",
+        0
+      ],
+      "latent_image": [
+        "DualLatentImage_1",
+        0
+      ]
+    },
+    "class_type": "KSampler (MM-DiT)",
+    "_meta": {
+      "title": "KSampler (MMDiT)"
+    }
+  },
+  "DualAttentionMMDiTWrapper_1": {
+    "inputs": {
+      "mm_dit_path": "mm_dit.safetensors",
+      "clip_l_path": "clip_l.safetensors",
+      "clip_g_path": "clip_g.safetensors",
+      "t5xxl_path": "t5xxl.safetensors",
+      "vae_path": "vae.safetensors",
+      "dtype": "fp16"
+    },
+    "class_type": "DualAttentionMMDiTWrapper",
+    "_meta": {
+      "title": "Load MM-DiT Model (SD 3.5)"
+    }
+  },
+  "PositivePrompt_1": {
+    "inputs": {
+      "text": "",
+      "text_g": "",
+      "clip": [
+        "DualAttentionMMDiTWrapper_1",
+        3
+      ]
+    },
+    "class_type": "CLIPTextEncodeSD3",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "NegativePrompt_1": {
+    "inputs": {
+      "text": "",
+      "text_g": "",
+      "clip": [
+        "DualAttentionMMDiTWrapper_1",
+        3
+      ]
+    },
+    "class_type": "CLIPTextEncodeSD3",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "VAEDecode_1": {
+    "inputs": {
+      "samples": [
+        "KSampler_1",
+        0
+      ],
+      "vae": [
+        "DualAttentionMMDiTWrapper_1",
+        1
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "DualLatentImage_1": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1,
+      "dilation": 1,
+      "scale": 1
+    },
+    "class_type": "DualLatentImage",
+    "_meta": {
+      "title": "Dual Latent Image (MM-DiT)"
+    }
+  },
+  "SaveImageWebsocket_1": {
+    "inputs": {
+      "images": [
+        "VAEDecode_1",
+        0
+      ]
+    },
+    "class_type": "SaveImageWebsocket",
+    "_meta": {
+      "title": "SaveImageWebsocket"
+    }
+  },
+  "PromptConcatenate_1": {
+    "inputs": {
+      "string_a": "",
+      "string_b": "",
+      "delimiter": ", "
+    },
+    "class_type": "PromptConcatenate",
+    "_meta": {
+      "title": "Prompt Concatenate"
+    }
+  }
+}

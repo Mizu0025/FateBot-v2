@@ -1,3 +1,14 @@
+export type DiffusionArchitecture = 'sd-xl' | 'mm-dit' | 'flow-matching' | '16ch-umodel' | 'dual-stream-dit' | 'netayume';
+
+export const DIFFUSION_ARCHITECTURES: Record<DiffusionArchitecture, string> = {
+    'sd-xl': 'Stable Diffusion XL (Base SD-XL)',
+    'mm-dit': 'Mixture of Experts Diffusion Transformer (SD 3.5, etc.)',
+    'flow-matching': 'Rectified Flow / Flow Matching (Euler-based)',
+    '16ch-umodel': '16-Channel U-Net (Nekofantasia variant)',
+    'dual-stream-dit': 'Dual-Stream DiT (HunyuanDiT, SD3 Large)',
+    'netayume': 'Netayume Lumina (Flux variant)',
+};
+
 export interface FilteredPrompt {
     prompt: string;
     width: number;
@@ -15,10 +26,15 @@ export interface ModelConfiguration {
     steps: number;
     cfg?: number;
     sampler_name?: string;
+    scheduler?: string;
     imageHeight: number;
     imageWidth: number;
     defaultPositivePrompt: string;
     defaultNegativePrompt: string;
+    /** Architecture type — controls sampler, latent format, and CLIP config */
+    architecture?: DiffusionArchitecture;
+    /** Additional model-family specific config (e.g. shift, use_eps, token length) */
+    extras?: Record<string, unknown>;
 }
 
 export interface WorkflowData {

@@ -1,8 +1,60 @@
-import { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
+import { DiffusionArchitecture, FilteredPrompt, ModelConfiguration, PromptData, WorkflowData, DIFFUSION_ARCHITECTURES } from '../types';
 import { logger } from '../config/logger';
 
 /**
- * Handles the extraction and transformation of workflow data into 
+ * Architecture-specific configuration overrides.
+ * Each architecture may have ideal defaults for sampler/scheduler/CLIP behavior.
+ */
+const ARCH_DEFAULTS: Record<DiffusionArchitecture, {
+    sampler: string;
+    scheduler: string;
+}> = {
+    'sd-xl': {
+        sampler: 'euler',
+        scheduler: 'karras',
+    },
+    'mm-dit': {
+        sampler: 'euler_ancestral',
+        scheduler: 'normal',
+    },
+    'flow-matching': {
+        sampler: 'euler',
+        scheduler: 'simple',
+    },
+    '16ch-umodel': {
+        sampler: 'euler_ancestral',
+        scheduler: 'normal',
+    },
+    'dual-stream-dit': {
+        sampler: 'euler',
+        scheduler: 'normal',
+    },
+    'netayume': {
+        sampler: 'euler_ancestral',
+        scheduler: 'simple',
+    },
+};
+
+/**
+ * Handle the resolution of architecture from model configuration.
+ * Returns the determined architecture, or 'sd-xl' as default for legacy models.
+ */
+function resolveArchitecture(modelConfig: ModelConfiguration): DiffusionArchitecture {
+    const arch = modelConfig.architecture;
+    if (arch && DIFFUSION_ARCHITECTURES[arch]) {
+        return arch;
+    }
+    // Fallback: treat unknown/legacy models as SD-xl
+    logger.debug('No explicit architecture found for model, defaulting to sd-xl', {
+        model: modelConfig.checkpointName,
+        workflow: modelConfig.workflow,
+        architecture: arch,
+    });
+    return 'sd-xl';
+}
+
+/**
+ * Handle the extraction and transformation of workflow data into 
  * a structured PromptData object, and applies model-specific configurations.
  */
 export class PromptProcessor {
@@ -71,6 +123,16 @@ export class PromptProcessor {
             throw new Error("Model configuration not found.");
         }
 
+        // Resolve architecture and get architecture-specific defaults
+        const architecture = resolveArchitecture(modelConfig);
+        const archDefaults = ARCH_DEFAULTS[architecture];
+
+        logger.debug('Applied architecture-specific config', {
+            architecture,
+            model: modelConfig.checkpointName,
+            defaults: archDefaults,
+        });
+
         // Update the workflow data with model configuration
         if (promptData.data.Checkpoint) {
             promptData.data.Checkpoint.inputs.ckpt_name = modelConfig.checkpointName;
@@ -80,12 +142,27 @@ export class PromptProcessor {
             promptData.data.VAELoader.inputs.vae_name = modelConfig.vae;
         }
 
-        Object.assign(promptData.data.KSampler.inputs, {
+        // Build KSampler inputs with architecture-aware defaults
+        const kSamplerInputs: Record<string, unknown> = {
             steps: modelConfig.steps,
-            ...(modelConfig.cfg && { cfg: modelConfig.cfg }),
-            ...(modelConfig.sampler_name && { sampler_name: modelConfig.sampler_name }),
+            ...(modelConfig.cfg !== undefined && { cfg: modelConfig.cfg }),
             seed: filteredPrompt.seed === -1 ? this.generateRandomSeed() : filteredPrompt.seed,
-        });
+        };
+
+        // Sampler/scheduler priority: explicit config > architecture default > fallback
+        if (modelConfig.sampler_name) {
+            kSamplerInputs.sampler_name = modelConfig.sampler_name;
+        } else if (archDefaults) {
+            kSamplerInputs.sampler_name = archDefaults.sampler;
+        }
+
+        if (modelConfig.scheduler) {
+            kSamplerInputs.scheduler = modelConfig.scheduler;
+        } else if (archDefaults) {
+            kSamplerInputs.scheduler = archDefaults.scheduler;
+        }
+
+        Object.assign(promptData.data.KSampler.inputs, kSamplerInputs);
 
         Object.assign(promptData.data.EmptyLatentImage.inputs, {
             width: filteredPrompt.width || modelConfig.imageWidth,
@@ -114,9 +191,11 @@ export class PromptProcessor {
             steps: promptData.data.KSampler.inputs.steps,
             cfg: promptData.data.KSampler.inputs.cfg,
             sampler: promptData.data.KSampler.inputs.sampler_name,
+            scheduler: promptData.data.KSampler.inputs.scheduler,
             width: promptData.data.EmptyLatentImage.inputs.width,
             height: promptData.data.EmptyLatentImage.inputs.height,
-            batch_size: promptData.data.EmptyLatentImage.inputs.batch_size
+            batch_size: promptData.data.EmptyLatentImage.inputs.batch_size,
+            architecture,
         });
     }
 

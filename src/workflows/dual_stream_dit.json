@@ -1,0 +1,120 @@
+{
+  "KSampler_1": {
+    "inputs": {
+      "seed": 20241201,
+      "steps": 32,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "CheckpointLoaderSimple_1",
+        0
+      ],
+      "positive": [
+        "PositivePrompt_1",
+        0
+      ],
+      "negative": [
+        "NegativePrompt_1",
+        0
+      ],
+      "latent_image": [
+        "EmptyLatentImage_1",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler (Dual Stream DiT)"
+    }
+  },
+  "CheckpointLoaderSimple_1": {
+    "inputs": {
+      "ckpt_name": "model.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "PositivePrompt_1": {
+    "inputs": {
+      "text": [
+        "PromptConcatenate_1",
+        0
+      ],
+      "clip": [
+        "CheckpointLoaderSimple_1",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive)"
+    }
+  },
+  "NegativePrompt_1": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "CheckpointLoaderSimple_1",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative)"
+    }
+  },
+  "VAEDecode_1": {
+    "inputs": {
+      "samples": [
+        "KSampler_1",
+        0
+      ],
+      "vae": [
+        "CheckpointLoaderSimple_1",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "EmptyLatentImage_1": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "SaveImageWebsocket_1": {
+    "inputs": {
+      "images": [
+        "VAEDecode_1",
+        0
+      ]
+    },
+    "class_type": "SaveImageWebsocket",
+    "_meta": {
+      "title": "SaveImageWebsocket"
+    }
+  },
+  "PromptConcatenate_1": {
+    "inputs": {
+      "string_a": "",
+      "string_b": "",
+      "delimiter": ", "
+    },
+    "class_type": "PromptConcatenate",
+    "_meta": {
+      "title": "Prompt Concatenate"
+    }
+  }
+}

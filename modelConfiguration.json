@@ -4,20 +4,28 @@
         "vae": "sdxl_vae.safetensors",
         "workflow": "SDXL",
         "steps": 20,
+        "cfg": 7.0,
+        "sampler_name": "euler",
+        "scheduler": "karras",
         "imageHeight": 1024,
         "imageWidth": 1024,
         "defaultPositivePrompt": "masterpiece, best quality",
-        "defaultNegativePrompt": "lowres, worst quality, low quality, bad anatomy, bad proportions"
+        "defaultNegativePrompt": "lowres, worst quality, low quality, bad anatomy, bad proportions",
+        "architecture": "sd-xl"
     },
     "illustriousXL": {
         "checkpointName": "Illustrious-XL_v0-1.safetensors",
         "vae": "sdxl_vae.safetensors",
         "workflow": "SDXL",
         "steps": 20,
+        "cfg": 7.0,
+        "sampler_name": "euler",
+        "scheduler": "karras",
         "imageHeight": 1024,
         "imageWidth": 1024,
         "defaultPositivePrompt": "",
-        "defaultNegativePrompt": "worst quality, comic, multiple views, bad quality, low quality, lowres, displeasing, very displeasing, bad anatomy, bad hands, scan artifacts, monochrome, greyscale, signature, twitter username, jpeg artifacts, 2koma, 4koma, guro, extra digits, fewer digits"
+        "defaultNegativePrompt": "worst quality, comic, multiple views, bad quality, low quality, lowres, displeasing, very displeasing, bad anatomy, bad hands, scan artifacts, monochrome, greyscale, signature, twitter username, jpeg artifacts, 2koma, 4koma, guro, extra digits, fewer digits",
+        "architecture": "sd-xl"
     },
     "AnimagineXL": {
         "checkpointName": "animagine-xl-4.0.safetensors",
@@ -26,19 +34,81 @@
         "steps": 28,
         "cfg": 5.0,
         "sampler_name": "euler_ancestral",
+        "scheduler": "sgm_uniform",
         "imageHeight": 1024,
         "imageWidth": 1024,
         "defaultPositivePrompt": "masterpiece, high score, great score, absurdres",
-        "defaultNegativePrompt": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
+        "defaultNegativePrompt": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry",
+        "architecture": "sd-xl"
     },
     "NetayumeLumina": {
         "checkpointName": "NetaYumev35_pretrained_all_in_one.safetensors",
+        "vae": "",
         "workflow": "netayume_lumina",
         "steps": 30,
         "cfg": 4,
+        "sampler_name": "euler_ancestral",
+        "scheduler": "simple",
         "imageHeight": 1024,
         "imageWidth": 1024,
         "defaultPositivePrompt": "You are an assistant designed to generate high quality anime images based on textual prompts <Prompt Start>",
-        "defaultNegativePrompt": "You are an assistant designed to generate low-quality images based on textual prompts <Prompt Start> blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped"
+        "defaultNegativePrompt": "You are an assistant designed to generate low-quality images based on textual prompts <Prompt Start> blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped",
+        "architecture": "netayume"
+    },
+    "mm_dit": {
+        "checkpointName": "mm_dit_anime_v1.safetensors",
+        "vae": "mm_dit_vae.safetensors",
+        "workflow": "mm_dit",
+        "steps": 28,
+        "cfg": 7.0,
+        "sampler_name": "euler_ancestral",
+        "scheduler": "normal",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "You are an assistant designed to generate high quality anime images based on textual prompts <Prompt Start>",
+        "defaultNegativePrompt": "You are an assistant designed to generate low-quality images based on textual prompts <Prompt Start> blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped",
+        "architecture": "mm-dit"
+    },
+    "flow_matching": {
+        "checkpointName": "flow_matching_anime_v1.safetensors",
+        "vae": "flow_matching_vae.safetensors",
+        "workflow": "flow-matching",
+        "steps": 28,
+        "cfg": 8.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, best quality",
+        "defaultNegativePrompt": "lowres, bad anatomy, bad hands",
+        "architecture": "flow-matching"
+    },
+    "16ch_umodel": {
+        "checkpointName": "16ch_umodel_v1.safetensors",
+        "vae": "16ch_vae.safetensors",
+        "workflow": "16ch_umodel",
+        "steps": 30,
+        "cfg": 7.5,
+        "sampler_name": "euler_ancestral",
+        "scheduler": "normal",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, best quality",
+        "defaultNegativePrompt": "lowres, bad anatomy, bad hands",
+        "architecture": "16ch-umodel"
+    },
+    "dual_stream_dit": {
+        "checkpointName": "dual_stream_dit_v1.safetensors",
+        "vae": "dit_vae.safetensors",
+        "workflow": "dual_stream_dit",
+        "steps": 32,
+        "cfg": 7.0,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, best quality",
+        "defaultNegativePrompt": "lowres, bad anatomy, bad hands",
+        "architecture": "dual-stream-dit"
     }
 }
