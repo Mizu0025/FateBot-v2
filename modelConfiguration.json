@@ -22,7 +22,7 @@
         "defaultNegativePrompt": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
     },
     "NetayumeLumina": {
-        "checkpointName": "NetaYumev35_pretrained_all_in_one.safetensors",
+        "checkpointName": "NetaYume_v4_all_in_one.safetensors",
         "workflow": "netayume_lumina",
         "steps": 30,
         "cfg": 4,
