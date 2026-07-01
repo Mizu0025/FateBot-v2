@@ -16,6 +16,7 @@ export class PromptProcessor {
         logger.debug("Creating PromptData object from workflow data");
 
         const checkpointInputs = workflowData.Checkpoint?.inputs;
+        const unetInputs = workflowData.UNETLoader?.inputs;
         const vaeLoaderInputs = workflowData.VAELoader?.inputs;
         const ksamplerInputs = workflowData.KSampler?.inputs;
         const latentImageInputs = workflowData.EmptyLatentImage?.inputs;
@@ -39,7 +40,7 @@ export class PromptProcessor {
 
         return {
             data: workflowData,
-            model: checkpointInputs?.ckpt_name || "",
+            model: checkpointInputs?.ckpt_name || unetInputs?.unet_name || "",
             vae: vaeLoaderInputs?.vae_name || "",
             seed: ksamplerInputs?.seed || 0,
             steps: ksamplerInputs?.steps || 0,
@@ -74,6 +75,8 @@ export class PromptProcessor {
         // Update the workflow data with model configuration
         if (promptData.data.Checkpoint) {
             promptData.data.Checkpoint.inputs.ckpt_name = modelConfig.checkpointName;
+        } else if (promptData.data.UNETLoader) {
+            promptData.data.UNETLoader.inputs.unet_name = modelConfig.checkpointName;
         }
 
         if (promptData.data.VAELoader && modelConfig.vae) {

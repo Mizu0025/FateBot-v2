@@ -31,6 +31,8 @@ export interface WorkflowData {
     SaveImageWebsocket: SaveImageWebsocketNode;
     VAELoader: VAELoaderNode;
     PromptConcatenate?: PromptConcatenateNode;
+    UNETLoader?: UNETLoaderNode;
+    CLIPLoader?: CLIPLoaderNode;
 }
 
 interface BaseNode<T> {
@@ -46,6 +48,8 @@ interface VAEDecodeNode extends BaseNode<VAEDecodeInputs> { }
 interface SaveImageWebsocketNode extends BaseNode<SaveImageWebsocketInputs> { }
 interface VAELoaderNode extends BaseNode<VAELoaderInputs> { }
 interface PromptConcatenateNode extends BaseNode<PromptConcatenateInputs> { }
+interface UNETLoaderNode extends BaseNode<UNETLoaderInputs> { }
+interface CLIPLoaderNode extends BaseNode<CLIPLoaderInputs> { }
 
 interface KSamplerInputs {
     seed: number;
@@ -92,6 +96,17 @@ interface SaveImageWebsocketInputs {
 
 interface VAELoaderInputs {
     vae_name: string | undefined;
+}
+
+interface UNETLoaderInputs {
+    unet_name: string;
+    weight_dtype: string;
+}
+
+interface CLIPLoaderInputs {
+    clip_name: string;
+    type: string;
+    device: string;
 }
 
 export interface PromptData {

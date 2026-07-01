@@ -40,5 +40,17 @@
         "imageWidth": 1024,
         "defaultPositivePrompt": "You are an assistant designed to generate high quality anime images based on textual prompts <Prompt Start>",
         "defaultNegativePrompt": "You are an assistant designed to generate low-quality images based on textual prompts <Prompt Start> blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped"
+    },
+    "Anima": {
+        "checkpointName": "anima-base-v1.0.safetensors",
+        "vae": "qwen_image_vae.safetensors",
+        "workflow": "Anima",
+        "steps": 30,
+        "cfg": 4,
+        "sampler_name": "er_sde",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, best quality, score_7, safe",
+        "defaultNegativePrompt": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia"
     }
 }
