@@ -35,42 +35,76 @@ export class FateBot {
     /**
      * Sets up listeners for IRC events like 'registered', 'join', and 'message'.
      */
-    private setupEventListeners() {
-        this.bot.on('registered', () => {
-            logger.info(`Connected to IRC server: ${BOT_CONFIG.SERVER}`);
-            this.bot.join(BOT_CONFIG.CHANNEL);
-        });
+     private setupEventListeners() {
+         // 1. Raw protocol traffic (shows every IRC command sent/received)
+         this.bot.on('raw', (event: any) => {
+             console.log(`[RAW ${event.from_server ? '<<' : '>>'}] ${event.line}`);
+         });
 
-        this.bot.on('join', (event: any) => {
-            if (event.nick === BOT_CONFIG.NICK && event.channel === BOT_CONFIG.CHANNEL) {
-                logger.info(`Joined channel: ${BOT_CONFIG.CHANNEL}`);
-                this.bot.say(BOT_CONFIG.CHANNEL, `${BOT_CONFIG.NICK} has joined the channel!`);
-            }
-        });
+         // 2. Socket-level errors (e.g. ECONNREFUSED, TLS handshake failure, timeout)
+         this.bot.on('socket error', (err: any) => {
+             logger.error(`[SOCKET ERROR] ${err.message || err}`, { error: err });
+         });
 
-        this.bot.on('message', async (event: any) => {
-            await this.messageHandler.handleMessage(event);
-        });
-    }
+         // 3. Socket close / disconnects
+         this.bot.on('socket close', () => {
+             logger.warn('[SOCKET] Socket connection closed by remote host.');
+         });
+
+         this.bot.on('close', () => {
+             logger.warn('[IRC] Connection closed.');
+         });
+
+         // 4. IRC-level errors (e.g. Nick in use, ERR_BADCHANNELKEY, banned, SASL fail)
+         this.bot.on('irc error', (event: any) => {
+             logger.error(`[IRC ERROR] ${event.error}: ${event.reason || ''}`, { event });
+         });
+
+         // Success listeners
+         this.bot.on('registered', () => {
+             logger.info(`Connected to IRC server: ${BOT_CONFIG.SERVER}`);
+             this.bot.join(BOT_CONFIG.CHANNEL);
+         });
+
+         this.bot.on('join', (event: any) => {
+             if (event.nick === BOT_CONFIG.NICK && event.channel === BOT_CONFIG.CHANNEL) {
+                 logger.info(`Joined channel: ${BOT_CONFIG.CHANNEL}`);
+                 this.bot.say(BOT_CONFIG.CHANNEL, `${BOT_CONFIG.NICK} has joined the channel!`);
+             }
+         });
+
+         this.bot.on('message', async (event: any) => {
+             await this.messageHandler.handleMessage(event);
+         });
+     }
 
     /**
      * Connects the bot to the configured IRC server.
      */
-    public connect() {
-        const connectionOptions: any = {
-            host: BOT_CONFIG.SERVER,
-            port: BOT_CONFIG.PORT,
-            nick: BOT_CONFIG.NICK,
-        };
+     public connect() {
+         const isTlsPort = Number(BOT_CONFIG.PORT) === 6697;
 
-        if (BOT_CONFIG.SASL_ACCOUNT && BOT_CONFIG.SASL_PASSWORD) {
-            logger.info(`Using SASL authentication for account: ${BOT_CONFIG.SASL_ACCOUNT}`);
-            connectionOptions.account = {
-                account: BOT_CONFIG.SASL_ACCOUNT,
-                password: BOT_CONFIG.SASL_PASSWORD,
-            };
-        }
+         const connectionOptions: any = {
+             host: BOT_CONFIG.SERVER,
+             port: Number(BOT_CONFIG.PORT),
+             nick: BOT_CONFIG.NICK,
+             username: BOT_CONFIG.NICK.toLowerCase(),
+             gecos: 'FateBot Service',
+             tls: isTlsPort,
+             ssl: isTlsPort ? { rejectUnauthorized: false } : false,
+             rejectUnauthorized: false, // Prevents Node from aborting on self-signed LAN certs
+             auto_reconnect: false      // Keep false while debugging so logs stay clean
+         };
 
-        this.bot.connect(connectionOptions);
-    }
+         if (BOT_CONFIG.SASL_ACCOUNT && BOT_CONFIG.SASL_PASSWORD) {
+             logger.info(`Using SASL authentication for account: ${BOT_CONFIG.SASL_ACCOUNT}`);
+             connectionOptions.account = {
+                 account: BOT_CONFIG.SASL_ACCOUNT,
+                 password: BOT_CONFIG.SASL_PASSWORD,
+             };
+         }
+
+         logger.info(`Attempting connection to ${connectionOptions.host}:${connectionOptions.port} (TLS: ${connectionOptions.tls})...`);
+         this.bot.connect(connectionOptions);
+     }
 }
