@@ -141,7 +141,7 @@ describe('ComfyUIClient', () => {
             // Act
             // Assert
             await expect(client.connectWebSocket()).rejects.toThrow(SystemError);
-            await expect(client.connectWebSocket()).rejects.toThrow("Could not connect to ComfyUI server at localhost. Is the server running?");
+            await expect(client.connectWebSocket()).rejects.toThrow("Could not connect to ComfyUI server. Is it running?");
             expect(logger.error).toHaveBeenCalledWith("Error connecting to ComfyUI server:", expect.any(Error));
         });
 

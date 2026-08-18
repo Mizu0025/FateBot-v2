@@ -35,8 +35,8 @@ export class PromptQueue {
         try {
             await task();
             logger.debug('Task completed successfully');
-        } catch (e) {
-            logger.error("Error processing task:", e);
+        } catch (e: any) {
+            logger.error("Task in queue failed:", e?.message ?? e);
         } finally {
             this.queue.shift();
             this.running = false;

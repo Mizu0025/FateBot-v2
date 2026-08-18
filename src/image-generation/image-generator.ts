@@ -11,6 +11,7 @@ import { WorkflowLoader } from './workflow-loader';
 import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { RuntimeConfig } from '../config/runtime-config';
 import { logger } from '../config/logger';
+import { UserError, SystemError } from '../types/errors';
 
 /**
  * Orchestrates the entire image generation process including model configuration,
@@ -35,7 +36,8 @@ export class ImageGenerator {
             const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
 
             if (!modelConfig) {
-                throw new Error(`Model configuration not found for: ${modelName}`);
+                const available = await ModelLoader.getModelsList().catch(() => 'unknown');
+                throw new UserError(`Unknown model "${modelName}". Available models: ${available}`);
             }
 
             // Load workflow based on model configuration
@@ -43,7 +45,7 @@ export class ImageGenerator {
             logger.info(`Loading workflow: ${workflowName}`);
             const workflowData = await WorkflowLoader.loadWorkflowByName(workflowName);
             if (!workflowData) {
-                throw new Error(`Failed to load workflow: ${workflowName}`);
+                throw new SystemError(`Workflow "${workflowName}" failed to load. Check the workflows directory.`);
             }
             logger.debug("Workflow data loaded successfully");
 
@@ -60,7 +62,7 @@ export class ImageGenerator {
             // Queue the prompt
             const promptId = await client.queuePrompt(promptData.data);
             if (!promptId) {
-                throw new Error("Failed to queue prompt.");
+                throw new SystemError("ComfyUI queued the prompt but returned no ID.");
             }
             logger.info(`Prompt queued with ID: ${promptId}`);
 
@@ -80,7 +82,7 @@ export class ImageGenerator {
             } else if (savedImagePaths.length === 1) {
                 return getDomainPath(savedImagePaths[0]);
             } else {
-                throw new Error("No images were generated");
+                throw new SystemError("ComfyUI finished but produced no images (check the ComfyUI logs for node errors).");
             }
 
         } catch (error) {

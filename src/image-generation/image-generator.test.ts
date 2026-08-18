@@ -115,11 +115,12 @@ describe('ImageGenerator', () => {
         it('should throw error if modelConfig is not found', async () => {
             // Arrange
             (ModelLoader.loadModelConfiguration as jest.Mock).mockResolvedValue(null);
+            (ModelLoader.getModelsList as jest.Mock).mockResolvedValue('model-a, model-b');
 
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('Model configuration not found for: test-model');
+                .rejects.toThrow('Unknown model "test-model". Available models: model-a, model-b');
         });
 
         it('should throw error if workflowData fails to load', async () => {
@@ -129,7 +130,7 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('Failed to load workflow: test-workflow');
+                .rejects.toThrow('Workflow "test-workflow" failed to load. Check the workflows directory.');
         });
 
         it('should throw error if it fails to queue prompt', async () => {
@@ -141,7 +142,7 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('Failed to queue prompt.');
+                .rejects.toThrow('ComfyUI queued the prompt but returned no ID.');
         });
 
         it('should throw error if no images were generated (savedImagePaths is empty)', async () => {
@@ -156,7 +157,7 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('No images were generated');
+                .rejects.toThrow('ComfyUI finished but produced no images');
         });
 
         it('should throw error if generateImage try-catch fails', async () => {
@@ -231,8 +232,8 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             // This should not throw from generateImage as it is swallowed in saveImageFiles loop
-            // but generateImage will throw "No images were generated" because savedImagePaths will be empty
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow("No images were generated");
+            // but generateImage will throw because savedImagePaths will be empty
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow("ComfyUI finished but produced no images");
 
             expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error saving image'), testError);
         });

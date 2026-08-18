@@ -81,7 +81,7 @@ describe('PromptQueue', () => {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     expect(executionOrder).toEqual([1, 2]);
-    expect(loggerErrorSpy).toHaveBeenCalledWith('Error processing task:', 'Task failed');
+    expect(loggerErrorSpy).toHaveBeenCalledWith('Task in queue failed:', 'Task failed');
 
     loggerErrorSpy.mockRestore();
   });

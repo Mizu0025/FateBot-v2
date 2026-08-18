@@ -66,8 +66,12 @@ export class ComfyUIClient {
             return result.prompt_id;
         } catch (error) {
             if (error instanceof SystemError) throw error;
+            const message = (error as any).message || String(error);
+            const code = (error as any).code;
             logger.error("Error queuing prompt:", error);
-            throw new SystemError(`Failed to queue prompt: ${(error as any).message}`, error);
+            // Preserve the network error code so callers can classify the failure
+            // (e.g. ECONNREFUSED when ComfyUI is down).
+            throw new SystemError(`Failed to queue prompt: ${message}`, { ...((error as any) ?? {}), code });
         }
     }
 
@@ -93,7 +97,14 @@ export class ComfyUIClient {
 
                 this.ws.on('error', (error) => {
                     logger.error("WebSocket connection error:", error);
-                    reject(new SystemError(`WebSocket connection error: ${error.message}`, error));
+                    const code = (error as any)?.code;
+                    if (code === 'ECONNREFUSED') {
+                        reject(new SystemError(
+                            'Cannot connect to ComfyUI - server appears to be offline.',
+                            { code }));
+                    } else {
+                        reject(new SystemError(`WebSocket connection error: ${error.message}`, error));
+                    }
                 });
 
                 this.ws.on('close', () => {
@@ -102,7 +113,7 @@ export class ComfyUIClient {
             });
         } catch (error) {
             logger.error("Error connecting to ComfyUI server:", error);
-            throw new SystemError(`Could not connect to ComfyUI server at ${COMFYUI_CONFIG.ADDRESS}. Is the server running?`, error);
+            throw new SystemError('Could not connect to ComfyUI server. Is it running?', error);
         }
     }
 
