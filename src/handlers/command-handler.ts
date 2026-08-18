@@ -7,6 +7,7 @@ import { PromptQueue } from '../queue/queue';
 import { getGpuMemoryInfo, formatMemoryInfo } from '../utils/gpu-utils';
 import { InactivityManager } from '../managers/inactivity-manager';
 import { UserError, SystemError } from '../types/errors';
+import { formatFailureMessage } from '../utils/error-utils';
 
 /**
  * Handles specific bot commands and image generation requests.
@@ -98,11 +99,13 @@ export class CommandHandler {
                     if (error instanceof UserError) {
                         this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Input error: ${error.message}`);
                     } else if (error instanceof SystemError) {
-                        this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: A system error occurred. Please try again later. (Error ID: ${error.details?.status || 'INTERNAL'})`);
+                        this.bot.say(BOT_CONFIG.CHANNEL, formatFailureMessage(error, nick));
                     } else {
                         logger.error("Unexpected error during image generation:", error);
-                        this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: An unexpected error occurred.`);
+                        this.bot.say(BOT_CONFIG.CHANNEL, formatFailureMessage(error, nick));
                     }
+                    // Re-throw so the queue logs the failure instead of "Task completed successfully"
+                    throw error;
                 }
             });
             this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Starting image generation... You are #${position} in the queue.`);
