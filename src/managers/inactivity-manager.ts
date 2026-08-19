@@ -1,7 +1,7 @@
 import { logger } from '../config/logger';
 import { getGpuMemoryInfo, formatMemoryInfo } from '../utils/gpu-utils';
 import { ImageGenerator } from '../image-generation/image-generator';
-import { PromptQueue } from '../queue/queue';
+import { QueueMonitor } from '../queue/queue';
 
 /**
  * Manages bot inactivity by monitoring the prompt queue and 
@@ -15,7 +15,7 @@ export class InactivityManager {
      * Initializes the manager and sets up the idle listener on the queue.
      * @param queue The prompt queue to monitor for activity.
      */
-    constructor(private queue: PromptQueue) {
+    constructor(private queue: QueueMonitor) {
         this.queue.onIdle = () => this.resetInactivityTimer();
     }
 

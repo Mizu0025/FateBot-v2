@@ -1,5 +1,6 @@
 import { logger } from '../config/logger';
 import { BOT_CONFIG, HELP_MESSAGES } from '../config/constants';
+import { MessageSender } from '../types/irc';
 import { ModelLoader } from '../config/model-loader';
 import { PromptParser } from '../text-filter/prompt-parser';
 import { ImageGenerator } from '../image-generation/image-generator';
@@ -19,9 +20,9 @@ export class CommandHandler {
      * @param inactivityManager The manager for handling bot idle state.
      */
     constructor(
-        private bot: any,
-        private queue: PromptQueue,
-        private inactivityManager: InactivityManager
+        private bot: MessageSender,
+        private queue: Pick<PromptQueue, 'addTask'>,
+        private inactivityManager: Pick<InactivityManager, 'clearTimer'>
     ) { }
 
     /**
@@ -95,7 +96,7 @@ export class CommandHandler {
                 try {
                     const gridPath = await ImageGenerator.generateImage(filteredPrompt);
                     this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Your image is ready! ${gridPath}`);
-                } catch (error: any) {
+                } catch (error: unknown) {
                     if (error instanceof UserError) {
                         this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Input error: ${error.message}`);
                     } else if (error instanceof SystemError) {
@@ -110,7 +111,7 @@ export class CommandHandler {
             });
             this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Starting image generation... You are #${position} in the queue.`);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             if (error instanceof UserError) {
                 this.bot.say(BOT_CONFIG.CHANNEL, `${nick}: Error parsing your request: ${error.message}`);
             } else {

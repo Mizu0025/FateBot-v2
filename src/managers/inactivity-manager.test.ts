@@ -9,14 +9,14 @@ jest.mock('../utils/gpu-utils');
 
 describe('InactivityManager', () => {
     let inactivityManager: InactivityManager;
-    let mockQueue: jest.Mocked<PromptQueue>;
+    let mockQueue: jest.Mocked<Pick<PromptQueue, 'onIdle' | 'isIdle'>>;
 
     beforeEach(() => {
         jest.useFakeTimers();
         mockQueue = {
             onIdle: null,
             isIdle: jest.fn().mockReturnValue(true)
-        } as any;
+        } as unknown as jest.Mocked<Pick<PromptQueue, 'onIdle' | 'isIdle'>>;
         inactivityManager = new InactivityManager(mockQueue);
     });
 

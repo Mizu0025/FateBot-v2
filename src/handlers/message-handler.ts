@@ -1,5 +1,6 @@
 import { logger } from '../config/logger';
 import { BOT_CONFIG } from '../config/constants';
+import { IrcMessageEvent } from '../types/irc';
 import { CommandHandler } from './command-handler';
 
 /**
@@ -25,7 +26,7 @@ export class MessageHandler {
      * Filters by channel and trigger word, then routes to the appropriate command.
      * @param event The message event from the IRC client.
      */
-    public async handleMessage(event: any) {
+    public async handleMessage(event: IrcMessageEvent) {
         const { target, nick, message } = event;
 
         if (target !== BOT_CONFIG.CHANNEL || !message.toLowerCase().includes(BOT_CONFIG.TRIGGER_WORD)) {

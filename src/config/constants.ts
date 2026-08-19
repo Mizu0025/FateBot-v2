@@ -16,14 +16,23 @@ export const BOT_CONFIG = {
 
 /**
  * Settings for communicating with the ComfyUI backend and handling file output.
+ * Kept mutable (no `as const`) so tests can override values between cases.
  */
-export const COMFYUI_CONFIG = {
+export type ComfyUiConfig = {
+    ADDRESS: string;
+    PORT: number;
+    DOMAIN_PATH: string;
+    FOLDER_PATH: string;
+    WORKFLOW_PATH: string;
+};
+
+export let COMFYUI_CONFIG: ComfyUiConfig = {
     ADDRESS: env.COMFYUI_ADDRESS,
     PORT: env.COMFYUI_PORT,
     DOMAIN_PATH: env.COMFYUI_DOMAIN_PATH,
     FOLDER_PATH: env.COMFYUI_FOLDER_PATH,
     WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH
-} as const;
+};
 
 /**
  * Predefined localized messages for the bot's help command.

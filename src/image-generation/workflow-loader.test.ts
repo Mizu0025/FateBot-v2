@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import { WorkflowLoader } from './workflow-loader';
+import { minimalWorkflowData } from '../test-utils';
 import { logger } from '../config/logger';
 
 jest.mock('fs', () => ({
@@ -19,7 +20,8 @@ jest.mock('../config/logger', () => ({
 describe('WorkflowLoader', () => {
     const mockWorkflowPath = '/path/to/workflow.json';
     const mockWorkflowData = {
-        Checkpoint: { inputs: { ckpt_name: 'test.ckpt' } }
+        ...minimalWorkflowData(),
+        Checkpoint: { inputs: { ckpt_name: 'test.ckpt' }, class_type: 'CheckpointLoaderSimple' },
     };
 
     beforeEach(() => {
@@ -42,8 +44,7 @@ describe('WorkflowLoader', () => {
 
         it('should throw error when file is not found', async () => {
             // Arrange
-            const error = new Error('File not found') as any;
-            error.code = 'ENOENT';
+            const error = Object.assign(new Error('File not found'), { code: 'ENOENT' });
             (fs.readFile as jest.Mock).mockRejectedValue(error);
 
             // Act & Assert
@@ -79,7 +80,7 @@ describe('WorkflowLoader', () => {
         it('should load workflow by name', async () => {
             // Arrange
             const workflowName = 'test-workflow';
-            const spy = jest.spyOn(WorkflowLoader, 'loadWorkflowData').mockResolvedValue(mockWorkflowData as any);
+            const spy = jest.spyOn(WorkflowLoader, 'loadWorkflowData').mockResolvedValue(mockWorkflowData);
 
             // Act
             const result = await WorkflowLoader.loadWorkflowByName(workflowName);

@@ -68,7 +68,7 @@ describe('ImageGenerator', () => {
             close: jest.fn(),
             unloadModels: jest.fn().mockResolvedValue(undefined),
         };
-        (ComfyUIClient as jest.Mock).mockImplementation(() => mockClient);
+        (ComfyUIClient as unknown as jest.Mock).mockImplementation(() => mockClient);
     });
 
     describe('generateImage', () => {
@@ -79,7 +79,7 @@ describe('ImageGenerator', () => {
             ]);
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             // Act
             const result = await ImageGenerator.generateImage(mockFilteredPrompt);
@@ -99,7 +99,7 @@ describe('ImageGenerator', () => {
             ]);
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             (ImageGrid.generateImageGrid as jest.Mock).mockResolvedValue('/path/to/grid.webp');
 
@@ -137,7 +137,7 @@ describe('ImageGenerator', () => {
             // Arrange
             const clientInstance = new ComfyUIClient();
             (clientInstance.queuePrompt as jest.Mock).mockResolvedValue(null);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             // Act
             // Assert
@@ -152,7 +152,7 @@ describe('ImageGenerator', () => {
             ]);
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             // Act
             // Assert
@@ -181,7 +181,7 @@ describe('ImageGenerator', () => {
             ]);
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             // Act
             await ImageGenerator.generateImage(mockFilteredPrompt);
@@ -196,7 +196,7 @@ describe('ImageGenerator', () => {
             const mockImages = new Map();
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             // Act
             // Assert
@@ -209,7 +209,7 @@ describe('ImageGenerator', () => {
             const mockImages = new Map([['SaveImageWebsocket', []]]);
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             // Act 
             // Assert
@@ -224,7 +224,7 @@ describe('ImageGenerator', () => {
             ]);
             const clientInstance = new ComfyUIClient();
             (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as jest.Mock).mockReturnValue(clientInstance);
+            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
 
             const testError = new Error('Sharp error');
             mockSharpInstance.toBuffer.mockRejectedValue(testError);
@@ -245,7 +245,7 @@ describe('ImageGenerator', () => {
             await ImageGenerator.unloadModels();
 
             // Assert
-            const clientInstance = (ComfyUIClient as jest.Mock).mock.results[0].value;
+            const clientInstance = (ComfyUIClient as unknown as jest.Mock).mock.results[0].value;
             expect(clientInstance.unloadModels).toHaveBeenCalled();
         });
     });

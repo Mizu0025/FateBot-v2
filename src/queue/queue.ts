@@ -1,11 +1,23 @@
 import { logger } from '../config/logger';
 
 // Simple FIFO queue for async tasks (one at a time)
+
+/**
+ * The slice of the prompt queue that idle-state observers depend on.
+ * Declared so `InactivityManager` (and its tests) can depend on just this
+ * surface instead of the full {@link PromptQueue}.
+ */
+export interface QueueMonitor {
+    /** Callback triggered when the queue becomes completely empty. */
+    onIdle?: () => void;
+    isIdle(): boolean;
+}
+
 /**
  * A simple asynchronous FIFO queue that ensures only one task runs at a time.
  * Useful for serializing access to GPU resources.
  */
-export class PromptQueue {
+export class PromptQueue implements QueueMonitor {
     private queue: Array<() => Promise<void>> = [];
     private running = false;
     /** Callback triggered when the queue becomes completely empty. */
@@ -35,8 +47,8 @@ export class PromptQueue {
         try {
             await task();
             logger.debug('Task completed successfully');
-        } catch (e: any) {
-            logger.error("Task in queue failed:", e?.message ?? e);
+        } catch (e: unknown) {
+            logger.error("Task in queue failed:", e instanceof Error ? e.message : e);
         } finally {
             this.queue.shift();
             this.running = false;

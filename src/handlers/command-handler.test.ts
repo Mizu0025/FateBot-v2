@@ -5,6 +5,7 @@ import { ModelLoader } from '../config/model-loader';
 import { PromptParser } from '../text-filter/prompt-parser';
 import { BOT_CONFIG } from '../config/constants';
 import { UserError } from '../types/errors';
+import { IrcClient } from '../types/irc';
 
 jest.mock('../config/logger');
 jest.mock('../config/model-loader');
@@ -14,21 +15,21 @@ jest.mock('../utils/gpu-utils');
 
 describe('CommandHandler', () => {
     let commandHandler: CommandHandler;
-    let mockBot: any;
-    let mockQueue: jest.Mocked<PromptQueue>;
-    let mockInactivityManager: jest.Mocked<InactivityManager>;
+    let mockBot: jest.Mocked<Pick<IrcClient, 'notice' | 'say'>>;
+    let mockQueue: jest.Mocked<Pick<PromptQueue, 'addTask'>>;
+    let mockInactivityManager: jest.Mocked<Pick<InactivityManager, 'clearTimer'>>;
 
     beforeEach(() => {
         mockBot = {
             notice: jest.fn(),
             say: jest.fn()
-        };
+        } as jest.Mocked<Pick<IrcClient, 'notice' | 'say'>>;
         mockQueue = {
             addTask: jest.fn().mockReturnValue(1)
-        } as any;
+        } as jest.Mocked<Pick<PromptQueue, 'addTask'>>;
         mockInactivityManager = {
             clearTimer: jest.fn()
-        } as any;
+        } as jest.Mocked<Pick<InactivityManager, 'clearTimer'>>;
         commandHandler = new CommandHandler(mockBot, mockQueue, mockInactivityManager);
     });
 

@@ -14,7 +14,7 @@ describe('MessageHandler', () => {
             handleListModels: jest.fn(),
             handleUnloadVram: jest.fn(),
             handleGenerateImage: jest.fn(),
-        } as any;
+        } as unknown as jest.Mocked<CommandHandler>;
         messageHandler = new MessageHandler(mockCommandHandler);
     });
 
