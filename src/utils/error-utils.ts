@@ -1,4 +1,4 @@
-import { SystemError } from '../types/errors';
+import { ErrorDetails, SystemError } from '../types/errors';
 
 /**
  * Well-known error categories for generation failures.
@@ -25,26 +25,44 @@ const NETWORK_CODE_MESSAGES: Record<string, string> = {
 };
 
 /**
+ * Extracts structured `ErrorDetails` from an unknown thrown value.
+ * SystemErrors carry them directly; other objects are inspected for a
+ * `details` property or a network-`code`/`message` shape.
+ */
+function toErrorDetails(error: unknown): ErrorDetails {
+    if (error instanceof SystemError && error.details) {
+        return error.details;
+    }
+    if (typeof error === 'object' && error !== null) {
+        const record = error as { details?: unknown; code?: unknown; message?: unknown };
+        if (record.details && typeof record.details === 'object') {
+            return record.details as ErrorDetails;
+        }
+        const details: ErrorDetails = {};
+        if (typeof record.code === 'string') details.code = record.code;
+        if (typeof record.message === 'string') details.text = record.message;
+        return details;
+    }
+    return {};
+}
+
+/**
  * Classifies a SystemError (or anything else) into a failure category and
  * builds a short, human-readable detail string suitable for IRC.
  * This is a LAN bot used by one operator, so details are shown as-is.
  */
 export function classifyGenerationError(error: unknown): ClassifiedError {
-    const info = (error as { message?: string; details?: any; code?: string }) || {};
-    const details = (error instanceof SystemError)
-        ? error.details
-        : (info.details ?? (error instanceof Error ? error : undefined));
+    const details = toErrorDetails(error);
 
     // 1) Direct network / connection errors (WebSocket connect, fetch failures)
-    const netCode = (details as any)?.code ?? (error instanceof Error ? (error as any).code : undefined);
-    if (typeof netCode === 'string' && NETWORK_CODE_MESSAGES[netCode]) {
-        return { category: 'offline', detail: NETWORK_CODE_MESSAGES[netCode], retryable: true };
+    if (details.code && NETWORK_CODE_MESSAGES[details.code]) {
+        return { category: 'offline', detail: NETWORK_CODE_MESSAGES[details.code], retryable: true };
     }
 
     // 2) HTTP-level backend errors
-    if (typeof (details as any)?.status === 'number') {
-        const status = (details as any).status as number;
-        const body = typeof (details as any).text === 'string' ? (details as any).text : '';
+    if (typeof details.status === 'number') {
+        const status = details.status;
+        const body = typeof details.text === 'string' ? details.text : '';
         const snippet = body.split('\n')[0]?.slice(0, 120);
         return {
             category: 'backend',

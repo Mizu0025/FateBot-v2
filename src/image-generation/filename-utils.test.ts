@@ -80,14 +80,14 @@ describe('getDomainPath', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     // Reset config to known state
-    (COMFYUI_CONFIG as any).DOMAIN_PATH = 'https://example.com/images/';
-    (COMFYUI_CONFIG as any).FOLDER_PATH = '/var/comfyui/output/';
+    COMFYUI_CONFIG.DOMAIN_PATH = 'https://example.com/images/';
+    COMFYUI_CONFIG.FOLDER_PATH = '/var/comfyui/output/';
   });
 
   afterEach(() => {
     // Restore original config
-    (COMFYUI_CONFIG as any).DOMAIN_PATH = originalDomainPath;
-    (COMFYUI_CONFIG as any).FOLDER_PATH = originalFolderPath;
+    COMFYUI_CONFIG.DOMAIN_PATH = originalDomainPath;
+    COMFYUI_CONFIG.FOLDER_PATH = originalFolderPath;
   });
 
   it('should return domain path with filename extracted from filepath', () => {
@@ -116,7 +116,7 @@ describe('getDomainPath', () => {
 
   it('should throw error when DOMAIN_PATH is not configured', () => {
     // Arrange
-    (COMFYUI_CONFIG as any).DOMAIN_PATH = '';
+    COMFYUI_CONFIG.DOMAIN_PATH = '';
     const filepath = '/some/path/file.png';
     const expectedError = 'Domain path not configured.';
 
@@ -128,7 +128,7 @@ describe('getDomainPath', () => {
 
   it('should throw error when FOLDER_PATH is not configured', () => {
     // Arrange
-    (COMFYUI_CONFIG as any).FOLDER_PATH = '';
+    COMFYUI_CONFIG.FOLDER_PATH = '';
     const filepath = '/some/path/file.png';
     const expectedError = 'Folder path not configured.';
 

@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import { ComfyUIClient } from './comfyui-client';
 import { COMFYUI_CONFIG } from '../config/constants';
+import { minimalWorkflowData } from '../test-utils';
 import { logger } from '../config/logger';
 import { SystemError } from '../types/errors';
 
@@ -22,10 +23,10 @@ describe('ComfyUIClient', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         // Reset COMFYUI_CONFIG.ADDRESS to a valid value before each test
-        (COMFYUI_CONFIG as any).ADDRESS = 'localhost';
+        COMFYUI_CONFIG.ADDRESS = 'localhost';
         client = new ComfyUIClient();
         mockFetch = jest.fn();
-        global.fetch = mockFetch as any;
+        global.fetch = mockFetch as unknown as typeof fetch;
     });
 
     describe('queuePrompt', () => {
@@ -36,7 +37,7 @@ describe('ComfyUIClient', () => {
                 ok: true,
                 json: jest.fn().mockResolvedValue({ prompt_id: mockPromptId })
             });
-            const prompt = { nodes: [] } as any;
+            const prompt = minimalWorkflowData();
 
             // Act
             const result = await client.queuePrompt(prompt);
@@ -56,8 +57,8 @@ describe('ComfyUIClient', () => {
 
         it('should throw error if comfyui_config.address is invalid', async () => {
             // Arrange
-            (COMFYUI_CONFIG as any).ADDRESS = '';
-            const prompt = {} as any;
+            COMFYUI_CONFIG.ADDRESS = '';
+            const prompt = minimalWorkflowData();
 
             // Act 
             // Assert
@@ -73,7 +74,7 @@ describe('ComfyUIClient', () => {
                 status: 500,
                 text: jest.fn().mockResolvedValue('Internal Server Error')
             });
-            const prompt = {} as any;
+            const prompt = minimalWorkflowData();
 
             // Act
             // Assert
@@ -85,7 +86,7 @@ describe('ComfyUIClient', () => {
         it('should throw error if fetch throws (Network error)', async () => {
             // Arrange
             mockFetch.mockRejectedValue(new Error("Network error"));
-            const prompt = {} as any;
+            const prompt = minimalWorkflowData();
 
             // Act
             // Assert
@@ -100,7 +101,7 @@ describe('ComfyUIClient', () => {
                 ok: true,
                 json: jest.fn().mockRejectedValue(new Error("Invalid JSON"))
             });
-            const prompt = {} as any;
+            const prompt = minimalWorkflowData();
 
             // Act
             // Assert
@@ -193,7 +194,7 @@ describe('ComfyUIClient', () => {
                     }
                 })
             };
-            (client as any).ws = mockWs;
+            (client as unknown as { ws: WebSocket | null }).ws = mockWs as unknown as WebSocket;
 
             // Act
             const images = await client.getImagesFromWebSocket(mockPromptId);
@@ -225,7 +226,7 @@ describe('ComfyUIClient', () => {
                     }
                 })
             };
-            (client as any).ws = mockWs;
+            (client as unknown as { ws: WebSocket | null }).ws = mockWs as unknown as WebSocket;
 
             // Assert
             await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(SystemError);
@@ -235,8 +236,10 @@ describe('ComfyUIClient', () => {
 
         it('should throw error if WebSocket emits an error event during image retrieval', async () => {
             // Arrange
-            const mockWs: any = {
-                on: jest.fn((event, callback) => {
+            type MockWs = { on: (event: string, callback: (data: unknown) => void) => MockWs };
+            let mockWs: MockWs;
+            mockWs = {
+                on: jest.fn((event: string, callback: (data: unknown) => void) => {
                     if (event === 'error') {
                         // Simulate async error event
                         setImmediate(() => callback(new Error("Retrieval error")));
@@ -244,7 +247,7 @@ describe('ComfyUIClient', () => {
                     return mockWs; // Usually .on returns the emitter
                 })
             };
-            (client as any).ws = mockWs;
+            (client as unknown as { ws: WebSocket | null }).ws = mockWs as unknown as WebSocket;
 
             // Act
             // Assert

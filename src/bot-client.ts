@@ -7,13 +7,21 @@ import { PromptQueue } from './queue/queue';
 import { InactivityManager } from './managers/inactivity-manager';
 import { CommandHandler } from './handlers/command-handler';
 import { MessageHandler } from './handlers/message-handler';
+import {
+    IrcClient,
+    IrcConnectOptions,
+    IrcRawEvent,
+    IrcMessageEvent,
+    IrcErrorEvent,
+    IrcJoinEvent,
+} from './types/irc';
 
 /**
  * The main bot client class that orchestrates the IRC connection,
  * prompt queue, and message handling.
  */
 export class FateBot {
-    private bot: any;
+    private bot: IrcClient;
     private queue: PromptQueue;
     private inactivityManager: InactivityManager;
     private commandHandler: CommandHandler;
@@ -23,7 +31,7 @@ export class FateBot {
      * Initializes all bot components and sets up event listeners.
      */
     constructor() {
-        this.bot = new IRC.Client();
+        this.bot = new IRC.Client() as IrcClient;
         this.queue = new PromptQueue();
         this.inactivityManager = new InactivityManager(this.queue);
         this.commandHandler = new CommandHandler(this.bot, this.queue, this.inactivityManager);
@@ -35,14 +43,14 @@ export class FateBot {
     /**
      * Sets up listeners for IRC events like 'registered', 'join', and 'message'.
      */
-     private setupEventListeners() {
+    private setupEventListeners() {
          // 1. Raw protocol traffic (shows every IRC command sent/received)
-         this.bot.on('raw', (event: any) => {
+         this.bot.on('raw', (event: IrcRawEvent) => {
              console.log(`[RAW ${event.from_server ? '<<' : '>>'}] ${event.line}`);
          });
 
          // 2. Socket-level errors (e.g. ECONNREFUSED, TLS handshake failure, timeout)
-         this.bot.on('socket error', (err: any) => {
+         this.bot.on('socket error', (err: Error) => {
              logger.error(`[SOCKET ERROR] ${err.message || err}`, { error: err });
          });
 
@@ -56,7 +64,7 @@ export class FateBot {
          });
 
          // 4. IRC-level errors (e.g. Nick in use, ERR_BADCHANNELKEY, banned, SASL fail)
-         this.bot.on('irc error', (event: any) => {
+         this.bot.on('irc error', (event: IrcErrorEvent) => {
              logger.error(`[IRC ERROR] ${event.error}: ${event.reason || ''}`, { event });
          });
 
@@ -66,14 +74,14 @@ export class FateBot {
              this.bot.join(BOT_CONFIG.CHANNEL);
          });
 
-         this.bot.on('join', (event: any) => {
+         this.bot.on('join', (event: IrcJoinEvent) => {
              if (event.nick === BOT_CONFIG.NICK && event.channel === BOT_CONFIG.CHANNEL) {
                  logger.info(`Joined channel: ${BOT_CONFIG.CHANNEL}`);
                  this.bot.say(BOT_CONFIG.CHANNEL, `${BOT_CONFIG.NICK} has joined the channel!`);
              }
          });
 
-         this.bot.on('message', async (event: any) => {
+         this.bot.on('message', async (event: IrcMessageEvent) => {
              await this.messageHandler.handleMessage(event);
          });
      }
@@ -81,10 +89,10 @@ export class FateBot {
     /**
      * Connects the bot to the configured IRC server.
      */
-     public connect() {
+    public connect() {
          const isTlsPort = Number(BOT_CONFIG.PORT) === 6697;
 
-         const connectionOptions: any = {
+         const connectionOptions: IrcConnectOptions = {
              host: BOT_CONFIG.SERVER,
              port: Number(BOT_CONFIG.PORT),
              nick: BOT_CONFIG.NICK,
@@ -106,5 +114,5 @@ export class FateBot {
 
          logger.info(`Attempting connection to ${connectionOptions.host}:${connectionOptions.port} (TLS: ${connectionOptions.tls})...`);
          this.bot.connect(connectionOptions);
-     }
+    }
 }

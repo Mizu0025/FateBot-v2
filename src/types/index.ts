@@ -23,13 +23,13 @@ export interface ModelConfiguration {
 
 export interface WorkflowData {
     KSampler: KSamplerNode;
-    Checkpoint: CheckpointNode;
     EmptyLatentImage: EmptyLatentImageNode;
     PositivePrompt: PromptNode;
     NegativePrompt: PromptNode;
     VAEDecode: VAEDecodeNode;
     SaveImageWebsocket: SaveImageWebsocketNode;
-    VAELoader: VAELoaderNode;
+    Checkpoint?: CheckpointNode;
+    VAELoader?: VAELoaderNode;
     PromptConcatenate?: PromptConcatenateNode;
     UNETLoader?: UNETLoaderNode;
     CLIPLoader?: CLIPLoaderNode;

@@ -3,11 +3,15 @@ import { v4 as uuidv4 } from 'uuid';
 import { WorkflowData } from '../types';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
-import { SystemError } from '../types/errors';
+import { ErrorDetails, SystemError } from '../types/errors';
+
+/** A message type known to arrive over the ComfyUI WebSocket. */
+export type ComfyUIMessageType = 'executing' | 'status' | string;
 
 export interface ComfyUIMessage {
-    type: string;
-    data?: any;
+    type: ComfyUIMessageType;
+    /** Type-specific payload; only `executing` payloads are modeled. */
+    data?: ComfyUIExecutingData;
 }
 
 export interface ComfyUIExecutingData {
@@ -66,13 +70,27 @@ export class ComfyUIClient {
             return result.prompt_id;
         } catch (error) {
             if (error instanceof SystemError) throw error;
-            const message = (error as any).message || String(error);
-            const code = (error as any).code;
+            const message = error instanceof Error ? error.message : String(error);
             logger.error("Error queuing prompt:", error);
             // Preserve the network error code so callers can classify the failure
             // (e.g. ECONNREFUSED when ComfyUI is down).
-            throw new SystemError(`Failed to queue prompt: ${message}`, { ...((error as any) ?? {}), code });
+            throw new SystemError(`Failed to queue prompt: ${message}`, ComfyUIClient.toErrorDetails(error));
         }
+    }
+
+    /**
+     * Extracts network error details (e.g. ECONNREFUSED) from thrown values,
+     * since DOMException/network failures are not part of the `Error` type.
+     */
+    private static toErrorDetails(error: unknown): ErrorDetails {
+        const details: ErrorDetails = {};
+        if (
+            typeof error === 'object' && error !== null &&
+            typeof (error as { code?: unknown }).code === 'string'
+        ) {
+            details.code = (error as { code: string }).code;
+        }
+        return details;
     }
 
     /**
@@ -97,13 +115,13 @@ export class ComfyUIClient {
 
                 this.ws.on('error', (error) => {
                     logger.error("WebSocket connection error:", error);
-                    const code = (error as any)?.code;
+                    const code = ComfyUIClient.toErrorDetails(error).code;
                     if (code === 'ECONNREFUSED') {
                         reject(new SystemError(
                             'Cannot connect to ComfyUI - server appears to be offline.',
                             { code }));
                     } else {
-                        reject(new SystemError(`WebSocket connection error: ${error.message}`, error));
+                        reject(new SystemError(`WebSocket connection error: ${error.message}`, ComfyUIClient.toErrorDetails(error)));
                     }
                 });
 
@@ -113,7 +131,7 @@ export class ComfyUIClient {
             });
         } catch (error) {
             logger.error("Error connecting to ComfyUI server:", error);
-            throw new SystemError('Could not connect to ComfyUI server. Is it running?', error);
+            throw new SystemError('Could not connect to ComfyUI server. Is it running?', ComfyUIClient.toErrorDetails(error));
         }
     }
 
@@ -149,7 +167,8 @@ export class ComfyUIClient {
                         logger.debug(`Received WebSocket message type: ${message.type}`);
 
                         if (message.type === 'executing') {
-                            const executingData: ComfyUIExecutingData = message.data;
+                            const executingData: ComfyUIExecutingData | undefined = message.data;
+                            if (!executingData) return;
 
                             if (executingData.prompt_id === promptId) {
                                 if (executingData.node === null) {
@@ -178,14 +197,15 @@ export class ComfyUIClient {
                 } catch (error) {
                     logger.error("Error processing WebSocket message:", error);
                     clearTimeout(timeout);
-                    reject(new SystemError(`Error processing WebSocket message: ${(error as any).message}`, error));
+                    const message = error instanceof Error ? error.message : String(error);
+                    reject(new SystemError(`Error processing WebSocket message: ${message}`, ComfyUIClient.toErrorDetails(error)));
                 }
             });
 
             this.ws!.on('error', (error) => {
                 clearTimeout(timeout);
                 logger.error("WebSocket error during image retrieval:", error);
-                reject(new SystemError(`WebSocket error: ${error.message}`, error));
+                reject(new SystemError(`WebSocket error: ${error.message}`, ComfyUIClient.toErrorDetails(error)));
             });
 
             this.ws!.on('close', () => {

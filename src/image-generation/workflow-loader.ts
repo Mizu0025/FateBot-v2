@@ -17,11 +17,11 @@ export class WorkflowLoader {
         try {
             logger.debug(`Loading workflow data from ${workflowPath}`);
             const data = await fs.readFile(workflowPath, 'utf8');
-            const workflowData = JSON.parse(data);
+            const workflowData: WorkflowData = JSON.parse(data);
             logger.info(`Workflow loaded successfully from ${workflowPath}`);
             return workflowData;
-        } catch (error: any) {
-            if (error.code === 'ENOENT') {
+        } catch (error: unknown) {
+            if (WorkflowLoader.isFileNotFoundError(error)) {
                 logger.error(`Error: ${workflowPath} not found.`);
                 throw new Error(`${workflowPath} not found. Please ensure it exists in the current directory.`);
             } else if (error instanceof SyntaxError) {
@@ -32,6 +32,16 @@ export class WorkflowLoader {
                 throw error;
             }
         }
+    }
+
+    /**
+     * Checks whether a thrown value is an `fs` ENOENT failure.
+     */
+    private static isFileNotFoundError(error: unknown): boolean {
+        return (
+            typeof error === 'object' && error !== null &&
+            (error as { code?: unknown }).code === 'ENOENT'
+        );
     }
 
     /**

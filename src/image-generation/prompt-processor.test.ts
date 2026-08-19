@@ -1,5 +1,6 @@
 import { PromptProcessor } from './prompt-processor';
 import { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
+import { minimalWorkflowData } from '../test-utils';
 import { logger } from '../config/logger';
 
 jest.mock('../config/logger', () => ({
@@ -89,10 +90,7 @@ describe('PromptProcessor', () => {
 
         it('should use default values for missing workflow data', () => {
             // Arrange
-            const minimalWorkflow: any = {
-                KSampler: { inputs: {} },
-                EmptyLatentImage: { inputs: {} }
-            };
+            const minimalWorkflow = minimalWorkflowData();
 
             // Act
             const result = PromptProcessor.createPromptData(minimalWorkflow);
@@ -117,7 +115,7 @@ describe('PromptProcessor', () => {
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, mockFilteredPrompt);
 
             // Assert
-            expect(promptData.data.Checkpoint.inputs.ckpt_name).toBe(mockModelConfig.checkpointName);
+            expect(promptData.data.Checkpoint!.inputs.ckpt_name).toBe(mockModelConfig.checkpointName);
             expect(promptData.data.VAELoader!.inputs.vae_name).toBe(mockModelConfig.vae);
             expect(promptData.data.KSampler.inputs.steps).toBe(mockModelConfig.steps);
             expect(promptData.data.KSampler.inputs.seed).toBe(mockFilteredPrompt.seed);
