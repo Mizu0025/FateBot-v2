@@ -21,7 +21,7 @@ export interface ComfyUIExecutingData {
 
 /**
  * A client for interacting with the ComfyUI API and WebSocket server.
- * Handles prompt queueing, model unloading, and real-time image retrieval.
+ * Handles prompt queueing and real-time image retrieval over the WebSocket.
  */
 export class ComfyUIClient {
     private ws: WebSocket | null = null;
@@ -222,39 +222,6 @@ export class ComfyUIClient {
         if (this.ws) {
             this.ws.close();
             this.ws = null;
-        }
-    }
-
-    /**
-     * Sends a request to the server's /free endpoint to unload models and free VRAM.
-     */
-    public async unloadModels(): Promise<void> {
-        if (!COMFYUI_CONFIG.ADDRESS) {
-            logger.error("ComfyUI server address is not configured.");
-            return;
-        }
-
-        try {
-            logger.info("Requesting ComfyUI to unload models...");
-            const response = await fetch(`http://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/free`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    unload_models: true,
-                    free_memory: true
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                logger.error(`ComfyUI Unload Models Error (${response.status}): ${errorText}`);
-            } else {
-                logger.info("Successfully requested model unloading.");
-            }
-        } catch (error) {
-            logger.error("Error requesting model unloading:", error);
         }
     }
 }

@@ -1,6 +1,5 @@
 import { logger } from '../config/logger';
-
-// Simple FIFO queue for async tasks (one at a time)
+import { FilteredPrompt } from '../types';
 
 /**
  * The slice of the prompt queue that idle-state observers depend on.
@@ -8,79 +7,121 @@ import { logger } from '../config/logger';
  * surface instead of the full {@link PromptQueue}.
  */
 export interface QueueMonitor {
-    /** Callback triggered when the queue becomes completely empty. */
+    /** Callback triggered when the queue becomes completely idle (nothing
+     *  pending, nothing in flight). */
     onIdle?: () => void;
     isIdle(): boolean;
 }
 
+/** A single queued image generation request, as dropped off by the IRC handler. */
+export interface PromptQueueItem {
+    /** The parsed and filtered prompt (dimensions, model, count, seed...). */
+    prompt: FilteredPrompt;
+    /** The IRC nickname the result should be addressed to. */
+    nick: string;
+    /** The channel the request came from (results are posted back here). */
+    channel: string;
+}
+
 /**
- * A simple asynchronous FIFO queue that ensures only one task runs at a time.
- * Useful for serializing access to GPU resources.
+ * A simple FIFO queue of image generation requests.
+ *
+ * The queue only stores data and never executes work — a single dedicated
+ * worker coroutine (see {@link GenerationWorker}) drains it, which keeps
+ * "who owns ComfyUI startup/shutdown" in one place.
  */
 export class PromptQueue implements QueueMonitor {
-    private queue: Array<() => Promise<void>> = [];
-    private running = false;
-    /** Callback triggered when the queue becomes completely empty. */
+    private items: PromptQueueItem[] = [];
+    /** A pending promise that resolves when a worker asks for the next item. */
+    private waiting: {
+        resolve: (item: PromptQueueItem) => void;
+    } | null = null;
+    /** True while a worker holds an item it is processing. */
+    private workerBusy = false;
+
+    /** Callback triggered when the queue becomes completely idle. */
     public onIdle?: () => void;
 
     /**
-     * Adds a new asynchronous task to the queue.
-     * @param task The function to be executed.
-     * @returns The position (1-indexed) of the task in the queue.
+     * Adds a request to the queue and lets any waiting worker take it.
+     * @param item The generation request to enqueue.
+     * @returns The position (1-indexed) the request queued at.
      */
-    addTask(task: () => Promise<void>): number {
-        this.queue.push(task);
-        const position = this.queue.length;
-        logger.debug(`Task added to queue at position ${position}`);
-        this.processQueue();
+    addTask(item: PromptQueueItem): number {
+        // Hand the item directly to a currently waiting worker instead of
+        // buffering it — otherwise it would stay in `items` and get
+        // dequeued (and generated) a second time.
+        if (this.waiting) {
+            const waiter = this.waiting;
+            this.waiting = null;
+            this.workerBusy = true;
+            logger.debug(`Request from ${item.nick} handed directly to the waiting worker`);
+            waiter.resolve(item);
+            return 1;
+        }
+
+        this.items.push(item);
+        const position = this.items.length;
+        logger.debug(`Request from ${item.nick} added to queue at position ${position}`);
+
         return position;
     }
 
     /**
-     * Internal method to execute the next task in the queue.
+     * Waits for the next item in the queue. Intended for exactly one worker
+     * coroutine at a time — concurrent callers would race for items.
+     * @returns The next queued request (may wait indefinitely).
      */
-    private async processQueue() {
-        if (this.running || this.queue.length === 0) return;
-        this.running = true;
-        const task = this.queue[0];
-        logger.debug('Starting to process task from queue');
-        try {
-            await task();
-            logger.debug('Task completed successfully');
-        } catch (e: unknown) {
-            logger.error("Task in queue failed:", e instanceof Error ? e.message : e);
-        } finally {
-            this.queue.shift();
-            this.running = false;
-            if (this.queue.length === 0) {
-                logger.info('Queue is empty, all tasks processed');
-                if (this.onIdle) {
-                    this.onIdle();
-                }
-            }
-            this.processQueue();
+    dequeue(): Promise<PromptQueueItem> {
+        const next = this.items.shift();
+        if (next) {
+            this.workerBusy = true;
+            return Promise.resolve(next);
         }
+        return new Promise<PromptQueueItem>(resolve => {
+            this.waiting = { resolve };
+        });
     }
 
     /**
-     * Gets the number of tasks currently in the queue.
+     * Called by the worker when it has finished processing its current item.
+     * Marks the worker as free and notifies observers if the queue is empty.
+     */
+    noteItemProcessed(): void {
+        this.workerBusy = false;
+        this.maybeNotifyIdle();
+    }
+
+    /**
+     * The number of requests still waiting (not yet handed to the worker).
      */
     get length(): number {
-        return this.queue.length;
+        return this.items.length;
     }
 
     /**
-     * Checks if a task is currently being executed.
+     * Checks if a request is currently being executed.
      */
     isProcessing(): boolean {
-        return this.running;
+        return this.workerBusy;
     }
 
     /**
-     * Checks if the queue is both not processing any tasks and has no pending tasks.
+     * Checks if the queue is both not processing any requests and has no pending ones.
      * @returns True if the queue is idle.
      */
     isIdle(): boolean {
-        return !this.running && this.queue.length === 0;
+        return !this.workerBusy && this.items.length === 0;
+    }
+
+    /**
+     * Fires the idle callback when the system is fully quiescent (nothing
+     * pending, nothing in flight) and an observer is attached.
+     */
+    private maybeNotifyIdle(): void {
+        if (this.isIdle() && this.onIdle) {
+            logger.info('Queue is idle - all requests processed');
+            this.onIdle();
+        }
     }
 }

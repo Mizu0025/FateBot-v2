@@ -5,4 +5,5 @@
 import { FateBot } from './bot-client';
 
 const bot = new FateBot();
+bot.startWorkers();
 bot.connect();

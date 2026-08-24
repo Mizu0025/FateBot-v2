@@ -257,54 +257,7 @@ describe('ComfyUIClient', () => {
         });
     });
 
-    describe('unloadModels', () => {
-        it('should successfully request model unloading', async () => {
-            // Arrange
-            mockFetch.mockResolvedValue({
-                ok: true
-            });
-
-            // Act
-            await client.unloadModels();
-
-            // Assert
-            expect(mockFetch).toHaveBeenCalledWith(
-                `http://localhost:8188/free`,
-                expect.objectContaining({
-                    method: 'POST',
-                    body: JSON.stringify({
-                        unload_models: true,
-                        free_memory: true
-                    })
-                })
-            );
-            expect(logger.info).toHaveBeenCalledWith("Successfully requested model unloading.");
-        });
-
-        it('should log error if unloadModels fails', async () => {
-            // Arrange
-            mockFetch.mockResolvedValue({
-                ok: false,
-                status: 500,
-                text: jest.fn().mockResolvedValue('Unload Failed')
-            });
-
-            // Act
-            await client.unloadModels();
-
-            // Assert
-            expect(logger.error).toHaveBeenCalledWith("ComfyUI Unload Models Error (500): Unload Failed");
-        });
-
-        it('should log error if unloadModels throws', async () => {
-            // Arrange
-            mockFetch.mockRejectedValue(new Error("Fetch error"));
-
-            // Act
-            await client.unloadModels();
-
-            // Assert
-            expect(logger.error).toHaveBeenCalledWith("Error requesting model unloading:", expect.any(Error));
-        });
-    });
+    // Note: the old `unloadModels` tests were removed along with the method —
+    // VRAM is now freed by stopping the ComfyUI user service (see
+    // comfyui-service-manager.test.ts).
 });
