@@ -35,6 +35,28 @@ export let COMFYUI_CONFIG: ComfyUiConfig = {
 };
 
 /**
+ * Control-plane settings for the user systemd service that runs ComfyUI.
+ * The bot starts the service on demand and stops it after idle periods.
+ */
+export type ComfyUiServiceConfig = {
+    /** Name of the user systemd unit (without the `.service` suffix). */
+    UNIT_NAME: string;
+    /** Minutes the queue may stay idle before the service is stopped. */
+    IDLE_MINUTES: number;
+    /** Max seconds to wait for the service to report readiness after start. */
+    START_TIMEOUT_SECONDS: number;
+    /** Seconds between readiness polls while waiting for the service to come up. */
+    START_POLL_INTERVAL_MS: number;
+};
+
+export let COMFYUI_SERVICE_CONFIG: ComfyUiServiceConfig = {
+    UNIT_NAME: env.COMFYUI_UNIT_NAME,
+    IDLE_MINUTES: env.COMFYUI_IDLE_MINUTES,
+    START_TIMEOUT_SECONDS: env.COMFYUI_START_TIMEOUT_SECONDS,
+    START_POLL_INTERVAL_MS: 2000
+};
+
+/**
  * Predefined localized messages for the bot's help command.
  */
 export const HELP_MESSAGES = {

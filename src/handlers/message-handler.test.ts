@@ -12,8 +12,9 @@ describe('MessageHandler', () => {
         mockCommandHandler = {
             handleHelp: jest.fn(),
             handleListModels: jest.fn(),
-            handleUnloadVram: jest.fn(),
-            handleGenerateImage: jest.fn(),
+            handleStartComfyui: jest.fn(),
+            handleStopComfyui: jest.fn(),
+            handleGenerateImage: jest.fn().mockResolvedValue(undefined),
         } as unknown as jest.Mocked<CommandHandler>;
         messageHandler = new MessageHandler(mockCommandHandler);
     });
@@ -83,6 +84,38 @@ describe('MessageHandler', () => {
         expect(mockCommandHandler.handleListModels).toHaveBeenCalled();
     });
 
+    it('should route --start-comfyui to handleStartComfyui', async () => {
+        // Arrange
+        const event = {
+            target: BOT_CONFIG.CHANNEL,
+            nick: 'user123',
+            message: `${BOT_CONFIG.TRIGGER_WORD} --start-comfyui`
+        };
+
+        // Act
+        await messageHandler.handleMessage(event);
+
+        // Assert
+        expect(mockCommandHandler.handleStartComfyui).toHaveBeenCalledWith('user123');
+        expect(mockCommandHandler.handleGenerateImage).not.toHaveBeenCalled();
+    });
+
+    it('should route --stop-comfyui to handleStopComfyui', async () => {
+        // Arrange
+        const event = {
+            target: BOT_CONFIG.CHANNEL,
+            nick: 'user123',
+            message: `${BOT_CONFIG.TRIGGER_WORD} --stop-comfyui`
+        };
+
+        // Act
+        await messageHandler.handleMessage(event);
+
+        // Assert
+        expect(mockCommandHandler.handleStopComfyui).toHaveBeenCalledWith('user123');
+        expect(mockCommandHandler.handleGenerateImage).not.toHaveBeenCalled();
+    });
+
     it('should fall back to handleGenerateImage for unknown commands', async () => {
         // Arrange
         const event = {
@@ -95,6 +128,6 @@ describe('MessageHandler', () => {
         await messageHandler.handleMessage(event);
 
         // Assert
-        expect(mockCommandHandler.handleGenerateImage).toHaveBeenCalledWith('user123', event.message);
+        expect(mockCommandHandler.handleGenerateImage).toHaveBeenCalledWith('user123', event.target, event.message);
     });
 });

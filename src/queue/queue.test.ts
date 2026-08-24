@@ -1,134 +1,154 @@
-import { PromptQueue } from './queue';
+import { PromptQueue, PromptQueueItem } from './queue';
+import { FilteredPrompt } from '../types';
 import { logger } from '../config/logger';
 
-// Helper to create a mock task that resolves after a delay
-const createMockTask = (id: number, callback: (id: number) => void): () => Promise<void> => {
-  return () => new Promise(resolve => {
-    setTimeout(() => {
-      callback(id);
-      resolve();
-    }, 50);
-  });
-};
+// Helper to build a minimal, fully-typed queued request.
+const makeItem = (id: number): PromptQueueItem => ({
+    prompt: { prompt: `prompt-${id}`, count: 1 } as FilteredPrompt,
+    nick: `user-${id}`,
+    channel: '#test',
+});
 
 describe('PromptQueue', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-    jest.spyOn(logger, 'error').mockImplementation(() => logger);
-    jest.spyOn(logger, 'debug').mockImplementation(() => logger);
-    jest.spyOn(logger, 'info').mockImplementation(() => logger);
-  });
-
-  it('should process tasks in FIFO order', async () => {
-    const queue = new PromptQueue();
-    const executionOrder: number[] = [];
-    const taskCallback = (id: number) => executionOrder.push(id);
-
-    queue.addTask(createMockTask(1, taskCallback));
-    queue.addTask(createMockTask(2, taskCallback));
-    queue.addTask(createMockTask(3, taskCallback));
-
-    // Wait for all tasks to complete
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    expect(executionOrder).toEqual([1, 2, 3]);
-  });
-
-  it('should return the correct queue length', () => {
-    const queue = new PromptQueue();
-    const taskCallback = () => { };
-
-    expect(queue.addTask(createMockTask(1, taskCallback))).toBe(1);
-    expect(queue.addTask(createMockTask(2, taskCallback))).toBe(2);
-  });
-
-  it('should only run one task at a time', async () => {
-    const queue = new PromptQueue();
-    let runningTasks = 0;
-    let maxConcurrentTasks = 0;
-
-    const createTask = (): () => Promise<void> => {
-      return async () => {
-        runningTasks++;
-        maxConcurrentTasks = Math.max(maxConcurrentTasks, runningTasks);
-        await new Promise(resolve => setTimeout(resolve, 50));
-        runningTasks--;
-      };
-    };
-
-    queue.addTask(createTask());
-    queue.addTask(createTask());
-
-    await new Promise(resolve => setTimeout(resolve, 150));
-
-    expect(maxConcurrentTasks).toBe(1);
-  });
-
-  it('should continue processing if a task fails', async () => {
-    // Suppress logger.error for this test
-    const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
-
-    const queue = new PromptQueue();
-    const executionOrder: number[] = [];
-    const taskCallback = (id: number) => executionOrder.push(id);
-
-    const failingTask = () => new Promise<void>((_, reject) => reject('Task failed'));
-
-    queue.addTask(createMockTask(1, taskCallback));
-    queue.addTask(failingTask);
-    queue.addTask(createMockTask(2, taskCallback));
-
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    expect(executionOrder).toEqual([1, 2]);
-    expect(loggerErrorSpy).toHaveBeenCalledWith('Task in queue failed:', 'Task failed');
-
-    loggerErrorSpy.mockRestore();
-  });
-
-  it('should handle tasks with mixed durations correctly', async () => {
-    const queue = new PromptQueue();
-    const executionOrder: number[] = [];
-
-    // Fast task
-    queue.addTask(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-      executionOrder.push(1);
+    beforeEach(() => {
+        jest.resetAllMocks();
+        jest.spyOn(logger, 'error').mockImplementation(() => logger);
+        jest.spyOn(logger, 'debug').mockImplementation(() => logger);
+        jest.spyOn(logger, 'info').mockImplementation(() => logger);
     });
 
-    // Slow task
-    queue.addTask(async () => {
-      await new Promise(resolve => setTimeout(resolve, 50));
-      executionOrder.push(2);
+    it('should add requests in FIFO order and return 1-indexed positions', async () => {
+        const queue = new PromptQueue();
+        const a = makeItem(1);
+        const b = makeItem(2);
+        const c = makeItem(3);
+
+        expect(queue.addTask(a)).toBe(1);
+        expect(queue.addTask(b)).toBe(2);
+        expect(queue.addTask(c)).toBe(3);
+
+        // Nothing has been handed to a worker yet, so all three are pending.
+        expect(queue.length).toBe(3);
+        expect(queue.isProcessing()).toBe(false);
+
+        expect(await queue.dequeue()).toBe(a);
+        expect(await queue.dequeue()).toBe(b);
+        expect(await queue.dequeue()).toBe(c);
     });
 
-    // Fast task
-    queue.addTask(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-      executionOrder.push(3);
+    it('should hand a newly added item to a currently-waiting worker', async () => {
+        const queue = new PromptQueue();
+
+        // Worker asks for the next item before any exist. A waiting worker
+        // means nothing is in flight, so the queue still reports idle.
+        const pending = queue.dequeue();
+        expect(queue.isProcessing()).toBe(false);
+        expect(queue.isIdle()).toBe(true);
+
+        // A request is dropped off; the worker's pending promise resolves with it.
+        const item = makeItem(42);
+        expect(queue.addTask(item)).toBe(1);
+
+        expect(await pending).toBe(item);
+        // The worker now holds an in-flight item; nothing is left pending.
+        expect(queue.length).toBe(0);
+        expect(queue.isProcessing()).toBe(true);
+        expect(queue.isIdle()).toBe(false);
+
+        // When the worker finishes, the queue is idle again.
+        queue.noteItemProcessed();
+        expect(queue.isProcessing()).toBe(false);
+        expect(queue.isIdle()).toBe(true);
     });
 
-    await new Promise(resolve => setTimeout(resolve, 200));
-    expect(executionOrder).toEqual([1, 2, 3]);
-  });
+    it('should report length as the number of still-pending requests', () => {
+        const queue = new PromptQueue();
+        queue.addTask(makeItem(1));
+        queue.addTask(makeItem(2));
+        queue.addTask(makeItem(3));
+        expect(queue.length).toBe(3);
 
-  it('should not stop processing if a task throws an exception', async () => {
-    const queue = new PromptQueue();
-    const executionOrder: number[] = [];
-
-    queue.addTask(async () => {
-      executionOrder.push(1);
+        // Taking two leaves one pending.
+        queue.dequeue();
+        queue.dequeue();
+        expect(queue.length).toBe(1);
     });
 
-    queue.addTask(async () => {
-      throw new Error("I failed!");
+    it('should report processing state as the worker holding an item', () => {
+        const queue = new PromptQueue();
+        expect(queue.isProcessing()).toBe(false);
+
+        queue.addTask(makeItem(1));
+        expect(queue.isProcessing()).toBe(false); // not yet taken
+
+        queue.dequeue();
+        expect(queue.isProcessing()).toBe(true);
+
+        queue.noteItemProcessed();
+        expect(queue.isProcessing()).toBe(false);
     });
 
-    queue.addTask(async () => {
-      executionOrder.push(3);
+    describe('onIdle', () => {
+        it('should fire when the queue becomes fully idle after processing', () => {
+            const queue = new PromptQueue();
+            const onIdle = jest.fn();
+            queue.onIdle = onIdle;
+
+            queue.addTask(makeItem(1));
+            expect(onIdle).not.toHaveBeenCalled(); // one pending
+
+            queue.dequeue();
+            expect(onIdle).not.toHaveBeenCalled(); // one in flight
+
+            queue.noteItemProcessed();
+            expect(onIdle).toHaveBeenCalledTimes(1); // all done
+
+            // Idle again after the next request completes.
+            queue.addTask(makeItem(2));
+            queue.dequeue();
+            queue.noteItemProcessed();
+            expect(onIdle).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not fire while items are still waiting or in flight', () => {
+            const queue = new PromptQueue();
+            const onIdle = jest.fn();
+            queue.onIdle = onIdle;
+
+            queue.addTask(makeItem(1));
+            expect(queue.isIdle()).toBe(false);
+
+            queue.dequeue();
+            queue.addTask(makeItem(2));
+            expect(queue.isIdle()).toBe(false);
+            expect(onIdle).not.toHaveBeenCalled();
+
+            // One item is in flight and one is pending: still not idle.
+            queue.noteItemProcessed();
+            expect(queue.isIdle()).toBe(false);
+            expect(onIdle).not.toHaveBeenCalled();
+
+            queue.dequeue();
+            queue.noteItemProcessed();
+            expect(queue.isIdle()).toBe(true);
+            expect(onIdle).toHaveBeenCalledTimes(1);
+        });
+
+        it('should be a no-op when no observer is attached', () => {
+            const queue = new PromptQueue();
+            expect(queue.onIdle).toBeUndefined();
+
+            queue.addTask(makeItem(1));
+            queue.dequeue();
+            queue.noteItemProcessed(); // no observer → no notification, no throw
+            expect(queue.isIdle()).toBe(true);
+        });
     });
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-    expect(executionOrder).toEqual([1, 3]);
-  });
+    it('should report idle when empty and nothing is in flight', () => {
+        const queue = new PromptQueue();
+        expect(queue.isIdle()).toBe(true);
+        expect(queue.length).toBe(0);
+        expect(queue.isProcessing()).toBe(false);
+    });
 });

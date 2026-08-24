@@ -66,7 +66,6 @@ describe('ImageGenerator', () => {
             queuePrompt: jest.fn().mockResolvedValue(mockPromptId),
             getImagesFromWebSocket: jest.fn(),
             close: jest.fn(),
-            unloadModels: jest.fn().mockResolvedValue(undefined),
         };
         (ComfyUIClient as unknown as jest.Mock).mockImplementation(() => mockClient);
     });
@@ -239,14 +238,7 @@ describe('ImageGenerator', () => {
         });
     });
 
-    describe('unloadModels', () => {
-        it('should call unloadModels on ComfyUIClient', async () => {
-            // Act
-            await ImageGenerator.unloadModels();
-
-            // Assert
-            const clientInstance = (ComfyUIClient as unknown as jest.Mock).mock.results[0].value;
-            expect(clientInstance.unloadModels).toHaveBeenCalled();
-        });
-    });
+    // Note: the old `unloadModels` tests were removed along with the static
+    // method — VRAM is now freed by stopping the ComfyUI user service (see
+    // comfyui-service-manager.test.ts).
 });

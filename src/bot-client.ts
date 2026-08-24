@@ -4,7 +4,9 @@ import IRC from 'irc-framework';
 import { BOT_CONFIG } from './config/constants';
 import { logger } from './config/logger';
 import { PromptQueue } from './queue/queue';
+import { GenerationWorker } from './queue/worker';
 import { InactivityManager } from './managers/inactivity-manager';
+import { ComfyUiServiceManager } from './managers/comfyui-service-manager';
 import { CommandHandler } from './handlers/command-handler';
 import { MessageHandler } from './handlers/message-handler';
 import {
@@ -23,9 +25,11 @@ import {
 export class FateBot {
     private bot: IrcClient;
     private queue: PromptQueue;
+    private service: ComfyUiServiceManager;
     private inactivityManager: InactivityManager;
     private commandHandler: CommandHandler;
     private messageHandler: MessageHandler;
+    private worker: GenerationWorker;
 
     /**
      * Initializes all bot components and sets up event listeners.
@@ -33,11 +37,27 @@ export class FateBot {
     constructor() {
         this.bot = new IRC.Client() as IrcClient;
         this.queue = new PromptQueue();
-        this.inactivityManager = new InactivityManager(this.queue);
-        this.commandHandler = new CommandHandler(this.bot, this.queue, this.inactivityManager);
+        this.service = new ComfyUiServiceManager();
+        this.inactivityManager = new InactivityManager(this.queue, this.service);
+        this.commandHandler = new CommandHandler(
+            this.bot,
+            this.queue,
+            this.inactivityManager,
+            this.service
+        );
         this.messageHandler = new MessageHandler(this.commandHandler);
+        this.worker = new GenerationWorker(this.queue, this.service, (channel, message) =>
+            this.bot.say(channel, message)
+        );
 
         this.setupEventListeners();
+    }
+
+    /**
+     * Starts the background generation worker.
+     */
+    public startWorkers() {
+        this.worker.start();
     }
 
     /**

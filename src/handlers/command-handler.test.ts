@@ -3,34 +3,47 @@ import { PromptQueue } from '../queue/queue';
 import { InactivityManager } from '../managers/inactivity-manager';
 import { ModelLoader } from '../config/model-loader';
 import { PromptParser } from '../text-filter/prompt-parser';
-import { BOT_CONFIG } from '../config/constants';
+import { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import { COMFYUI_SERVICE_CONFIG } from '../config/constants';
 import { UserError } from '../types/errors';
-import { IrcClient } from '../types/irc';
+import { MessageSender } from '../types/irc';
 
 jest.mock('../config/logger');
 jest.mock('../config/model-loader');
-jest.mock('../image-generation/image-generator');
 jest.mock('../text-filter/prompt-parser');
-jest.mock('../utils/gpu-utils');
+jest.mock('../managers/comfyui-service-manager');
 
 describe('CommandHandler', () => {
     let commandHandler: CommandHandler;
-    let mockBot: jest.Mocked<Pick<IrcClient, 'notice' | 'say'>>;
-    let mockQueue: jest.Mocked<Pick<PromptQueue, 'addTask'>>;
+    let mockBot: jest.Mocked<MessageSender>;
+    let mockQueue: { addTask: jest.Mock; length: number; isProcessing: jest.Mock };
     let mockInactivityManager: jest.Mocked<Pick<InactivityManager, 'clearTimer'>>;
+    let mockService: jest.Mocked<ComfyUiServiceManager>;
 
     beforeEach(() => {
         mockBot = {
             notice: jest.fn(),
             say: jest.fn()
-        } as jest.Mocked<Pick<IrcClient, 'notice' | 'say'>>;
+        };
         mockQueue = {
-            addTask: jest.fn().mockReturnValue(1)
-        } as jest.Mocked<Pick<PromptQueue, 'addTask'>>;
+            addTask: jest.fn().mockReturnValue(1),
+            length: 2,
+            isProcessing: jest.fn().mockReturnValue(true)
+        };
         mockInactivityManager = {
             clearTimer: jest.fn()
-        } as jest.Mocked<Pick<InactivityManager, 'clearTimer'>>;
-        commandHandler = new CommandHandler(mockBot, mockQueue, mockInactivityManager);
+        };
+        mockService = {
+            ensureRunning: jest.fn(),
+            stop: jest.fn(),
+            isRunning: jest.fn()
+        } as unknown as jest.Mocked<ComfyUiServiceManager>;
+        commandHandler = new CommandHandler(
+            mockBot,
+            mockQueue as unknown as Pick<PromptQueue, 'addTask' | 'length' | 'isProcessing'>,
+            mockInactivityManager,
+            mockService
+        );
     });
 
     afterEach(() => {
@@ -39,13 +52,10 @@ describe('CommandHandler', () => {
 
     describe('handleHelp', () => {
         it('should send help notices to the user', async () => {
-            // Arrange
             const nick = 'user123';
 
-            // Act
             await commandHandler.handleHelp(nick);
 
-            // Assert
             expect(mockBot.notice).toHaveBeenCalledTimes(3);
             expect(mockBot.notice).toHaveBeenCalledWith(nick, expect.any(String));
         });
@@ -53,58 +63,148 @@ describe('CommandHandler', () => {
 
     describe('handleListModels', () => {
         it('should send models list notice to the user', async () => {
-            // Arrange
-            const nick = 'user123';
             (ModelLoader.getModelsList as jest.Mock).mockResolvedValue('model1, model2');
 
-            // Act
-            await commandHandler.handleListModels(nick);
+            await commandHandler.handleListModels('user123');
 
-            // Assert
-            expect(mockBot.notice).toHaveBeenCalledWith(nick, expect.stringContaining('model1, model2'));
+            expect(mockBot.notice).toHaveBeenCalledWith('user123', expect.stringContaining('model1, model2'));
         });
 
         it('should send error notice if model loading fails', async () => {
-            // Arrange
-            const nick = 'user123';
             (ModelLoader.getModelsList as jest.Mock).mockRejectedValue(new Error('Failed'));
 
-            // Act
-            await commandHandler.handleListModels(nick);
+            await commandHandler.handleListModels('user123');
 
-            // Assert
-            expect(mockBot.notice).toHaveBeenCalledWith(nick, expect.stringContaining('Error getting models'));
+            expect(mockBot.notice).toHaveBeenCalledWith('user123', expect.stringContaining('Error getting models'));
+        });
+    });
+
+    describe('handleStartComfyui', () => {
+        it('should report startup with the idle duration when the service was started', async () => {
+            COMFYUI_SERVICE_CONFIG.IDLE_MINUTES = 10;
+            (mockService.ensureRunning as jest.Mock).mockResolvedValue(true);
+
+            await commandHandler.handleStartComfyui('user123');
+
+            expect(mockService.ensureRunning).toHaveBeenCalled();
+            expect(mockBot.notice).toHaveBeenCalledWith('user123',
+                'ComfyUI started. It will stay up until the queue has been idle for 10 minutes.');
+        });
+
+        it('should report a no-op when ComfyUI was already running', async () => {
+            (mockService.ensureRunning as jest.Mock).mockResolvedValue(false);
+
+            await commandHandler.handleStartComfyui('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123', 'ComfyUI was already running.');
+        });
+
+        it('should report an error if the service fails to start', async () => {
+            (mockService.ensureRunning as jest.Mock).mockRejectedValue(new Error('systemctl exploded'));
+
+            await commandHandler.handleStartComfyui('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123', 'Error starting ComfyUI: systemctl exploded');
+        });
+    });
+
+    describe('handleStopComfyui', () => {
+        it('should stop the service and confirm', async () => {
+            (mockService.stop as jest.Mock).mockResolvedValue(undefined);
+
+            await commandHandler.handleStopComfyui('user123');
+
+            expect(mockService.stop).toHaveBeenCalled();
+            expect(mockBot.notice).toHaveBeenCalledWith('user123',
+                'ComfyUI stopped. It will start automatically on the next image request.');
+        });
+
+        it('should report an error if stopping fails', async () => {
+            (mockService.stop as jest.Mock).mockRejectedValue(new Error('session gone'));
+
+            await commandHandler.handleStopComfyui('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123', 'Error stopping ComfyUI: session gone');
+        });
+    });
+
+    describe('handleComfyuiStatus', () => {
+        it('should report running state including queue stats', async () => {
+            (mockService.isRunning as jest.Mock).mockResolvedValue(true);
+
+            await commandHandler.handleComfyuiStatus('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123',
+                'ComfyUI is running. Queue: 2 waiting, processing: yes.');
+        });
+
+        it('should report idle queue stats when nothing is being processed', async () => {
+            mockQueue.length = 0;
+            (mockQueue.isProcessing as jest.Mock).mockReturnValue(false);
+            (mockService.isRunning as jest.Mock).mockResolvedValue(true);
+
+            await commandHandler.handleComfyuiStatus('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123',
+                'ComfyUI is running. Queue: 0 waiting, processing: no.');
+        });
+
+        it('should report that ComfyUI is not running', async () => {
+            (mockService.isRunning as jest.Mock).mockResolvedValue(false);
+
+            await commandHandler.handleComfyuiStatus('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123',
+                'ComfyUI is not running. It will start automatically on the next image request.');
+        });
+
+        it('should report an error if the status check fails', async () => {
+            (mockService.isRunning as jest.Mock).mockRejectedValue(new Error('probe failed'));
+
+            await commandHandler.handleComfyuiStatus('user123');
+
+            expect(mockBot.notice).toHaveBeenCalledWith('user123', 'Error checking ComfyUI status: probe failed');
         });
     });
 
     describe('handleGenerateImage', () => {
-        it('should parse prompt, clear timer and add task to queue', async () => {
-            // Arrange
+        it('should parse prompt, clear timer and queue a request for the channel', async () => {
             const nick = 'user123';
+            const channel = '#channel';
             const message = '!draw fluffy cat';
-            const filteredPrompt = { prompt: 'fluffy cat', count: 1 };
+            const filteredPrompt = { prompt: 'fluffy cat', count: 1 } as { prompt: string; count: number };
             (PromptParser.extractPrompts as jest.Mock).mockResolvedValue(filteredPrompt);
 
-            // Act
-            await commandHandler.handleGenerateImage(nick, message);
+            await commandHandler.handleGenerateImage(nick, channel, message);
 
-            // Assert
             expect(PromptParser.extractPrompts).toHaveBeenCalledWith(message);
             expect(mockInactivityManager.clearTimer).toHaveBeenCalled();
-            expect(mockQueue.addTask).toHaveBeenCalled();
-            expect(mockBot.say).toHaveBeenCalledWith(BOT_CONFIG.CHANNEL, expect.stringContaining('You are #1 in the queue'));
+            expect(mockQueue.addTask).toHaveBeenCalledWith({
+                prompt: filteredPrompt,
+                nick,
+                channel
+            });
+            expect(mockBot.say).toHaveBeenCalledWith(channel, expect.stringContaining('You are #1 in the queue'));
         });
 
-        it('should handle prompt parsing errors', async () => {
-            // Arrange
-            const nick = 'user123';
+        it('should report prompt parsing errors to the channel', async () => {
+            const channel = '#channel';
             (PromptParser.extractPrompts as jest.Mock).mockRejectedValue(new UserError('Parse error'));
 
-            // Act
-            await commandHandler.handleGenerateImage(nick, 'invalid');
+            await commandHandler.handleGenerateImage('user123', channel, 'invalid');
 
-            // Assert
-            expect(mockBot.say).toHaveBeenCalledWith(BOT_CONFIG.CHANNEL, expect.stringContaining('Error parsing your request'));
+            expect(mockBot.say).toHaveBeenCalledWith('#channel', expect.stringContaining('Error parsing your request'));
+            expect(mockQueue.addTask).not.toHaveBeenCalled();
+        });
+
+        it('should report unexpected errors generically to the channel', async () => {
+            const channel = '#channel';
+            (PromptParser.extractPrompts as jest.Mock).mockRejectedValue(new Error('boom'));
+
+            await commandHandler.handleGenerateImage('user123', channel, 'invalid');
+
+            expect(mockBot.say).toHaveBeenCalledWith('#channel', expect.stringContaining('An error occurred while processing your request.'));
+            expect(mockQueue.addTask).not.toHaveBeenCalled();
         });
     });
 });

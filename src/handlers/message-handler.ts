@@ -5,7 +5,7 @@ import { CommandHandler } from './command-handler';
 
 /**
  * Handles incoming messages from the IRC server and routes them 
- * to either the command handler or the image generation handler.
+ * to the command handler (command flag or image generation).
  */
 export class MessageHandler {
     private commands: { flag: string, handler: (nick: string, message?: string) => Promise<void> }[];
@@ -17,7 +17,8 @@ export class MessageHandler {
         this.commands = [
             { flag: '--help', handler: (n) => this.commandHandler.handleHelp(n) },
             { flag: '--models', handler: (n) => this.commandHandler.handleListModels(n) },
-            { flag: '--unload-vram', handler: (n) => this.commandHandler.handleUnloadVram(n) },
+            { flag: '--start-comfyui', handler: (n) => this.commandHandler.handleStartComfyui(n) },
+            { flag: '--stop-comfyui', handler: (n) => this.commandHandler.handleStopComfyui(n) },
         ];
     }
 
@@ -40,7 +41,7 @@ export class MessageHandler {
         if (command) {
             await command.handler(nick, message);
         } else {
-            await this.commandHandler.handleGenerateImage(nick, message);
+            await this.commandHandler.handleGenerateImage(nick, target, message);
         }
     }
 }

@@ -128,12 +128,4 @@ export class ImageGenerator {
 
         return savedImages;
     }
-
-    /**
-     * Manually unloads all models from VRAM on the ComfyUI server.
-     */
-    static async unloadModels(): Promise<void> {
-        const client = new ComfyUIClient();
-        await client.unloadModels();
-    }
 }
