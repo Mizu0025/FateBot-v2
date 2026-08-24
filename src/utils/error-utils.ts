@@ -80,19 +80,3 @@ export function classifyGenerationError(error: unknown): ClassifiedError {
     // 4) Anything else: include the raw message, it's a private bot
     return { category: 'internal', detail: message.slice(0, 200), retryable: false };
 }
-
-/**
- * Formats the standard IRC error reply for a generation failure.
- * @param error The error to classify.
- * @param nick Optional nick prefix (e.g. "Mizu25-hayate") to include in the reply.
- * @param context Optional extra context (e.g. the model name).
- */
-export function formatFailureMessage(error: unknown, nick?: string, context?: string): string {
-    const { category, detail, retryable } = classifyGenerationError(error);
-    const parts = [`Generation failed (${category})`];
-    if (detail) parts.push(detail);
-    if (retryable) parts.push('likely transient — try again');
-    if (context) parts.push(context);
-    const message = parts.join('. ');
-    return nick ? `${nick}: ${message}` : message;
-}
