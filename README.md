@@ -171,8 +171,7 @@ src/
 │   ├── errors.ts                  # FateBotError base, UserError, SystemError
 │   └── irc.ts                     # IRC client/event type declarations
 └── utils/
-    ├── error-utils.ts             # Failure classification (offline/backend/timeout/internal)
-    └── gpu-utils.ts               # nvidia-smi GPU memory reporting
+    └── error-utils.ts             # Failure classification (offline/backend/timeout/internal)
 ```
 
 ## Dependencies
