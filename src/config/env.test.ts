@@ -1,5 +1,4 @@
 import { cleanEnv, str, port } from 'envalid';
-import env from './env';
 import { posInt } from './env';
 
 describe('env validation', () => {

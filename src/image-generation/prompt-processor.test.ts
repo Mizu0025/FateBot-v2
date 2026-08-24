@@ -1,5 +1,5 @@
 import { PromptProcessor } from './prompt-processor';
-import { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
+import { FilteredPrompt, ModelConfiguration, WorkflowData } from '../types';
 import { minimalWorkflowData } from '../test-utils';
 import { logger } from '../config/logger';
 
