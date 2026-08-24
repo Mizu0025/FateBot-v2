@@ -4,18 +4,47 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 
 ## Features
 
-- **IRC Bot Integration**: Connects to IRC channels and responds to commands
-- **Text Parsing**: Parses user prompts with parameters (width, height, model, negative prompts)
+- **IRC Bot Integration**: Connects to IRC channels and responds to commands (with optional SASL authentication)
+- **Text Parsing**: Parses user prompts with parameter flags, including short aliases (e.g. `-w` for `--width`)
 - **Image Generation**: Generates images using ComfyUI via WebSocket
-- **Image Grid Creation**: Automatically creates grid layouts from multiple generated images
-- **Async Operations**: Non-blocking image generation that doesn't interrupt bot responsiveness
-- **Modular Architecture**: Clean, maintainable code structure
+- **Image Grid Creation**: Automatically composes grid layouts from batches of generated images (output is WebP)
+- **Prompt Queue + Background Worker**: Every request is queued and processed by a background worker, so the bot stays responsive and requests are handled one at a time
+- **On-Demand ComfyUI**: ComfyUI runs as a user systemd service that the bot starts on demand and stops automatically after it has been idle, so it is never holding GPU memory for no reason
+- **Error Handling**: Distinguishes user errors (bad input) from system errors, classifies generation failures (offline / backend / timeout / internal), and automatically retries transient failures once
+- **Structured Logging**: Winston-based logs, optionally written to `./logs` with rotation
+- **Modular Architecture**: Clean, maintainable code structure with full unit-test coverage (Jest)
 
 ## Commands
 
-- `fatebot --help` - Shows help information
-- `fatebot --models` - Lists available models
-- `fatebot <prompt> --width=<w> --height=<h> --model=<m> --no=<negative_prompt>` - Generates an image
+The bot activates on messages in its configured channel that contain the trigger word.
+
+### Image generation
+
+```
+<trigger> <prompt> [--width=<w>] [--height=<h>] [--model=<m>] [--no <negative_prompt>] [--count=<n>] [--seed=<s>]
+```
+
+Flags also accept short aliases: `-w`, `-h`, `-m`, `-n` (or `--negative`), `-c`, `-s`.
+
+### Control commands
+
+These flags are detected anywhere in a trigger message and handled as commands:
+
+| Flag | Description |
+|------|-------------|
+| `--help` | Shows prompt syntax and an example |
+| `--models` | Lists the available model names (from `modelConfiguration.json`) |
+| `--start-comfyui` | Starts the ComfyUI service immediately (no-op if already running) |
+| `--stop-comfyui` | Stops the ComfyUI service to free GPU memory (starts again on the next image request) |
+
+### Generation defaults
+
+| Parameter | Default |
+|-----------|---------|
+| Model | `paSanctuary` |
+| Width / Height | `1024` / `1024` |
+| Count | `4` (four images composed into one grid) |
+| Output format | `webp` |
 
 ## Installation
 
@@ -29,9 +58,35 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
    npm run build
    ```
 
+## ComfyUI Requirements
+
+The bot expects ComfyUI to be available as a **user systemd service** run by the same user as the bot (unit name configurable via `COMFYUI_UNIT_NAME`). A minimal unit template:
+
+```ini
+# ~/.config/systemd/user/comfyui.service
+[Unit]
+Description=ComfyUI (start/stop controlled by FateBot)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/path/to/comfyui
+ExecStart=/path/to/your/comfyui-launch.sh
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user daemon-reload
+loginctl enable-linger <botuser>   # keep the user session alive for --user units
+```
+
+The bot itself never assumes the service is running: it probes ComfyUI's `/system_stats` endpoint and starts the service on demand. To enable linger on boot automatically, see your distribution's documentation for `loginctl enable-linger`.
+
 ## Configuration
 
-The bot uses environment variables for configuration. You can use a `.env` file or environment-specific files (e.g., `.env.dev`, `.env.prod`).
+Configuration is read from environment variables, validated with `envalid`, and available via a `.env` file in the project root.
 
 1. Copy the example environment file:
    ```bash
@@ -44,33 +99,35 @@ The bot uses environment variables for configuration. You can use a `.env` file 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SERVER` | IRC server address | `address` |
-| `PORT` | IRC server port | `6667` |
+| `PORT` | IRC server port (use `6697` for TLS) | `6667` |
 | `CHANNEL` | IRC channel to join | `#channel` |
 | `NICK` | Bot's nickname | `nick` |
-| `TRIGGER_WORD` | Command trigger | `!trigger` |
-| `SASL_ACCOUNT` | SASL account name | (Optional) |
-| `SASL_PASSWORD` | SASL password | (Optional) |
+| `TRIGGER_WORD` | Command trigger word | `!trigger` |
+| `SASL_ACCOUNT` | SASL account name (optional) | (unset) |
+| `SASL_PASSWORD` | SASL password (optional) | (unset) |
 | `COMFYUI_ADDRESS` | ComfyUI server address | `comfyAddress` |
 | `COMFYUI_PORT` | ComfyUI server port | `8188` |
-| `COMFYUI_DOMAIN_PATH` | Public URL path for images | `mock_domain_path` |
+| `COMFYUI_DOMAIN_PATH` | Public URL prefix reported back to IRC users | `mock_domain_path` |
 | `COMFYUI_FOLDER_PATH` | Local path where images are saved | `/path/to/files/` |
-| `COMFYUI_WORKFLOW_PATH`| Path to the ComfyUI workflow JSON | `src/workflows/workflow.json` |
-| `LOG_LEVEL` | Logging level (info, debug, etc.) | `info` |
-| `LOG_TO_FILE` | Enable logging to files in `./logs` | `false` |
+| `COMFYUI_WORKFLOW_PATH` | Path to the ComfyUI workflow JSON | `src/workflows/workflow.json` |
+| `COMFYUI_UNIT_NAME` | Name of the ComfyUI user systemd unit (without `.service`) | `comfyui` |
+| `COMFYUI_IDLE_MINUTES` | Idle minutes before the bot stops ComfyUI to free VRAM | `10` |
+| `COMFYUI_START_TIMEOUT_SECONDS` | Max seconds to wait for ComfyUI to become ready after start | `120` |
+| `LOG_LEVEL` | Winston log level (`error`, `warn`, `info`, `debug`) | `info` |
+| `LOG_TO_FILE` | Also write JSON logs to `./logs/combined.log` and `./logs/error.log` (rotated, 5 files) | `false` |
 
-### Multi-Environment Setup
-
-The project supports different environment files via npm scripts:
-
-- `npm run start:dev`: Uses `.env.dev`
-- `npm run start:test`: Uses `.env.test`
-- `npm run start:prod`: Uses `.env.prod`
+Models are configured in `modelConfiguration.json` (checkpoint, VAE, workflow, sampler settings and default prompts per model name).
 
 ## Usage
 
-### Development
+### Development (build then run)
 ```bash
 npm run dev
+```
+
+### Watch Mode (Development)
+```bash
+npm run watch
 ```
 
 ### Production
@@ -79,63 +136,86 @@ npm run build
 npm start
 ```
 
-### Watch Mode (Development)
-```bash
-npm run watch
-```
-
 ## Project Structure
 
 ```
 src/
-├── bot.ts                    # Main bot file
-├── types/
-│   └── index.ts             # TypeScript interfaces
+├── bot.ts                         # Entry point
+├── bot-client.ts                  # IRC connection + component wiring
 ├── config/
-│   ├── constants.ts         # Configuration constants
-│   └── model-loader.ts      # Model configuration loading
+│   ├── env.ts                     # envalid environment validation
+│   ├── constants.ts               # BOT_CONFIG, COMFYUI_CONFIG, defaults, help text
+│   ├── logger.ts                  # Winston logger (console + optional file)
+│   ├── model-loader.ts            # Model configuration loading
+│   └── runtime-config.ts          # Runtime-mutable settings (default model)
+├── handlers/
+│   ├── message-handler.ts         # Routes incoming messages to commands or generation
+│   └── command-handler.ts         # --help, --models, start/stop ComfyUI, generation
+├── image-generation/
+│   ├── comfyui-client.ts          # ComfyUI WebSocket client
+│   ├── workflow-loader.ts         # Workflow data loading
+│   ├── prompt-processor.ts        # Prompt preparation for the workflow
+│   ├── image-generator.ts         # Generation orchestrator (batch + grid)
+│   ├── image-grid.ts              # Grid/montage composition (sharp)
+│   └── filename-utils.ts          # Filename + public URL helpers
+├── managers/
+│   ├── comfyui-service-manager.ts # Start/stop/readiness of the ComfyUI user service
+│   └── inactivity-manager.ts      # Stops ComfyUI after the queue has been idle
+├── queue/
+│   ├── queue.ts                   # Prompt queue with idle callbacks
+│   └── worker.ts                  # Background worker that drains the queue
 ├── text-filter/
-│   └── prompt-parser.ts     # Text parsing logic
-└── image-generation/
-    ├── comfyui-client.ts    # ComfyUI WebSocket client
-    ├── workflow-loader.ts   # Workflow data loading
-    ├── prompt-processor.ts  # Prompt processing
-    ├── image-generator.ts   # Main image generation orchestrator
-    └── image-grid.ts        # Image grid generation
+│   └── prompt-parser.ts           # Prompt + flag parsing
+├── types/
+│   ├── index.ts                   # Shared TypeScript interfaces
+│   ├── errors.ts                  # FateBotError base, UserError, SystemError
+│   └── irc.ts                     # IRC client/event type declarations
+└── utils/
+    └── error-utils.ts             # Failure classification (offline/backend/timeout/internal)
 ```
 
 ## Dependencies
 
-- `irc-framework` - IRC client library
+- `irc-framework` - IRC client
 - `ws` - WebSocket client for ComfyUI
-- `sharp` - Image processing for grid creation
+- `sharp` - Image processing (grid composition, WebP output)
 - `uuid` - Unique ID generation
-- `@types/node` - Node.js TypeScript definitions
+- `winston` - Structured logging
+- `envalid` - Environment variable validation
+- `dotenv` / `dotenv-cli` - `.env` file loading
+- `ts-node` - Direct TypeScript execution for `npm start`
 
 ## Architecture
 
-The bot is designed with a modular, async-first architecture:
+The bot is modular and async-first, with a strict separation between *receiving* requests and *doing* the work:
 
-1. **Text Parsing**: Extracts prompt parameters from user messages
-2. **Model Loading**: Loads model configurations from JSON files
-3. **Workflow Processing**: Processes ComfyUI workflow data
-4. **WebSocket Communication**: Connects to ComfyUI server for image generation
-5. **Image Saving**: Saves generated images to local storage
-6. **Grid Creation**: Creates grid layouts from multiple images
+1. **Message intake**: `bot-client.ts` maintains the IRC connection (TLS, SASL, reconnectable logging of socket/IRC-level errors) and hands `message` events to `message-handler.ts`
+2. **Routing + parsing**: `message-handler.ts` routes command flags (`--help`, `--models`, `--start-comfyui`, `--stop-comfyui`) or hands the prompt to `command-handler.ts`, which parses flags via `prompt-parser.ts` and adds a `PromptQueueItem` to the queue
+3. **Background worker**: `worker.ts` drains the queue one item at a time — the only component that talks to ComfyUI for generation:
+   - `comfyui-service-manager.ts` probes `/system_stats`; if ComfyUI is down it starts the user systemd service and polls until it reports ready (or stops the service and fails, to avoid a crash loop)
+   - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid)
+   - Transient failures (connection refused/reset, timeouts) are retried exactly once; other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
+4. **Idle shutdown**: `inactivity-manager.ts` listens to the queue's idle signal and stops the ComfyUI service after `COMFYUI_IDLE_MINUTES` with no activity, freeing GPU memory for the rest of the machine
 
-All operations are asynchronous and non-blocking, ensuring the bot remains responsive while generating images.
+All operations are asynchronous and non-blocking, so the bot remains responsive while images are generating.
 
 ## Example Usage
 
 ```
-User: fatebot a beautiful landscape --width=1024 --height=768 --model=paSanctuary --no=ugly, blurry
-Bot: User: Starting image generation...
-Bot: User: Your image is ready! https://example.com/images/123456.0.png
+User: !fate a beautiful landscape --width=1024 --height=768 --model=paSanctuary --no=ugly, blurry --count=2
+Bot:  Mizu: Starting image generation... You are #1 in the queue.
+Bot:  Mizu: Your image is ready! http://your.domain/path/1a2b3c..._0.webp
+```
+
+If ComfyUI was stopped, you will see an additional line while it comes up:
+
+```
+Bot:  Mizu: ComfyUI was offline — starting it up now, generation will take a little longer...
 ```
 
 ## Development
 
-The codebase is written in TypeScript with strict type checking. All modules are designed to be testable and maintainable.
+The codebase is written in TypeScript with strict type checking. Every module has a unit test, written in Jest with `ts-jest`.
 
 ### Building
 ```bash
@@ -143,7 +223,6 @@ npm run build
 ```
 
 ### Running Tests
-The project includes comprehensive tests for all components. Run tests to verify functionality:
 ```bash
-npm run build && node dist/test-comfyui.js
-``` 
+npm test
+```
