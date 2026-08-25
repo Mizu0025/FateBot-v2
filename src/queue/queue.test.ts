@@ -61,6 +61,27 @@ describe('PromptQueue', () => {
         expect(queue.isIdle()).toBe(true);
     });
 
+    it('should report position 2 for a request arriving while one is in flight (cold start)', async () => {
+        const queue = new PromptQueue();
+
+        // Worker dequeues an empty queue → it is now waiting.
+        const pending = queue.dequeue();
+
+        // Request #1 lands while the worker is waiting → handed over (#1).
+        const first = makeItem(1);
+        expect(queue.addTask(first)).toBe(1);
+        expect(await pending).toBe(first);
+        expect(queue.isProcessing()).toBe(true);
+
+        // Request #2 lands while request #1 is still in flight.
+        // It must be counted ahead of nothing but behind the in-flight item.
+        const second = makeItem(2);
+        expect(queue.addTask(second)).toBe(2);
+
+        // Request #3 while both #1 (in flight) and #2 (pending) are ahead.
+        expect(queue.addTask(makeItem(3))).toBe(3);
+    });
+
     it('should report length as the number of still-pending requests', () => {
         const queue = new PromptQueue();
         queue.addTask(makeItem(1));

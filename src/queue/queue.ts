@@ -45,7 +45,9 @@ export class PromptQueue implements QueueMonitor {
     /**
      * Adds a request to the queue and lets any waiting worker take it.
      * @param item The generation request to enqueue.
-     * @returns The position (1-indexed) the request queued at.
+     * @returns The position (1-indexed) the request queued at. Counts the
+     * item already held by the worker (if any) ahead of new arrivals — so a
+     * request arriving while one is in flight is #2, not #1.
      */
     addTask(item: PromptQueueItem): number {
         // Hand the item directly to a currently waiting worker instead of
@@ -61,7 +63,8 @@ export class PromptQueue implements QueueMonitor {
         }
 
         this.items.push(item);
-        const position = this.items.length;
+        // One in-flight item (if any) is ahead of everything in the buffer.
+        const position = (this.workerBusy ? 1 : 0) + this.items.length;
         logger.debug(`Request from ${item.nick} added to queue at position ${position}`);
 
         return position;
