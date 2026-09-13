@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 import { join } from 'path';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { getDomainPath, getImageFilename } from './filename-utils';
@@ -14,7 +14,7 @@ export class ImageGrid {
      * @param filepaths Array of absolute paths to images.
      * @returns Array of Sharp image instances.
      */
-    private static async openImages(filepaths: string[]): Promise<sharp.Sharp[]> {
+    private static async openImages(filepaths: string[]): Promise<Sharp[]> {
         return filepaths.map(filepath => sharp(filepath));
     }
 
@@ -23,7 +23,7 @@ export class ImageGrid {
      * @param images Array of Sharp image instances.
      * @returns An object containing arrays of widths and heights.
      */
-    private static async getImageDimensions(images: sharp.Sharp[]): Promise<{ widths: number[], heights: number[] }> {
+    private static async getImageDimensions(images: Sharp[]): Promise<{ widths: number[], heights: number[] }> {
         const dimensions = await Promise.all(images.map(img => img.metadata()));
         const widths = dimensions.map(d => d.width || 0);
         const heights = dimensions.map(d => d.height || 0);
@@ -49,7 +49,7 @@ export class ImageGrid {
      * @param maxHeight Height of the tallest image.
      * @returns A Sharp instance representing the blank canvas.
      */
-    private static createBlankCanvas(cols: number, rows: number, maxWidth: number, maxHeight: number): sharp.Sharp {
+    private static createBlankCanvas(cols: number, rows: number, maxWidth: number, maxHeight: number): Sharp {
         const gridWidth = cols * maxWidth;
         const gridHeight = rows * maxHeight;
         return sharp({
@@ -72,12 +72,12 @@ export class ImageGrid {
      * @returns The Sharp instance containing the composed grid.
      */
     private static async pasteImagesToGrid(
-        images: sharp.Sharp[],
-        grid: sharp.Sharp,
+        images: Sharp[],
+        grid: Sharp,
         cols: number,
         maxWidth: number,
         maxHeight: number
-    ): Promise<sharp.Sharp> {
+    ): Promise<Sharp> {
         const composites = [];
 
         for (let index = 0; index < images.length; index++) {
@@ -102,7 +102,7 @@ export class ImageGrid {
      * @param promptId The prompt ID for filename generation.
      * @returns The absolute path to the saved file.
      */
-    private static async saveGrid(grid: sharp.Sharp, promptId: string): Promise<string> {
+    private static async saveGrid(grid: Sharp, promptId: string): Promise<string> {
         const gridFilename = getImageFilename(promptId, 0, 'webp');
         const gridPath = join(COMFYUI_CONFIG.FOLDER_PATH, gridFilename);
         await grid.toFile(gridPath);
