@@ -42,5 +42,17 @@
         "imageWidth": 1024,
         "defaultPositivePrompt": "masterpiece, best quality, score_7, safe",
         "defaultNegativePrompt": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia"
+    },
+    "AnimaTurbo": {
+        "checkpointName": "anima-turbo-v1.1.safetensors",
+        "vae": "qwen_image_vae.safetensors",
+        "workflow": "Anima-turbo",
+        "steps": 10,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "imageHeight": 1024,
+        "imageWidth": 1024,
+        "defaultPositivePrompt": "masterpiece, best quality, score_7, safe",
+        "defaultNegativePrompt": "worst quality, low quality, score_1, score_2, score_3, artist name, blurry, jpeg artifacts, chromatic aberration"
     }
 }
