@@ -1,4 +1,3 @@
-
 import env from './env';
 
 /**
@@ -11,7 +10,7 @@ export const BOT_CONFIG = {
     TRIGGER_WORD: env.TRIGGER_WORD,
     PORT: env.PORT,
     SASL_ACCOUNT: env.SASL_ACCOUNT,
-    SASL_PASSWORD: env.SASL_PASSWORD
+    SASL_PASSWORD: env.SASL_PASSWORD,
 } as const;
 
 /**
@@ -26,12 +25,12 @@ export type ComfyUiConfig = {
     WORKFLOW_PATH: string;
 };
 
-export let COMFYUI_CONFIG: ComfyUiConfig = {
+export const COMFYUI_CONFIG: ComfyUiConfig = {
     ADDRESS: env.COMFYUI_ADDRESS,
     PORT: env.COMFYUI_PORT,
     DOMAIN_PATH: env.COMFYUI_DOMAIN_PATH,
     FOLDER_PATH: env.COMFYUI_FOLDER_PATH,
-    WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH
+    WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH,
 };
 
 /**
@@ -49,11 +48,11 @@ export type ComfyUiServiceConfig = {
     START_POLL_INTERVAL_MS: number;
 };
 
-export let COMFYUI_SERVICE_CONFIG: ComfyUiServiceConfig = {
+export const COMFYUI_SERVICE_CONFIG: ComfyUiServiceConfig = {
     UNIT_NAME: env.COMFYUI_UNIT_NAME,
     IDLE_MINUTES: env.COMFYUI_IDLE_MINUTES,
     START_TIMEOUT_SECONDS: env.COMFYUI_START_TIMEOUT_SECONDS,
-    START_POLL_INTERVAL_MS: 2000
+    START_POLL_INTERVAL_MS: 2000,
 };
 
 /**
@@ -62,7 +61,7 @@ export let COMFYUI_SERVICE_CONFIG: ComfyUiServiceConfig = {
 export const HELP_MESSAGES = {
     imageGeneration: `To generate an image, type: ${BOT_CONFIG.TRIGGER_WORD} <your_prompt>`,
     promptStructure: `${BOT_CONFIG.TRIGGER_WORD} <prompt_text> --width=<width> --height=<height> --model=<model> --no <negative_prompt_text> --count=<count> --seed=<seed>`,
-    promptExample: 'Example:  a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry'
+    promptExample: 'Example:  a beautiful landscape --width=1024 --height=768 --model=epicMode --no=ugly, blurry',
 } as const;
 
 /**
@@ -73,5 +72,5 @@ export const GENERATION_DEFAULTS = {
     WIDTH: 1024,
     HEIGHT: 1024,
     COUNT: 4,
-    OUTPUT_FORMAT: 'webp'
+    OUTPUT_FORMAT: 'webp',
 } as const;

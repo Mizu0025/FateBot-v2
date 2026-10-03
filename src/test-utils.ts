@@ -1,4 +1,4 @@
-import { WorkflowData } from './types';
+import type { WorkflowData } from './types';
 
 /**
  * Fully typed minimal ComfyUI workflow used as a fixture in tests.

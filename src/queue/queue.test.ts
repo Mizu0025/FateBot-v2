@@ -1,6 +1,6 @@
-import { PromptQueue, PromptQueueItem } from './queue';
-import { FilteredPrompt } from '../types';
 import { logger } from '../config/logger';
+import type { FilteredPrompt } from '../types';
+import { PromptQueue, type PromptQueueItem } from './queue';
 
 // Helper to build a minimal, fully-typed queued request.
 const makeItem = (id: number): PromptQueueItem => ({
@@ -11,10 +11,10 @@ const makeItem = (id: number): PromptQueueItem => ({
 
 describe('PromptQueue', () => {
     beforeEach(() => {
-        jest.resetAllMocks();
-        jest.spyOn(logger, 'error').mockImplementation(() => logger);
-        jest.spyOn(logger, 'debug').mockImplementation(() => logger);
-        jest.spyOn(logger, 'info').mockImplementation(() => logger);
+        vi.resetAllMocks();
+        vi.spyOn(logger, 'error').mockImplementation(() => logger);
+        vi.spyOn(logger, 'debug').mockImplementation(() => logger);
+        vi.spyOn(logger, 'info').mockImplementation(() => logger);
     });
 
     it('should add requests in FIFO order and return 1-indexed positions', async () => {
@@ -112,7 +112,7 @@ describe('PromptQueue', () => {
     describe('onIdle', () => {
         it('should fire when the queue becomes fully idle after processing', () => {
             const queue = new PromptQueue();
-            const onIdle = jest.fn();
+            const onIdle = vi.fn();
             queue.onIdle = onIdle;
 
             queue.addTask(makeItem(1));
@@ -133,7 +133,7 @@ describe('PromptQueue', () => {
 
         it('should not fire while items are still waiting or in flight', () => {
             const queue = new PromptQueue();
-            const onIdle = jest.fn();
+            const onIdle = vi.fn();
             queue.onIdle = onIdle;
 
             queue.addTask(makeItem(1));

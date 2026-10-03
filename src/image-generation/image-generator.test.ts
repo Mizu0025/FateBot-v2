@@ -1,25 +1,26 @@
-import { ImageGenerator } from './image-generator';
-import { ComfyUIClient } from './comfyui-client';
-import { ModelLoader } from '../config/model-loader';
-import { WorkflowLoader } from './workflow-loader';
-import { PromptProcessor } from './prompt-processor';
-import { ImageGrid } from './image-grid';
-import * as fs from 'fs';
-import { logger } from '../config/logger';
+import * as fs from 'node:fs';
 import sharp from 'sharp';
+import type { Mock } from 'vitest';
+import { logger } from '../config/logger';
+import { ModelLoader } from '../config/model-loader';
+import type { FilteredPrompt } from '../types';
+import { ComfyUIClient } from './comfyui-client';
 import { getDomainPath, getImageFilename } from './filename-utils';
-import { FilteredPrompt } from '../types';
+import { ImageGenerator } from './image-generator';
+import { ImageGrid } from './image-grid';
+import { PromptProcessor } from './prompt-processor';
+import { WorkflowLoader } from './workflow-loader';
 
 // Mock all dependencies
-jest.mock('./comfyui-client');
-jest.mock('../config/model-loader');
-jest.mock('./workflow-loader');
-jest.mock('./prompt-processor');
-jest.mock('./image-grid');
-jest.mock('fs');
-jest.mock('../config/logger');
-jest.mock('sharp');
-jest.mock('./filename-utils');
+vi.mock('./comfyui-client');
+vi.mock('../config/model-loader');
+vi.mock('./workflow-loader');
+vi.mock('./prompt-processor');
+vi.mock('./image-grid');
+vi.mock('fs');
+vi.mock('../config/logger');
+vi.mock('sharp');
+vi.mock('./filename-utils');
 
 describe('ImageGenerator', () => {
     const mockFilteredPrompt: FilteredPrompt = {
@@ -29,7 +30,7 @@ describe('ImageGenerator', () => {
         height: 512,
         negative_prompt: 'bad quality',
         count: 1,
-        seed: 12345
+        seed: 12345,
     };
 
     const mockModelConfig = {
@@ -39,46 +40,48 @@ describe('ImageGenerator', () => {
     };
 
     const mockWorkflowData = { nodes: [] };
-    const mockPromptData = { data: { "1": { "class_type": "KSampler" } } };
+    const mockPromptData = { data: { '1': { class_type: 'KSampler' } } };
     const mockPromptId = 'test-prompt-id';
 
     // Mock sharp chain
     const mockSharpInstance = {
-        webp: jest.fn().mockReturnThis(),
-        toBuffer: jest.fn().mockResolvedValue(Buffer.from('mock-webp-data')),
+        webp: vi.fn().mockReturnThis(),
+        toBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-webp-data')),
     };
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        (sharp as unknown as jest.Mock).mockReturnValue(mockSharpInstance);
-        (ModelLoader.loadModelConfiguration as jest.Mock).mockResolvedValue(mockModelConfig);
-        (WorkflowLoader.loadWorkflowByName as jest.Mock).mockResolvedValue(mockWorkflowData);
-        (PromptProcessor.createPromptData as jest.Mock).mockReturnValue(mockPromptData);
-        (getImageFilename as jest.Mock).mockReturnValue('image_1.webp');
-        (getDomainPath as jest.Mock).mockImplementation((filepath) => {
+        vi.clearAllMocks();
+        (sharp as unknown as Mock).mockReturnValue(mockSharpInstance);
+        (ModelLoader.loadModelConfiguration as Mock).mockResolvedValue(mockModelConfig);
+        (WorkflowLoader.loadWorkflowByName as Mock).mockResolvedValue(mockWorkflowData);
+        (PromptProcessor.createPromptData as Mock).mockReturnValue(mockPromptData);
+        (getImageFilename as Mock).mockReturnValue('image_1.webp');
+        (getDomainPath as Mock).mockImplementation((filepath) => {
             const filename = filepath.split('/').pop();
             return `https://example.com/${filename}`;
         });
 
         // Mock ComfyUIClient methods
         const mockClient = {
-            connectWebSocket: jest.fn().mockResolvedValue(undefined),
-            queuePrompt: jest.fn().mockResolvedValue(mockPromptId),
-            getImagesFromWebSocket: jest.fn(),
-            close: jest.fn(),
+            connectWebSocket: vi.fn().mockResolvedValue(undefined),
+            queuePrompt: vi.fn().mockResolvedValue(mockPromptId),
+            getImagesFromWebSocket: vi.fn(),
+            close: vi.fn(),
         };
-        (ComfyUIClient as unknown as jest.Mock).mockImplementation(() => mockClient);
+        (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+            return mockClient;
+        });
     });
 
     describe('generateImage', () => {
         it('should generate an image and return its domain path', async () => {
             // Arrange
-            const mockImages = new Map([
-                ['SaveImageWebsocket', [Buffer.from('image1')]]
-            ]);
+            const mockImages = new Map([['SaveImageWebsocket', [Buffer.from('image1')]]]);
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
             // Act
             const result = await ImageGenerator.generateImage(mockFilteredPrompt);
@@ -93,14 +96,14 @@ describe('ImageGenerator', () => {
 
         it('should generate an image grid and return its path when multiple images are returned', async () => {
             // Arrange
-            const mockImages = new Map([
-                ['SaveImageWebsocket', [Buffer.from('image1'), Buffer.from('image2')]]
-            ]);
+            const mockImages = new Map([['SaveImageWebsocket', [Buffer.from('image1'), Buffer.from('image2')]]]);
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
-            (ImageGrid.generateImageGrid as jest.Mock).mockResolvedValue('/path/to/grid.webp');
+            (ImageGrid.generateImageGrid as Mock).mockResolvedValue('/path/to/grid.webp');
 
             // Act
             const result = await ImageGenerator.generateImage(mockFilteredPrompt);
@@ -113,74 +116,79 @@ describe('ImageGenerator', () => {
 
         it('should throw error if modelConfig is not found', async () => {
             // Arrange
-            (ModelLoader.loadModelConfiguration as jest.Mock).mockResolvedValue(null);
-            (ModelLoader.getModelsList as jest.Mock).mockResolvedValue('model-a, model-b');
+            (ModelLoader.loadModelConfiguration as Mock).mockResolvedValue(null);
+            (ModelLoader.getModelsList as Mock).mockResolvedValue('model-a, model-b');
 
             // Act
             // Assert
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('Unknown model "test-model". Available models: model-a, model-b');
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
+                'Unknown model "test-model". Available models: model-a, model-b',
+            );
         });
 
         it('should throw error if workflowData fails to load', async () => {
             // Arrange
-            (WorkflowLoader.loadWorkflowByName as jest.Mock).mockResolvedValue(null);
+            (WorkflowLoader.loadWorkflowByName as Mock).mockResolvedValue(null);
 
             // Act
             // Assert
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('Workflow "test-workflow" failed to load. Check the workflows directory.');
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
+                'Workflow "test-workflow" failed to load. Check the workflows directory.',
+            );
         });
 
         it('should throw error if it fails to queue prompt', async () => {
             // Arrange
             const clientInstance = new ComfyUIClient();
-            (clientInstance.queuePrompt as jest.Mock).mockResolvedValue(null);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.queuePrompt as Mock).mockResolvedValue(null);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
             // Act
             // Assert
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('ComfyUI queued the prompt but returned no ID.');
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
+                'ComfyUI queued the prompt but returned no ID.',
+            );
         });
 
         it('should throw error if no images were generated (savedImagePaths is empty)', async () => {
             // Arrange
-            const mockImages = new Map([
-                ['SaveImageWebsocket', []]
-            ]);
+            const mockImages = new Map([['SaveImageWebsocket', []]]);
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
             // Act
             // Assert
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('ComfyUI finished but produced no images');
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
+                'ComfyUI finished but produced no images',
+            );
         });
 
         it('should throw error if generateImage try-catch fails', async () => {
             // Arrange
             const testError = new Error('Unexpected error');
-            (ModelLoader.loadModelConfiguration as jest.Mock).mockRejectedValue(testError);
+            (ModelLoader.loadModelConfiguration as Mock).mockRejectedValue(testError);
 
             // Act
             // Assert
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt))
-                .rejects.toThrow('Unexpected error');
-            expect(logger.error).toHaveBeenCalledWith("Error during image generation:", testError);
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow('Unexpected error');
+            expect(logger.error).toHaveBeenCalledWith('Error during image generation:', testError);
         });
     });
 
     describe('saveImageFiles (private via generateImage)', () => {
         it('should save images to files', async () => {
             // Arrange
-            const mockImages = new Map([
-                ['SaveImageWebsocket', [Buffer.from('image1')]]
-            ]);
+            const mockImages = new Map([['SaveImageWebsocket', [Buffer.from('image1')]]]);
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
             // Act
             await ImageGenerator.generateImage(mockFilteredPrompt);
@@ -194,36 +202,40 @@ describe('ImageGenerator', () => {
             // Arrange
             const mockImages = new Map();
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow();
-            expect(logger.warn).toHaveBeenCalledWith("No images received from ComfyUI");
+            expect(logger.warn).toHaveBeenCalledWith('No images received from ComfyUI');
         });
 
         it('should log warning if imageData length is 0', async () => {
             // Arrange
             const mockImages = new Map([['SaveImageWebsocket', []]]);
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
-            // Act 
+            // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow();
-            expect(logger.warn).toHaveBeenCalledWith("No images received from ComfyUI");
+            expect(logger.warn).toHaveBeenCalledWith('No images received from ComfyUI');
         });
 
         it('should log error if saving images fails in try-catch', async () => {
             // Arrange
-            const mockImages = new Map([
-                ['SaveImageWebsocket', [Buffer.from('image1')]]
-            ]);
+            const mockImages = new Map([['SaveImageWebsocket', [Buffer.from('image1')]]]);
             const clientInstance = new ComfyUIClient();
-            (clientInstance.getImagesFromWebSocket as jest.Mock).mockResolvedValue(mockImages);
-            (ComfyUIClient as unknown as jest.Mock).mockReturnValue(clientInstance);
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
 
             const testError = new Error('Sharp error');
             mockSharpInstance.toBuffer.mockRejectedValue(testError);
@@ -232,7 +244,9 @@ describe('ImageGenerator', () => {
             // Assert
             // This should not throw from generateImage as it is swallowed in saveImageFiles loop
             // but generateImage will throw because savedImagePaths will be empty
-            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow("ComfyUI finished but produced no images");
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
+                'ComfyUI finished but produced no images',
+            );
 
             expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error saving image'), testError);
         });

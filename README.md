@@ -12,7 +12,7 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 - **On-Demand ComfyUI**: ComfyUI runs as a user systemd service that the bot starts on demand and stops automatically after it has been idle, so it is never holding GPU memory for no reason
 - **Error Handling**: Distinguishes user errors (bad input) from system errors, classifies generation failures (offline / backend / timeout / internal), and automatically retries transient failures once
 - **Structured Logging**: Winston-based logs, optionally written to `./logs` with rotation
-- **Modular Architecture**: Clean, maintainable code structure with full unit-test coverage (Jest)
+- **Modular Architecture**: Clean, maintainable code structure with full unit-test coverage (Vitest)
 
 ## Commands
 
@@ -218,14 +218,26 @@ Bot:  Mizu: ComfyUI was offline — starting it up now, generation will take a l
 
 ## Development
 
-The codebase is written in TypeScript with strict type checking. Every module has a unit test, written in Jest with `ts-jest`.
+The codebase is written in TypeScript with strict type checking. Every module has a co-located unit test, written with Vitest (`*.test.ts`). Formatting and linting use Biome (`biome.json`); Biome is configured to keep constructor-mock implementations as `function` expressions where Vitest requires them, and to preserve the codebase's 4-space / single-quote / semicolon style.
 
 ### Building
 ```bash
-npm run build
+npm run build        # compiles src/ (production) to dist/
+```
+
+### Type-checking
+```bash
+npm run typecheck    # full type-check of production + test code (no emit)
 ```
 
 ### Running Tests
 ```bash
 npm test
+```
+
+### Lint / Format
+```bash
+npm run lint        # check (read-only)
+npm run lint:fix    # check + apply safe fixes
+npm run format      # format only
 ```

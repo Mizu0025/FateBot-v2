@@ -1,10 +1,10 @@
-import { logger } from '../config/logger';
 import { BOT_CONFIG } from '../config/constants';
-import { IrcMessageEvent } from '../types/irc';
-import { CommandHandler } from './command-handler';
+import { logger } from '../config/logger';
+import type { IrcMessageEvent } from '../types/irc';
+import type { CommandHandler } from './command-handler';
 
 /**
- * Handles incoming messages from the IRC server and routes them 
+ * Handles incoming messages from the IRC server and routes them
  * to the command handler (command flag or image generation).
  */
 export class MessageHandler {
@@ -37,7 +37,7 @@ export class MessageHandler {
 
         logger.debug(`Received request from ${nick}: ${message}`);
 
-        const command = this.commands.find(c => message.includes(c.flag));
+        const command = this.commands.find((c) => message.includes(c.flag));
 
         if (command) {
             await command.handler(nick, target, message);

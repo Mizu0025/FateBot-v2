@@ -21,4 +21,11 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm ci
-    - run: npm test
+    - name: Build
+      run: npm run build
+    - name: Lint (Biome)
+      run: npm run lint
+    - name: Type-check tests
+      run: npm run typecheck
+    - name: Test (Vitest)
+      run: npm test

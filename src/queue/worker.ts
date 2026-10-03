@@ -1,9 +1,9 @@
 import { logger } from '../config/logger';
-import { PromptQueue, PromptQueueItem } from './queue';
-import { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
 import { ImageGenerator } from '../image-generation/image-generator';
-import { UserError, SystemError } from '../types/errors';
+import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import { SystemError, UserError } from '../types/errors';
 import { classifyGenerationError } from '../utils/error-utils';
+import type { PromptQueue, PromptQueueItem } from './queue';
 
 /**
  * The background worker coroutine that drains the prompt queue.
@@ -25,8 +25,8 @@ export class GenerationWorker {
     constructor(
         private queue: PromptQueue,
         private service: ComfyUiServiceManager,
-        private send: (channel: string, message: string) => void
-    ) { }
+        private send: (channel: string, message: string) => void,
+    ) {}
 
     /**
      * Starts the worker loop. Runs for the lifetime of the bot process;
@@ -76,7 +76,10 @@ export class GenerationWorker {
     private async generate(item: PromptQueueItem): Promise<string> {
         const started = await this.service.ensureRunning();
         if (started) {
-            this.send(item.channel, `ComfyUI was offline — starting it up now, generation will take a little longer...`);
+            this.send(
+                item.channel,
+                `ComfyUI was offline — starting it up now, generation will take a little longer...`,
+            );
         }
         return ImageGenerator.generateImage(item.prompt);
     }

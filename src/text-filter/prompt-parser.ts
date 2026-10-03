@@ -1,6 +1,6 @@
-import { FilteredPrompt } from '../types';
 import { BOT_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { logger } from '../config/logger';
+import type { FilteredPrompt } from '../types';
 import { UserError } from '../types/errors';
 
 /**
@@ -17,12 +17,12 @@ export class PromptParser {
     public static async extractPrompts(message: string): Promise<FilteredPrompt> {
         // if message doesn't begin with the bot trigger, raise an error
         if (!message.startsWith(BOT_CONFIG.TRIGGER_WORD)) {
-            logger.error("Prompt trigger is missing or empty!");
+            logger.error('Prompt trigger is missing or empty!');
             throw new UserError(`Message must start with ${BOT_CONFIG.TRIGGER_WORD}`);
         }
 
         // Remove the trigger keyword and leading/trailing spaces
-        const input = message.replace(BOT_CONFIG.TRIGGER_WORD, "").trim();
+        const input = message.replace(BOT_CONFIG.TRIGGER_WORD, '').trim();
         const result = this.parseInput(input);
 
         logger.debug('Extracted prompt parameters', {
@@ -30,7 +30,7 @@ export class PromptParser {
             height: result.height,
             model: result.model || 'default',
             count: result.count,
-            seed: result.seed === -1 ? 'random' : result.seed
+            seed: result.seed === -1 ? 'random' : result.seed,
         });
 
         return result;
@@ -43,13 +43,13 @@ export class PromptParser {
      */
     private static parseInput(input: string): FilteredPrompt {
         const result: FilteredPrompt = {
-            prompt: "",
+            prompt: '',
             width: GENERATION_DEFAULTS.WIDTH,
             height: GENERATION_DEFAULTS.HEIGHT,
-            model: "",
-            negative_prompt: "",
+            model: '',
+            negative_prompt: '',
             count: GENERATION_DEFAULTS.COUNT,
-            seed: -1
+            seed: -1,
         };
 
         const modifierMatches = this.findModifierMatches(input);
@@ -79,20 +79,21 @@ export class PromptParser {
      * @param input The raw input string.
      * @returns An array of match objects containing the flag, its index and length.
      */
-    private static findModifierMatches(input: string): { flag: string, index: number, length: number }[] {
+    private static findModifierMatches(input: string): { flag: string; index: number; length: number }[] {
         const allAliases = Object.values(this.MODIFIER_MAP).flat();
         const aliasRegex = new RegExp(`(?:^|\\s)(${allAliases.join('|')})(?=[\\s=]|$)`, 'g');
 
-        const matches: { flag: string, index: number, length: number }[] = [];
-        let match;
-        while ((match = aliasRegex.exec(input)) !== null) {
+        const matches: { flag: string; index: number; length: number }[] = [];
+        let match = aliasRegex.exec(input);
+        while (match !== null) {
             const flag = match[1];
             const flagIndex = input.indexOf(flag, match.index);
             matches.push({
                 flag,
                 index: flagIndex,
-                length: flag.length
+                length: flag.length,
             });
+            match = aliasRegex.exec(input);
         }
         return matches;
     }
@@ -105,7 +106,11 @@ export class PromptParser {
      * @param next The optional next flag match details (to determine the end of the current value).
      * @returns The extracted value string.
      */
-    private static extractValue(input: string, current: { index: number, length: number }, next?: { index: number }): string {
+    private static extractValue(
+        input: string,
+        current: { index: number; length: number },
+        next?: { index: number },
+    ): string {
         const start = current.index + current.length;
         const end = next ? next.index : input.length;
         let value = input.substring(start, end).trim();
@@ -164,6 +169,6 @@ export class PromptParser {
         model: ['--model', '-m'],
         negative_prompt: ['--no', '--negative', '-n'],
         count: ['--count', '-c'],
-        seed: ['--seed', '-s']
+        seed: ['--seed', '-s'],
     };
 }

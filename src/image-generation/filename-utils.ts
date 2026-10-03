@@ -20,12 +20,12 @@ export function getImageFilename(promptId: string, index: number, extension: str
  */
 export function getDomainPath(filepath: string): string {
     if (!COMFYUI_CONFIG.DOMAIN_PATH) {
-        logger.error("Domain path is not set in the configuration.");
-        throw new Error("Domain path not configured.");
+        logger.error('Domain path is not set in the configuration.');
+        throw new Error('Domain path not configured.');
     }
     if (!COMFYUI_CONFIG.FOLDER_PATH) {
-        logger.error("Folder path is not set in the configuration.");
-        throw new Error("Folder path not configured.");
+        logger.error('Folder path is not set in the configuration.');
+        throw new Error('Folder path not configured.');
     }
     const filename = filepath.split('/').pop();
     return `${COMFYUI_CONFIG.DOMAIN_PATH}${filename}`;

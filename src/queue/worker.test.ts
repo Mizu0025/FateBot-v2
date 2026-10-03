@@ -1,12 +1,13 @@
-import { GenerationWorker } from './worker';
-import { PromptQueue, PromptQueueItem } from './queue';
+import type { Mock, Mocked } from 'vitest';
 import { ImageGenerator } from '../image-generation/image-generator';
-import { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
-import { UserError, SystemError } from '../types/errors';
-import { FilteredPrompt } from '../types';
+import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import type { FilteredPrompt } from '../types';
+import { SystemError, UserError } from '../types/errors';
+import { PromptQueue, type PromptQueueItem } from './queue';
+import { GenerationWorker } from './worker';
 
-jest.mock('../config/logger');
-jest.mock('../image-generation/image-generator');
+vi.mock('../config/logger');
+vi.mock('../image-generation/image-generator');
 
 // Helper to build a minimal, fully-typed queued request.
 const makeItem = (nick = 'user123'): PromptQueueItem => ({
@@ -16,25 +17,25 @@ const makeItem = (nick = 'user123'): PromptQueueItem => ({
 });
 
 // Lets mocked async work (real setTimeouts in some tests) settle.
-const flush = (ms = 20) => new Promise(resolve => setTimeout(resolve, ms));
+const flush = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('GenerationWorker', () => {
     let queue: PromptQueue;
-    let service: jest.Mocked<ComfyUiServiceManager>;
-    let send: jest.Mock;
+    let service: Mocked<ComfyUiServiceManager>;
+    let send: Mock;
     let worker: GenerationWorker;
-    let generateImageMock: jest.Mock;
+    let generateImageMock: Mock;
 
     beforeEach(() => {
         queue = new PromptQueue();
         service = {
-            ensureRunning: jest.fn().mockResolvedValue(false),
-            stop: jest.fn().mockResolvedValue(undefined),
-            isRunning: jest.fn().mockResolvedValue(false),
-        } as unknown as jest.Mocked<ComfyUiServiceManager>;
-        send = jest.fn();
+            ensureRunning: vi.fn().mockResolvedValue(false),
+            stop: vi.fn().mockResolvedValue(undefined),
+            isRunning: vi.fn().mockResolvedValue(false),
+        } as unknown as Mocked<ComfyUiServiceManager>;
+        send = vi.fn();
         worker = new GenerationWorker(queue, service, send);
-        generateImageMock = jest.mocked(ImageGenerator.generateImage);
+        generateImageMock = vi.mocked(ImageGenerator.generateImage);
         generateImageMock.mockReset();
         generateImageMock.mockResolvedValue('/path/to/image.webp');
     });
@@ -52,7 +53,7 @@ describe('GenerationWorker', () => {
     });
 
     it('should announce service startup when ComfyUI had to be started', async () => {
-        (service.ensureRunning as jest.Mock).mockResolvedValue(true);
+        (service.ensureRunning as Mock).mockResolvedValue(true);
 
         worker.start();
         queue.addTask(makeItem());
@@ -80,8 +81,10 @@ describe('GenerationWorker', () => {
         await flush();
 
         expect(generateImageMock).toHaveBeenCalledTimes(1);
-        expect(send).toHaveBeenCalledWith('#test',
-            'user123: Generation failed (internal). ComfyUI finished but produced no images');
+        expect(send).toHaveBeenCalledWith(
+            '#test',
+            'user123: Generation failed (internal). ComfyUI finished but produced no images',
+        );
         expect(queue.isIdle()).toBe(true);
     });
 
@@ -100,8 +103,8 @@ describe('GenerationWorker', () => {
     });
 
     it('should report the failure when the retry also fails', async () => {
-        generateImageMock.mockImplementation(
-            () => Promise.reject(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' }))
+        generateImageMock.mockImplementation(() =>
+            Promise.reject(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' })),
         );
 
         worker.start();
@@ -128,7 +131,7 @@ describe('GenerationWorker', () => {
         let call = 0;
         generateImageMock.mockImplementation(async () => {
             call += 1;
-            await new Promise(resolve => setTimeout(resolve, 5));
+            await new Promise((resolve) => setTimeout(resolve, 5));
             return `image-${call}.webp`;
         });
 

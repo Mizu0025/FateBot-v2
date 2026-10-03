@@ -1,9 +1,9 @@
-import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import { WorkflowData } from '../types';
+import WebSocket from 'ws';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
-import { ErrorDetails, SystemError } from '../types/errors';
+import type { WorkflowData } from '../types';
+import { type ErrorDetails, SystemError } from '../types/errors';
 
 /** A message type known to arrive over the ComfyUI WebSocket. */
 export type ComfyUIMessageType = 'executing' | 'status' | string;
@@ -44,8 +44,8 @@ export class ComfyUIClient {
      */
     public async queuePrompt(prompt: WorkflowData): Promise<string | null> {
         if (!COMFYUI_CONFIG.ADDRESS) {
-            logger.error("ComfyUI server address is not configured.");
-            throw new SystemError("ComfyUI server address not configured.");
+            logger.error('ComfyUI server address is not configured.');
+            throw new SystemError('ComfyUI server address not configured.');
         }
 
         try {
@@ -62,7 +62,10 @@ export class ComfyUIClient {
             if (!response.ok) {
                 const errorText = await response.text();
                 logger.error(`ComfyUI Error (${response.status}): ${errorText}`);
-                throw new SystemError(`ComfyUI backend returned status ${response.status}`, { status: response.status, text: errorText });
+                throw new SystemError(`ComfyUI backend returned status ${response.status}`, {
+                    status: response.status,
+                    text: errorText,
+                });
             }
 
             const result = await response.json();
@@ -71,7 +74,7 @@ export class ComfyUIClient {
         } catch (error) {
             if (error instanceof SystemError) throw error;
             const message = error instanceof Error ? error.message : String(error);
-            logger.error("Error queuing prompt:", error);
+            logger.error('Error queuing prompt:', error);
             // Preserve the network error code so callers can classify the failure
             // (e.g. ECONNREFUSED when ComfyUI is down).
             throw new SystemError(`Failed to queue prompt: ${message}`, ComfyUIClient.toErrorDetails(error));
@@ -84,10 +87,7 @@ export class ComfyUIClient {
      */
     private static toErrorDetails(error: unknown): ErrorDetails {
         const details: ErrorDetails = {};
-        if (
-            typeof error === 'object' && error !== null &&
-            typeof (error as { code?: unknown }).code === 'string'
-        ) {
+        if (typeof error === 'object' && error !== null && typeof (error as { code?: unknown }).code === 'string') {
             details.code = (error as { code: string }).code;
         }
         return details;
@@ -100,11 +100,13 @@ export class ComfyUIClient {
      */
     public async connectWebSocket(): Promise<WebSocket> {
         try {
-            this.ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/ws?clientId=${this.clientId}`);
+            this.ws = new WebSocket(
+                `ws://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/ws?clientId=${this.clientId}`,
+            );
 
             return new Promise((resolve, reject) => {
                 if (!this.ws) {
-                    reject(new Error("Failed to create WebSocket"));
+                    reject(new Error('Failed to create WebSocket'));
                     return;
                 }
 
@@ -114,24 +116,30 @@ export class ComfyUIClient {
                 });
 
                 this.ws.on('error', (error) => {
-                    logger.error("WebSocket connection error:", error);
+                    logger.error('WebSocket connection error:', error);
                     const code = ComfyUIClient.toErrorDetails(error).code;
                     if (code === 'ECONNREFUSED') {
-                        reject(new SystemError(
-                            'Cannot connect to ComfyUI - server appears to be offline.',
-                            { code }));
+                        reject(new SystemError('Cannot connect to ComfyUI - server appears to be offline.', { code }));
                     } else {
-                        reject(new SystemError(`WebSocket connection error: ${error.message}`, ComfyUIClient.toErrorDetails(error)));
+                        reject(
+                            new SystemError(
+                                `WebSocket connection error: ${error.message}`,
+                                ComfyUIClient.toErrorDetails(error),
+                            ),
+                        );
                     }
                 });
 
                 this.ws.on('close', () => {
-                    logger.debug("WebSocket connection closed");
+                    logger.debug('WebSocket connection closed');
                 });
             });
         } catch (error) {
-            logger.error("Error connecting to ComfyUI server:", error);
-            throw new SystemError('Could not connect to ComfyUI server. Is it running?', ComfyUIClient.toErrorDetails(error));
+            logger.error('Error connecting to ComfyUI server:', error);
+            throw new SystemError(
+                'Could not connect to ComfyUI server. Is it running?',
+                ComfyUIClient.toErrorDetails(error),
+            );
         }
     }
 
@@ -143,17 +151,17 @@ export class ComfyUIClient {
      */
     public async getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
         if (!this.ws) {
-            throw new SystemError("WebSocket not connected");
+            throw new SystemError('WebSocket not connected');
         }
 
         const outputImages = new Map<string, Buffer[]>();
-        let currentNode = "";
+        let currentNode = '';
         logger.debug(`Waiting for images from prompt ID: ${promptId}`);
 
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 logger.error(`WebSocket timeout while waiting for images (prompt ID: ${promptId})`);
-                reject(new SystemError("WebSocket timeout while waiting for images."));
+                reject(new SystemError('WebSocket timeout while waiting for images.'));
             }, 300000); // 5 minute timeout
 
             this.ws!.on('message', (data: Buffer) => {
@@ -174,7 +182,9 @@ export class ComfyUIClient {
                                 if (executingData.node === null) {
                                     // Execution is done
                                     const imageCount = outputImages.get('SaveImageWebsocket')?.length || 0;
-                                    logger.info(`Execution complete. Received ${imageCount} image(s) for prompt ${promptId}`);
+                                    logger.info(
+                                        `Execution complete. Received ${imageCount} image(s) for prompt ${promptId}`,
+                                    );
                                     clearTimeout(timeout);
                                     resolve(outputImages);
                                 } else {
@@ -195,22 +205,27 @@ export class ComfyUIClient {
                         }
                     }
                 } catch (error) {
-                    logger.error("Error processing WebSocket message:", error);
+                    logger.error('Error processing WebSocket message:', error);
                     clearTimeout(timeout);
                     const message = error instanceof Error ? error.message : String(error);
-                    reject(new SystemError(`Error processing WebSocket message: ${message}`, ComfyUIClient.toErrorDetails(error)));
+                    reject(
+                        new SystemError(
+                            `Error processing WebSocket message: ${message}`,
+                            ComfyUIClient.toErrorDetails(error),
+                        ),
+                    );
                 }
             });
 
             this.ws!.on('error', (error) => {
                 clearTimeout(timeout);
-                logger.error("WebSocket error during image retrieval:", error);
+                logger.error('WebSocket error during image retrieval:', error);
                 reject(new SystemError(`WebSocket error: ${error.message}`, ComfyUIClient.toErrorDetails(error)));
             });
 
             this.ws!.on('close', () => {
                 clearTimeout(timeout);
-                logger.debug("WebSocket connection closed during image retrieval");
+                logger.debug('WebSocket connection closed during image retrieval');
             });
         });
     }

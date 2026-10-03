@@ -1,17 +1,17 @@
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
-import { FilteredPrompt, PromptData } from '../types';
+import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
+import { logger } from '../config/logger';
 import { ModelLoader } from '../config/model-loader';
-import { PromptProcessor } from './prompt-processor';
+import { RuntimeConfig } from '../config/runtime-config';
+import type { FilteredPrompt, PromptData } from '../types';
+import { SystemError, UserError } from '../types/errors';
 import { ComfyUIClient } from './comfyui-client';
 import { getDomainPath, getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';
+import { PromptProcessor } from './prompt-processor';
 import { WorkflowLoader } from './workflow-loader';
-import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
-import { RuntimeConfig } from '../config/runtime-config';
-import { logger } from '../config/logger';
-import { UserError, SystemError } from '../types/errors';
 
 /**
  * Orchestrates the entire image generation process including model configuration,
@@ -28,7 +28,7 @@ export class ImageGenerator {
         const client = new ComfyUIClient();
 
         try {
-            logger.info("Starting image generation process");
+            logger.info('Starting image generation process');
 
             // Load model configuration first
             const modelName = filteredPrompt.model || RuntimeConfig.defaultModel;
@@ -47,7 +47,7 @@ export class ImageGenerator {
             if (!workflowData) {
                 throw new SystemError(`Workflow "${workflowName}" failed to load. Check the workflows directory.`);
             }
-            logger.debug("Workflow data loaded successfully");
+            logger.debug('Workflow data loaded successfully');
 
             // Create prompt data
             const promptData: PromptData = PromptProcessor.createPromptData(workflowData);
@@ -56,13 +56,13 @@ export class ImageGenerator {
             PromptProcessor.updatePromptWithModelConfig(promptData, modelConfig, filteredPrompt);
 
             // Connect to ComfyUI
-            logger.debug("Connecting to ComfyUI WebSocket");
+            logger.debug('Connecting to ComfyUI WebSocket');
             await client.connectWebSocket();
 
             // Queue the prompt
             const promptId = await client.queuePrompt(promptData.data);
             if (!promptId) {
-                throw new SystemError("ComfyUI queued the prompt but returned no ID.");
+                throw new SystemError('ComfyUI queued the prompt but returned no ID.');
             }
             logger.info(`Prompt queued with ID: ${promptId}`);
 
@@ -82,11 +82,12 @@ export class ImageGenerator {
             } else if (savedImagePaths.length === 1) {
                 return getDomainPath(savedImagePaths[0]);
             } else {
-                throw new SystemError("ComfyUI finished but produced no images (check the ComfyUI logs for node errors).");
+                throw new SystemError(
+                    'ComfyUI finished but produced no images (check the ComfyUI logs for node errors).',
+                );
             }
-
         } catch (error) {
-            logger.error("Error during image generation:", error);
+            logger.error('Error during image generation:', error);
             throw error;
         } finally {
             client.close();
@@ -104,7 +105,7 @@ export class ImageGenerator {
         const imageData = images.get('SaveImageWebsocket');
 
         if (!imageData || imageData.length === 0) {
-            logger.warn("No images received from ComfyUI");
+            logger.warn('No images received from ComfyUI');
             return savedImages;
         }
 
@@ -115,9 +116,7 @@ export class ImageGenerator {
             const filepath = join(COMFYUI_CONFIG.FOLDER_PATH, filename);
 
             try {
-                const webpImage = await sharp(imageBytes)
-                    .webp()
-                    .toBuffer();
+                const webpImage = await sharp(imageBytes).webp().toBuffer();
                 writeFileSync(filepath, webpImage);
                 savedImages.push(filepath);
                 logger.debug(`Saved image: ${filename}`);

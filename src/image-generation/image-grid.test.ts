@@ -1,44 +1,50 @@
-import { ImageGrid } from './image-grid';
+import { join } from 'node:path';
 import sharp from 'sharp';
-import { join } from 'path';
-import { getDomainPath, getImageFilename } from './filename-utils';
+import type { Mock } from 'vitest';
 import { logger } from '../config/logger';
+import { getDomainPath, getImageFilename } from './filename-utils';
+import { ImageGrid } from './image-grid';
 
 // Mock all dependencies
-jest.mock('sharp');
-jest.mock('path');
-jest.mock('./filename-utils');
-jest.mock('../config/logger');
-jest.mock('../config/constants', () => ({
+vi.mock('sharp');
+vi.mock('path');
+vi.mock('./filename-utils');
+vi.mock('../config/logger');
+vi.mock('../config/constants', () => ({
     COMFYUI_CONFIG: {
-        FOLDER_PATH: '/mock/folder'
-    }
+        FOLDER_PATH: '/mock/folder',
+    },
 }));
 
 describe('ImageGrid', () => {
     const mockSharpInstance = {
-        metadata: jest.fn(),
-        toBuffer: jest.fn(),
-        composite: jest.fn().mockReturnThis(),
-        toFile: jest.fn(),
+        metadata: vi.fn(),
+        toBuffer: vi.fn(),
+        composite: vi.fn().mockReturnThis(),
+        toFile: vi.fn(),
     };
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        (sharp as unknown as jest.Mock).mockReturnValue(mockSharpInstance);
-        (join as jest.Mock).mockImplementation((...args) => args.join('/'));
-        (getImageFilename as jest.Mock).mockReturnValue('promptid_0.webp');
-        (getDomainPath as jest.Mock).mockReturnValue('http://domain.com/promptid_0.webp');
+        vi.clearAllMocks();
+        (sharp as unknown as Mock).mockReturnValue(mockSharpInstance);
+        (join as Mock).mockImplementation((...args) => args.join('/'));
+        (getImageFilename as Mock).mockReturnValue('promptid_0.webp');
+        (getDomainPath as Mock).mockReturnValue('http://domain.com/promptid_0.webp');
         mockSharpInstance.metadata.mockResolvedValue({ width: 512, height: 512 });
         mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('data'));
         mockSharpInstance.toFile.mockResolvedValue(undefined);
     });
 
     describe('generateImageGrid', () => {
-        const filepaths = ['/path/to/promptid_1.webp', '/path/to/promptid_2.webp', '/path/to/promptid_3.webp', '/path/to/promptid_4.webp'];
+        const filepaths = [
+            '/path/to/promptid_1.webp',
+            '/path/to/promptid_2.webp',
+            '/path/to/promptid_3.webp',
+            '/path/to/promptid_4.webp',
+        ];
 
         it('openImages opens an image from a provided filepath', async () => {
-            // Arrange 
+            // Arrange
             // Act
             await ImageGrid.generateImageGrid([filepaths[0]]);
 
@@ -64,9 +70,11 @@ describe('ImageGrid', () => {
 
             // Assert
             // 2 cols * 512 width = 1024
-            expect(sharp).toHaveBeenCalledWith(expect.objectContaining({
-                create: expect.objectContaining({ width: 1024, height: 1024 })
-            }));
+            expect(sharp).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    create: expect.objectContaining({ width: 1024, height: 1024 }),
+                }),
+            );
         });
 
         it('createBlankCanvas returns a sharp canvas output', async () => {
@@ -80,15 +88,17 @@ describe('ImageGrid', () => {
         });
 
         it('pasteImagesToGrid returns a grid composite', async () => {
-            // Arrange 
+            // Arrange
             // Act
             await ImageGrid.generateImageGrid(filepaths.slice(0, 2));
 
             // Assert
-            expect(mockSharpInstance.composite).toHaveBeenCalledWith(expect.arrayContaining([
-                expect.objectContaining({ left: 0, top: 0 }),
-                expect.objectContaining({ left: 512, top: 0 })
-            ]));
+            expect(mockSharpInstance.composite).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({ left: 0, top: 0 }),
+                    expect.objectContaining({ left: 512, top: 0 }),
+                ]),
+            );
         });
 
         it('saveGrid saves images to a path', async () => {
@@ -107,7 +117,7 @@ describe('ImageGrid', () => {
 
             // Assert
             expect(result).toBe('http://domain.com/promptid_0.webp');
-            expect(logger.info).toHaveBeenCalledWith("Image grid generated and saved");
+            expect(logger.info).toHaveBeenCalledWith('Image grid generated and saved');
         });
 
         it('should throw error if filepaths is empty', async () => {
@@ -116,7 +126,9 @@ describe('ImageGrid', () => {
 
             // Act
             // Assert
-            await expect(ImageGrid.generateImageGrid(emptyPaths)).rejects.toThrow("No filepaths provided for grid generation");
+            await expect(ImageGrid.generateImageGrid(emptyPaths)).rejects.toThrow(
+                'No filepaths provided for grid generation',
+            );
         });
     });
 });

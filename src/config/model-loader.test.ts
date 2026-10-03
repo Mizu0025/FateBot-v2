@@ -1,17 +1,24 @@
+import type { Mock } from 'vitest';
+
 import { ModelLoader } from './model-loader';
-jest.mock('fs');
-const fs = require('fs');
-fs.readFileSync = jest.fn();
-const mockedReadFileSync = fs.readFileSync;
+
+// Vitest: mock `fs` via an explicit factory whose readFileSync is a vi.fn, and
+// grab that same vi.fn through a named import (not require), so the source's
+// `import { readFileSync }` and the test share one binding.
+vi.mock('fs', () => ({ readFileSync: vi.fn() }));
+
+import { readFileSync } from 'fs';
+
+const mockedReadFileSync = readFileSync as Mock;
 
 describe('ModelLoader', () => {
     beforeEach(() => {
-        jest.resetAllMocks();
-        jest.spyOn(console, 'error').mockImplementation(() => {});
-        jest.spyOn(console, 'log').mockImplementation(() => {});
+        vi.resetAllMocks();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'log').mockImplementation(() => {});
     });
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('loadModelConfiguration', () => {
@@ -57,7 +64,7 @@ describe('ModelLoader', () => {
 
             // act & assert
             await expect(ModelLoader.loadModelConfiguration('anyModel')).rejects.toThrow(
-                'modelConfiguration.json not found. Please ensure it exists in the current directory.'
+                'modelConfiguration.json not found. Please ensure it exists in the current directory.',
             );
         });
     });

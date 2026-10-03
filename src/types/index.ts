@@ -40,16 +40,16 @@ interface BaseNode<T> {
     class_type: string;
 }
 
-interface KSamplerNode extends BaseNode<KSamplerInputs> { }
-interface CheckpointNode extends BaseNode<CheckpointInputs> { }
-interface EmptyLatentImageNode extends BaseNode<EmptyLatentImageInputs> { }
-interface PromptNode extends BaseNode<PromptInputs> { }
-interface VAEDecodeNode extends BaseNode<VAEDecodeInputs> { }
-interface SaveImageWebsocketNode extends BaseNode<SaveImageWebsocketInputs> { }
-interface VAELoaderNode extends BaseNode<VAELoaderInputs> { }
-interface PromptConcatenateNode extends BaseNode<PromptConcatenateInputs> { }
-interface UNETLoaderNode extends BaseNode<UNETLoaderInputs> { }
-interface CLIPLoaderNode extends BaseNode<CLIPLoaderInputs> { }
+interface KSamplerNode extends BaseNode<KSamplerInputs> {}
+interface CheckpointNode extends BaseNode<CheckpointInputs> {}
+interface EmptyLatentImageNode extends BaseNode<EmptyLatentImageInputs> {}
+interface PromptNode extends BaseNode<PromptInputs> {}
+interface VAEDecodeNode extends BaseNode<VAEDecodeInputs> {}
+interface SaveImageWebsocketNode extends BaseNode<SaveImageWebsocketInputs> {}
+interface VAELoaderNode extends BaseNode<VAELoaderInputs> {}
+interface PromptConcatenateNode extends BaseNode<PromptConcatenateInputs> {}
+interface UNETLoaderNode extends BaseNode<UNETLoaderInputs> {}
+interface CLIPLoaderNode extends BaseNode<CLIPLoaderInputs> {}
 
 interface KSamplerInputs {
     seed: number;
@@ -122,4 +122,4 @@ export interface PromptData {
     negative_prompt: string;
     cfg: number;
     sampler: string;
-} 
+}

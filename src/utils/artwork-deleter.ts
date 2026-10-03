@@ -1,4 +1,4 @@
-import { readdirSync, unlinkSync, statSync } from 'fs';
+import { readdirSync, statSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
