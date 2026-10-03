@@ -1,7 +1,16 @@
 import { logger } from '../config/logger';
-import { COMFYUI_SERVICE_CONFIG, HELP_MESSAGES } from '../config/constants';
+import { BOT_CONFIG, COMFYUI_SERVICE_CONFIG, HELP_MESSAGES } from '../config/constants';
 import { MessageSender } from '../types/irc';
 import { ModelLoader } from '../config/model-loader';
+import { deleteArtworkTarget } from '../utils/artwork-deleter';
+
+/**
+ * Extracts the single argument following the `--delete` flag, or '' if absent.
+ */
+function extractDeleteArg(message: string): string {
+    const match = message.match(/--delete\s+(?:"([^"]+)"|(\S+))/i);
+    return match ? (match[1] ?? match[2]) : '';
+}
 import { PromptParser } from '../text-filter/prompt-parser';
 import { PromptQueue } from '../queue/queue';
 import { InactivityManager } from '../managers/inactivity-manager';
@@ -103,6 +112,40 @@ export class CommandHandler {
         } catch (error) {
             logger.error("Error checking ComfyUI status:", error);
             this.bot.notice(nick, `Error checking ComfyUI status: ${error instanceof Error ? error.message : error}`);
+        }
+    }
+
+    /**
+     * Deletes generated images. With a prompt id it removes just that batch;
+     * with "all" it clears the entire art folder.
+     * @param nick The nickname of the user requesting the deletion.
+     * @param channel The channel to post the result back to.
+     * @param message The full message, e.g. "!fate --delete <id>" or "!fate --delete all".
+     */
+    public async handleDeleteImages(nick: string, channel: string, message: string) {
+        logger.info(`Image deletion requested by ${nick}: "${message}"`);
+        const arg = extractDeleteArg(message);
+
+        if (!arg) {
+            this.bot.say(channel, `${nick}: Usage: ${BOT_CONFIG.TRIGGER_WORD} --delete <prompt_id> | ${BOT_CONFIG.TRIGGER_WORD} --delete all`);
+            return;
+        }
+
+        const target = arg.toLowerCase() === 'all' ? 'all' : arg;
+        try {
+            const result = deleteArtworkTarget(target);
+            if (result.count === 0) {
+                this.bot.say(channel, `${nick}: No images matched "${target}".`);
+                return;
+            }
+            if (target === 'all') {
+                this.bot.say(channel, `${nick}: Deleted ${result.count} image(s) from the art folder.`);
+            } else {
+                this.bot.say(channel, `${nick}: Deleted ${result.count} image(s) for "${target}".`);
+            }
+        } catch (error) {
+            logger.error('Error deleting images:', error);
+            this.bot.say(channel, `${nick}: Error deleting images: ${error instanceof Error ? error.message : error}`);
         }
     }
 

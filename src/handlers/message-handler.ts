@@ -8,7 +8,7 @@ import { CommandHandler } from './command-handler';
  * to the command handler (command flag or image generation).
  */
 export class MessageHandler {
-    private commands: { flag: string, handler: (nick: string, message?: string) => Promise<void> }[];
+    private commands: { flag: string; handler: (nick: string, target: string, message: string) => Promise<void> }[];
 
     /**
      * @param commandHandler The handler for specific bot commands.
@@ -19,6 +19,7 @@ export class MessageHandler {
             { flag: '--models', handler: (n) => this.commandHandler.handleListModels(n) },
             { flag: '--start-comfyui', handler: (n) => this.commandHandler.handleStartComfyui(n) },
             { flag: '--stop-comfyui', handler: (n) => this.commandHandler.handleStopComfyui(n) },
+            { flag: '--delete', handler: (n, t, m) => this.commandHandler.handleDeleteImages(n, t, m) },
         ];
     }
 
@@ -39,7 +40,7 @@ export class MessageHandler {
         const command = this.commands.find(c => message.includes(c.flag));
 
         if (command) {
-            await command.handler(nick, message);
+            await command.handler(nick, target, message);
         } else {
             await this.commandHandler.handleGenerateImage(nick, target, message);
         }
