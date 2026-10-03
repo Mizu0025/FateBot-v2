@@ -4,11 +4,13 @@ import { InactivityManager } from '../managers/inactivity-manager';
 import { ModelLoader } from '../config/model-loader';
 import { PromptParser } from '../text-filter/prompt-parser';
 import { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
-import { COMFYUI_SERVICE_CONFIG } from '../config/constants';
+import { BOT_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
 import { UserError } from '../types/errors';
 import { MessageSender } from '../types/irc';
+import { deleteArtworkTarget } from '../utils/artwork-deleter';
 
 jest.mock('../config/logger');
+jest.mock('../utils/artwork-deleter');
 jest.mock('../config/model-loader');
 jest.mock('../text-filter/prompt-parser');
 jest.mock('../managers/comfyui-service-manager');
@@ -205,6 +207,51 @@ describe('CommandHandler', () => {
 
             expect(mockBot.say).toHaveBeenCalledWith('#channel', expect.stringContaining('An error occurred while processing your request.'));
             expect(mockQueue.addTask).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('handleDeleteImages', () => {
+        it('should delete a single batch by id and confirm the count', async () => {
+            jest.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
+
+            await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete 8cc05ada-6698-4c4c-9262-adda0f0addb4');
+
+            expect(deleteArtworkTarget).toHaveBeenCalledWith('8cc05ada-6698-4c4c-9262-adda0f0addb4');
+            expect(mockBot.say).toHaveBeenCalledWith('#channel',
+                'user123: Deleted 2 image(s) for "8cc05ada-6698-4c4c-9262-adda0f0addb4".');
+        });
+
+        it('should clear the whole folder when passed "all"', async () => {
+            jest.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['a.webp'], count: 30 });
+
+            await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete all');
+
+            expect(deleteArtworkTarget).toHaveBeenCalledWith('all');
+            expect(mockBot.say).toHaveBeenCalledWith('#channel', 'user123: Deleted 30 image(s) from the art folder.');
+        });
+
+        it('should report that nothing matched the id', async () => {
+            jest.mocked(deleteArtworkTarget).mockReturnValue({ deleted: [], count: 0 });
+
+            await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete nope');
+
+            expect(mockBot.say).toHaveBeenCalledWith('#channel', 'user123: No images matched "nope".');
+        });
+
+        it('should print usage when no argument is given', async () => {
+            await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete');
+
+            expect(deleteArtworkTarget).not.toHaveBeenCalled();
+            expect(mockBot.say).toHaveBeenCalledWith('#channel',
+                `user123: Usage: ${BOT_CONFIG.TRIGGER_WORD} --delete <prompt_id> | ${BOT_CONFIG.TRIGGER_WORD} --delete all`);
+        });
+
+        it('should report an error from the deleter', async () => {
+            jest.mocked(deleteArtworkTarget).mockImplementation(() => { throw new Error('folder missing'); });
+
+            await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete abc');
+
+            expect(mockBot.say).toHaveBeenCalledWith('#channel', 'user123: Error deleting images: folder missing');
         });
     });
 });

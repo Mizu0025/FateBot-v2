@@ -15,6 +15,7 @@ describe('MessageHandler', () => {
             handleStartComfyui: jest.fn(),
             handleStopComfyui: jest.fn(),
             handleGenerateImage: jest.fn().mockResolvedValue(undefined),
+            handleDeleteImages: jest.fn().mockResolvedValue(undefined),
         } as unknown as jest.Mocked<CommandHandler>;
         messageHandler = new MessageHandler(mockCommandHandler);
     });
@@ -129,5 +130,21 @@ describe('MessageHandler', () => {
 
         // Assert
         expect(mockCommandHandler.handleGenerateImage).toHaveBeenCalledWith('user123', event.target, event.message);
+    });
+
+    it('should route --delete to handleDeleteImages', async () => {
+        // Arrange
+        const event = {
+            target: BOT_CONFIG.CHANNEL,
+            nick: 'user123',
+            message: `${BOT_CONFIG.TRIGGER_WORD} --delete all`
+        };
+
+        // Act
+        await messageHandler.handleMessage(event);
+
+        // Assert
+        expect(mockCommandHandler.handleDeleteImages).toHaveBeenCalledWith('user123', event.target, event.message);
+        expect(mockCommandHandler.handleGenerateImage).not.toHaveBeenCalled();
     });
 });

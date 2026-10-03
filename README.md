@@ -6,7 +6,7 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 
 - **IRC Bot Integration**: Connects to IRC channels and responds to commands (with optional SASL authentication)
 - **Text Parsing**: Parses user prompts with parameter flags, including short aliases (e.g. `-w` for `--width`)
-- **Image Generation**: Generates images using ComfyUI via WebSocket
+- **Image Generation**: Generates images using ComfyUI via WebSocket, and can delete them again via `--delete` (a single batch by id, or `--delete all`)
 - **Image Grid Creation**: Automatically composes grid layouts from batches of generated images (output is WebP)
 - **Prompt Queue + Background Worker**: Every request is queued and processed by a background worker, so the bot stays responsive and requests are handled one at a time
 - **On-Demand ComfyUI**: ComfyUI runs as a user systemd service that the bot starts on demand and stops automatically after it has been idle, so it is never holding GPU memory for no reason
@@ -36,6 +36,8 @@ These flags are detected anywhere in a trigger message and handled as commands:
 | `--models` | Lists the available model names (from `modelConfiguration.json`) |
 | `--start-comfyui` | Starts the ComfyUI service immediately (no-op if already running) |
 | `--stop-comfyui` | Stops the ComfyUI service to free GPU memory (starts again on the next image request) |
+| `--delete <prompt_id>` | Deletes one generated batch by its prompt id (e.g. `8cc05ada-…`) |
+| `--delete all` | Clears every image in the art folder |
 
 ### Generation defaults
 
@@ -170,8 +172,9 @@ src/
 │   ├── index.ts                   # Shared TypeScript interfaces
 │   ├── errors.ts                  # FateBotError base, UserError, SystemError
 │   └── irc.ts                     # IRC client/event type declarations
-└── utils/
-    └── error-utils.ts             # Failure classification (offline/backend/timeout/internal)
+├── utils/
+│   ├── error-utils.ts             # Failure classification (offline/backend/timeout/internal)
+│   └── artwork-deleter.ts         # Deletes generated images (one batch by id, or "all")
 ```
 
 ## Dependencies
@@ -190,7 +193,7 @@ src/
 The bot is modular and async-first, with a strict separation between *receiving* requests and *doing* the work:
 
 1. **Message intake**: `bot-client.ts` maintains the IRC connection (TLS, SASL, reconnectable logging of socket/IRC-level errors) and hands `message` events to `message-handler.ts`
-2. **Routing + parsing**: `message-handler.ts` routes command flags (`--help`, `--models`, `--start-comfyui`, `--stop-comfyui`) or hands the prompt to `command-handler.ts`, which parses flags via `prompt-parser.ts` and adds a `PromptQueueItem` to the queue
+2. **Routing + parsing**: `message-handler.ts` routes command flags (`--help`, `--models`, `--start-comfyui`, `--stop-comfyui`, `--delete`) or hands the prompt to `command-handler.ts`, which parses flags via `prompt-parser.ts` and adds a `PromptQueueItem` to the queue
 3. **Background worker**: `worker.ts` drains the queue one item at a time — the only component that talks to ComfyUI for generation:
    - `comfyui-service-manager.ts` probes `/system_stats`; if ComfyUI is down it starts the user systemd service and polls until it reports ready (or stops the service and fails, to avoid a crash loop)
    - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid)
