@@ -87,7 +87,7 @@ export class PromptProcessor {
             steps: modelConfig.steps,
             ...(modelConfig.cfg && { cfg: modelConfig.cfg }),
             ...(modelConfig.sampler_name && { sampler_name: modelConfig.sampler_name }),
-            seed: filteredPrompt.seed === -1 ? this.generateRandomSeed() : filteredPrompt.seed,
+            seed: filteredPrompt.seed === -1 ? PromptProcessor.generateRandomSeed() : filteredPrompt.seed,
         });
 
         Object.assign(promptData.data.EmptyLatentImage.inputs, {

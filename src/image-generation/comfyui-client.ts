@@ -110,9 +110,10 @@ export class ComfyUIClient {
                     return;
                 }
 
-                this.ws.on('open', () => {
+                const ws = this.ws;
+                ws.on('open', () => {
                     logger.info(`Connected to ComfyUI WebSocket at ${COMFYUI_CONFIG.ADDRESS}`);
-                    resolve(this.ws!);
+                    resolve(ws);
                 });
 
                 this.ws.on('error', (error) => {
@@ -154,6 +155,7 @@ export class ComfyUIClient {
             throw new SystemError('WebSocket not connected');
         }
 
+        const ws = this.ws;
         const outputImages = new Map<string, Buffer[]>();
         let currentNode = '';
         logger.debug(`Waiting for images from prompt ID: ${promptId}`);
@@ -164,7 +166,7 @@ export class ComfyUIClient {
                 reject(new SystemError('WebSocket timeout while waiting for images.'));
             }, 300000); // 5 minute timeout
 
-            this.ws!.on('message', (data: Buffer) => {
+            ws.on('message', (data: Buffer) => {
                 try {
                     // Check if it's a text message (JSON) or binary data (image)
                     const messageStr = data.toString();
@@ -217,13 +219,13 @@ export class ComfyUIClient {
                 }
             });
 
-            this.ws!.on('error', (error) => {
+            ws.on('error', (error) => {
                 clearTimeout(timeout);
                 logger.error('WebSocket error during image retrieval:', error);
                 reject(new SystemError(`WebSocket error: ${error.message}`, ComfyUIClient.toErrorDetails(error)));
             });
 
-            this.ws!.on('close', () => {
+            ws.on('close', () => {
                 clearTimeout(timeout);
                 logger.debug('WebSocket connection closed during image retrieval');
             });

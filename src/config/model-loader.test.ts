@@ -7,7 +7,7 @@ import { ModelLoader } from './model-loader';
 // `import { readFileSync }` and the test share one binding.
 vi.mock('fs', () => ({ readFileSync: vi.fn() }));
 
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
 const mockedReadFileSync = readFileSync as Mock;
 

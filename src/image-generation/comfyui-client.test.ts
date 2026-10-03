@@ -223,7 +223,7 @@ describe('ComfyUIClient', () => {
             expect(images.has('SaveImageWebsocket')).toBe(true);
             const savedImages = images.get('SaveImageWebsocket');
             expect(savedImages).toHaveLength(1);
-            expect(savedImages![0]).toEqual(mockImageData);
+            expect(savedImages?.[0]).toEqual(mockImageData);
             expect(logger.info).toHaveBeenCalledWith(
                 `Execution complete. Received 1 image(s) for prompt ${mockPromptId}`,
             );

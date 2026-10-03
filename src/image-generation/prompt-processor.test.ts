@@ -122,8 +122,8 @@ describe('PromptProcessor', () => {
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, mockFilteredPrompt);
 
             // Assert
-            expect(promptData.data.Checkpoint!.inputs.ckpt_name).toBe(mockModelConfig.checkpointName);
-            expect(promptData.data.VAELoader!.inputs.vae_name).toBe(mockModelConfig.vae);
+            expect(promptData.data.Checkpoint?.inputs.ckpt_name).toBe(mockModelConfig.checkpointName);
+            expect(promptData.data.VAELoader?.inputs.vae_name).toBe(mockModelConfig.vae);
             expect(promptData.data.KSampler.inputs.steps).toBe(mockModelConfig.steps);
             expect(promptData.data.KSampler.inputs.seed).toBe(mockFilteredPrompt.seed);
             expect(promptData.data.EmptyLatentImage.inputs.width).toBe(mockFilteredPrompt.width);
@@ -144,8 +144,8 @@ describe('PromptProcessor', () => {
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, mockFilteredPrompt);
 
             // Assert
-            expect(promptData.data.PromptConcatenate!.inputs.string_a).toBe(mockModelConfig.defaultPositivePrompt);
-            expect(promptData.data.PromptConcatenate!.inputs.string_b).toBe(mockFilteredPrompt.prompt);
+            expect(promptData.data.PromptConcatenate?.inputs.string_a).toBe(mockModelConfig.defaultPositivePrompt);
+            expect(promptData.data.PromptConcatenate?.inputs.string_b).toBe(mockFilteredPrompt.prompt);
         });
 
         it('should generate a random seed if seed is -1', () => {

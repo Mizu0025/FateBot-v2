@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
@@ -125,27 +125,27 @@ export class ImageGrid {
         const promptId = firstFile.split('_')[0];
 
         // Open all images
-        const images = await this.openImages(filepaths);
+        const images = await ImageGrid.openImages(filepaths);
 
         // Get dimensions
-        const { widths, heights } = await this.getImageDimensions(images);
+        const { widths, heights } = await ImageGrid.getImageDimensions(images);
 
         // Determine grid layout
         const numImages = images.length;
-        const { cols, rows } = this.determineGridLayout(numImages);
+        const { cols, rows } = ImageGrid.determineGridLayout(numImages);
 
         // Find max dimensions
         const maxWidth = Math.max(...widths);
         const maxHeight = Math.max(...heights);
 
         // Create grid
-        const grid = this.createBlankCanvas(cols, rows, maxWidth, maxHeight);
+        const grid = ImageGrid.createBlankCanvas(cols, rows, maxWidth, maxHeight);
 
         // Paste images into grid
-        const finalGrid = await this.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
+        const finalGrid = await ImageGrid.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
 
         // Save grid as index 0
-        const gridPath = await this.saveGrid(finalGrid, promptId);
+        const gridPath = await ImageGrid.saveGrid(finalGrid, promptId);
 
         // Get domain path
         const domainPath = getDomainPath(gridPath);

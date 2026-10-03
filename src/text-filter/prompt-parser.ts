@@ -23,7 +23,7 @@ export class PromptParser {
 
         // Remove the trigger keyword and leading/trailing spaces
         const input = message.replace(BOT_CONFIG.TRIGGER_WORD, '').trim();
-        const result = this.parseInput(input);
+        const result = PromptParser.parseInput(input);
 
         logger.debug('Extracted prompt parameters', {
             width: result.width,
@@ -52,7 +52,7 @@ export class PromptParser {
             seed: -1,
         };
 
-        const modifierMatches = this.findModifierMatches(input);
+        const modifierMatches = PromptParser.findModifierMatches(input);
 
         if (modifierMatches.length === 0) {
             result.prompt = input.trim();
@@ -67,8 +67,8 @@ export class PromptParser {
             const current = modifierMatches[i];
             const next = modifierMatches[i + 1];
 
-            const value = this.extractValue(input, current, next);
-            this.applyModifier(result, current.flag, value);
+            const value = PromptParser.extractValue(input, current, next);
+            PromptParser.applyModifier(result, current.flag, value);
         }
 
         return result;
@@ -80,7 +80,7 @@ export class PromptParser {
      * @returns An array of match objects containing the flag, its index and length.
      */
     private static findModifierMatches(input: string): { flag: string; index: number; length: number }[] {
-        const allAliases = Object.values(this.MODIFIER_MAP).flat();
+        const allAliases = Object.values(PromptParser.MODIFIER_MAP).flat();
         const aliasRegex = new RegExp(`(?:^|\\s)(${allAliases.join('|')})(?=[\\s=]|$)`, 'g');
 
         const matches: { flag: string; index: number; length: number }[] = [];
@@ -128,17 +128,17 @@ export class PromptParser {
      * @param value The value associated with the flag.
      */
     private static applyModifier(result: FilteredPrompt, flag: string, value: string): void {
-        for (const [key, aliases] of Object.entries(this.MODIFIER_MAP)) {
+        for (const [key, aliases] of Object.entries(PromptParser.MODIFIER_MAP)) {
             if (aliases.includes(flag)) {
                 switch (key) {
                     case 'width': {
-                        const val = parseInt(value);
-                        if (!isNaN(val)) result.width = val;
+                        const val = parseInt(value, 10);
+                        if (!Number.isNaN(val)) result.width = val;
                         break;
                     }
                     case 'height': {
-                        const val = parseInt(value);
-                        if (!isNaN(val)) result.height = val;
+                        const val = parseInt(value, 10);
+                        if (!Number.isNaN(val)) result.height = val;
                         break;
                     }
                     case 'model':
@@ -148,13 +148,13 @@ export class PromptParser {
                         result.negative_prompt = value;
                         break;
                     case 'count': {
-                        const val = parseInt(value);
-                        if (!isNaN(val)) result.count = val;
+                        const val = parseInt(value, 10);
+                        if (!Number.isNaN(val)) result.count = val;
                         break;
                     }
                     case 'seed': {
-                        const val = parseInt(value);
-                        if (!isNaN(val)) result.seed = val;
+                        const val = parseInt(value, 10);
+                        if (!Number.isNaN(val)) result.seed = val;
                         break;
                     }
                 }

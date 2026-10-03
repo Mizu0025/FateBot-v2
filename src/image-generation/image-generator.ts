@@ -1,5 +1,5 @@
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import sharp from 'sharp';
 import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { logger } from '../config/logger';
@@ -72,7 +72,7 @@ export class ImageGenerator {
             logger.info(`Received ${imageCount} image(s) from ComfyUI`);
 
             // Save individual images
-            const savedImagePaths = await this.saveImageFiles(images, promptId);
+            const savedImagePaths = await ImageGenerator.saveImageFiles(images, promptId);
 
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {

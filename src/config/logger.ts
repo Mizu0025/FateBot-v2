@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join } from 'node:path';
 import winston from 'winston';
 
 // Get log level from environment variable, default to 'info'

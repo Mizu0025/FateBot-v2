@@ -1,5 +1,5 @@
-import { promises as fs } from 'fs';
-import { join } from 'path';
+import { promises as fs } from 'node:fs';
+import { join } from 'node:path';
 import { logger } from '../config/logger';
 import type { WorkflowData } from '../types';
 
@@ -49,6 +49,6 @@ export class WorkflowLoader {
     static async loadWorkflowByName(workflowName: string): Promise<WorkflowData | null> {
         const workflowPath = join(__dirname, `../workflows/${workflowName}.json`);
         logger.info(`Loading workflow: ${workflowName}`);
-        return this.loadWorkflowData(workflowPath);
+        return WorkflowLoader.loadWorkflowData(workflowPath);
     }
 }
