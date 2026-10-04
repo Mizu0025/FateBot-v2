@@ -34,7 +34,8 @@ const env = cleanEnv(process.env, {
     COMFYUI_PORT: port({ default: 8188 }),
     COMFYUI_DOMAIN_PATH: str({ default: 'mock_domain_path' }),
     COMFYUI_FOLDER_PATH: str({ default: '/path/to/files/' }),
-    COMFYUI_WORKFLOW_PATH: str({ default: 'src/workflows/workflow.json' }),
+    /** Directory containing ComfyUI workflow JSON files (one per model name). */
+    COMFYUI_WORKFLOW_PATH: str({ default: 'src/workflows' }),
     COMFYUI_UNIT_NAME: str({ default: 'comfyui' }),
     COMFYUI_IDLE_MINUTES: posInt({ default: 10 }),
     COMFYUI_START_TIMEOUT_SECONDS: posInt({ default: 120 }),

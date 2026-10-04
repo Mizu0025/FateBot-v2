@@ -114,7 +114,7 @@ Configuration is read from environment variables, validated with `envalid`, and 
 | `COMFYUI_PORT` | ComfyUI server port | `8188` |
 | `COMFYUI_DOMAIN_PATH` | Public URL prefix reported back to IRC users | `mock_domain_path` |
 | `COMFYUI_FOLDER_PATH` | Local path where images are saved | `/path/to/files/` |
-| `COMFYUI_WORKFLOW_PATH` | Path to the ComfyUI workflow JSON | `src/workflows/workflow.json` |
+| `COMFYUI_WORKFLOW_PATH` | Directory containing the ComfyUI workflow JSON files (one per model) | `src/workflows` |
 | `COMFYUI_UNIT_NAME` | Name of the ComfyUI user systemd unit (without `.service`) | `comfyui` |
 | `COMFYUI_IDLE_MINUTES` | Idle minutes before the bot stops ComfyUI to free VRAM | `10` |
 | `COMFYUI_START_TIMEOUT_SECONDS` | Max seconds to wait for ComfyUI to become ready after start | `120` |
@@ -153,8 +153,7 @@ src/
 │   ├── env.ts                     # envalid environment validation
 │   ├── constants.ts               # BOT_CONFIG, COMFYUI_CONFIG, defaults, help text
 │   ├── logger.ts                  # Winston logger (console + optional file)
-│   ├── model-loader.ts            # Model configuration loading
-│   └── runtime-config.ts          # Runtime-mutable settings (default model)
+│   └── model-loader.ts            # Model configuration loading
 ├── handlers/
 │   ├── message-handler.ts         # Routes incoming messages to commands or generation
 │   └── command-handler.ts         # --help, --models, start/stop ComfyUI, generation

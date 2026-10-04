@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
 import { minimalWorkflowData } from '../test-utils';
 import { WorkflowLoader } from './workflow-loader';
@@ -78,19 +79,24 @@ describe('WorkflowLoader', () => {
     });
 
     describe('loadWorkflowByName', () => {
-        it('should load workflow by name', async () => {
+        it('should load the workflow from the COMFYUI_CONFIG.workflows directory', async () => {
             // Arrange
             const workflowName = 'test-workflow';
+            const originalDir = COMFYUI_CONFIG.WORKFLOW_PATH;
+            COMFYUI_CONFIG.WORKFLOW_PATH = '/custom/workflows';
             const spy = vi.spyOn(WorkflowLoader, 'loadWorkflowData').mockResolvedValue(mockWorkflowData);
 
-            // Act
-            const result = await WorkflowLoader.loadWorkflowByName(workflowName);
+            try {
+                // Act
+                const result = await WorkflowLoader.loadWorkflowByName(workflowName);
 
-            // Assert
-            expect(spy).toHaveBeenCalledWith(expect.stringContaining(`${workflowName}.json`));
-            expect(result).toEqual(mockWorkflowData);
-
-            spy.mockRestore();
+                // Assert
+                expect(spy).toHaveBeenCalledWith(`/custom/workflows/${workflowName}.json`);
+                expect(result).toEqual(mockWorkflowData);
+            } finally {
+                COMFYUI_CONFIG.WORKFLOW_PATH = originalDir;
+                spy.mockRestore();
+            }
         });
     });
 });

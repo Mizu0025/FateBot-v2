@@ -25,6 +25,7 @@ export type ComfyUiConfig = {
     PORT: number;
     DOMAIN_PATH: string;
     FOLDER_PATH: string;
+    /** Directory containing ComfyUI workflow JSON files (one per model name). */
     WORKFLOW_PATH: string;
     /** Max ms to wait for the WebSocket to complete its handshake. */
     WS_CONNECT_TIMEOUT_MS: number;

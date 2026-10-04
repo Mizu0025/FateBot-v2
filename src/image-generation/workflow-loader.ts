@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
 import type { WorkflowData } from '../types';
 
@@ -42,12 +43,12 @@ export class WorkflowLoader {
     }
 
     /**
-     * Loads a named workflow from the predefined 'src/workflows' directory.
+     * Loads a named workflow from the directory configured via `COMFYUI_WORKFLOW_PATH`.
      * @param workflowName The filename of the workflow (without the .json extension).
      * @returns A promise resolving to the parsed workflow data.
      */
     static async loadWorkflowByName(workflowName: string): Promise<WorkflowData | null> {
-        const workflowPath = join(__dirname, `../workflows/${workflowName}.json`);
+        const workflowPath = join(COMFYUI_CONFIG.WORKFLOW_PATH, `${workflowName}.json`);
         logger.info(`Loading workflow: ${workflowName}`);
         return WorkflowLoader.loadWorkflowData(workflowPath);
     }

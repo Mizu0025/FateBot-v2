@@ -4,7 +4,6 @@ import sharp from 'sharp';
 import { COMFYUI_CONFIG, GENERATION_DEFAULTS } from '../config/constants';
 import { logger } from '../config/logger';
 import { ModelLoader } from '../config/model-loader';
-import { RuntimeConfig } from '../config/runtime-config';
 import type { FilteredPrompt, PromptData } from '../types';
 import { SystemError, UserError } from '../types/errors';
 import { ComfyUIClient } from './comfyui-client';
@@ -42,7 +41,7 @@ export class ImageGenerator {
             logger.info('Starting image generation process');
 
             // Load model configuration first
-            const modelName = filteredPrompt.model || RuntimeConfig.defaultModel;
+            const modelName = filteredPrompt.model || GENERATION_DEFAULTS.MODEL;
             logger.info(`Using model: ${modelName}`);
             const modelConfig = await ModelLoader.loadModelConfiguration(modelName);
 
