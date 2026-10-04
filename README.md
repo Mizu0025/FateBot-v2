@@ -8,7 +8,7 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 - **Text Parsing**: Parses user prompts with parameter flags, including short aliases (e.g. `-w` for `--width`)
 - **Image Generation**: Generates images using ComfyUI via WebSocket, and can delete them again via `--delete` (a single batch by id, or `--delete all`)
 - **Image Grid Creation**: Automatically composes grid layouts from batches of generated images (output is WebP)
-- **Prompt Queue + Background Worker**: Every request is queued and processed by a background worker, so the bot stays responsive and requests are handled one at a time
+- **Prompt Queue + Background Worker**: Every request is queued and processed by a background worker, so the bot stays responsive and requests are handled one at a time (queue is capped at 16 pending requests)
 - **On-Demand ComfyUI**: ComfyUI runs as a user systemd service that the bot starts on demand and stops automatically after it has been idle, so it is never holding GPU memory for no reason
 - **Error Handling**: Distinguishes user errors (bad input) from system errors, classifies generation failures (offline / backend / timeout / internal), and automatically retries transient failures once
 - **Structured Logging**: Winston-based logs, optionally written to `./logs` with rotation
@@ -38,6 +38,8 @@ These flags are detected anywhere in a trigger message and handled as commands:
 | `--stop-comfyui` | Stops the ComfyUI service to free GPU memory (starts again on the next image request) |
 | `--delete <prompt_id>` | Deletes one generated batch by its prompt id (e.g. `8cc05ada-…`) |
 | `--delete all` | Clears every image in the art folder |
+
+Flags are matched on a **whole whitespace-delimited token** (case-insensitive), so a prompt that merely *contains* a flag word (e.g. "a picture of a --help page") is still treated as a generation request.
 
 ### Generation defaults
 
@@ -144,6 +146,7 @@ npm start
 src/
 ├── bot.ts                         # Entry point
 ├── bot-client.ts                  # IRC connection + component wiring
+├── shutdown.ts                    # Process signal + error handlers (graceful shutdown)
 ├── config/
 │   ├── env.ts                     # envalid environment validation
 │   ├── constants.ts               # BOT_CONFIG, COMFYUI_CONFIG, defaults, help text
@@ -199,6 +202,7 @@ The bot is modular and async-first, with a strict separation between *receiving*
    - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid)
    - Transient failures (connection refused/reset, timeouts) are retried exactly once; other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
 4. **Idle shutdown**: `inactivity-manager.ts` listens to the queue's idle signal and stops the ComfyUI service after `COMFYUI_IDLE_MINUTES` with no activity, freeing GPU memory for the rest of the machine
+5. **Graceful shutdown**: `shutdown.ts` wires `SIGINT`/`SIGTERM` (plus `uncaughtException`/`unhandledRejection` for defence-in-depth) into `FateBot.shutdown()`, which stops the generation worker, disables the inactivity timer, and quits the IRC connection — an in-flight generation always finishes and is reported first
 
 All operations are asynchronous and non-blocking, so the bot remains responsive while images are generating.
 

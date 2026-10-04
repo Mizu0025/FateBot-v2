@@ -3,7 +3,7 @@ import { type GenerationResult, ImageGenerator } from '../image-generation/image
 import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
 import { SystemError, UserError } from '../types/errors';
 import { classifyGenerationError } from '../utils/error-utils';
-import type { PromptQueue, PromptQueueItem } from './queue';
+import { PromptQueue, type PromptQueueItem } from './queue';
 
 /**
  * The background worker coroutine that drains the prompt queue.
@@ -15,6 +15,9 @@ import type { PromptQueue, PromptQueueItem } from './queue';
  *
  * A transient (retryable) failure is retried exactly once before being
  * reported, since the retry gets a fresh service-start + connection attempt.
+ *
+ * The loop exits when the queue is shut down (see {@link stop}): the queue
+ * hands back a shutdown sentinel and the worker stops without processing it.
  */
 export class GenerationWorker {
     /**
@@ -41,6 +44,14 @@ export class GenerationWorker {
     private async loop(): Promise<void> {
         while (true) {
             const item = await this.queue.dequeue();
+            // The queue hands back a shutdown sentinel on stop(); drop it and
+            // exit. This is the single exit path — both a worker blocked in
+            // a pending dequeue and one finishing an in-flight request land
+            // here (P0-3).
+            if (PromptQueue.isShutdownItem(item)) {
+                logger.info('Worker stopping: queue shut down');
+                return;
+            }
             logger.info(`Processing queued request from ${item.nick} (queue length: ${this.queue.length})`);
             try {
                 const result = await this.generateWithRetry(item);
@@ -51,6 +62,18 @@ export class GenerationWorker {
                 this.queue.noteItemProcessed();
             }
         }
+    }
+
+    /**
+     * Signals the worker loop to stop by shutting down the queue (P0-3). Any
+     * worker blocked in a dequeue is unblocked with the shutdown sentinel; a
+     * worker finishing an in-flight request picks it up at the top of the
+     * next iteration. The in-flight item is never abandoned mid-generation —
+     * it finishes first; the loop simply stops picking up new work.
+     * Idempotent.
+     */
+    public stop(): void {
+        this.queue.shutdown();
     }
 
     /**

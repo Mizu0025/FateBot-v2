@@ -33,6 +33,9 @@ export interface PromptQueueItem {
  */
 export const MAX_QUEUE_LIMIT: { value: number } = { value: 16 };
 
+/** Nick stamped on the sentinel item the queue hands to a worker on shutdown. */
+const SHUTDOWN_NICK = '<shutdown>';
+
 /**
  * A simple FIFO queue of image generation requests.
  *
@@ -48,6 +51,8 @@ export class PromptQueue implements QueueMonitor {
     } | null = null;
     /** True while a worker holds an item it is processing. */
     private workerBusy = false;
+    /** Set by {@link shutdown}; a worker should exit on the next dequeue. */
+    private shuttingDown = false;
 
     /** Callback triggered when the queue becomes completely idle. */
     public onIdle?: () => void;
@@ -68,6 +73,10 @@ export class PromptQueue implements QueueMonitor {
         // Hand the item directly to a currently waiting worker instead of
         // buffering it — otherwise it would stay in `items` and get
         // dequeued (and generated) a second time.
+        if (this.isShuttingDown) {
+            logger.debug(`Queue is shutting down; rejecting new request from ${item.nick}`);
+            throw new UserError('The bot is shutting down; please try again shortly.');
+        }
         if (this.waiting) {
             const waiter = this.waiting;
             this.waiting = null;
@@ -95,6 +104,12 @@ export class PromptQueue implements QueueMonitor {
         if (next) {
             this.workerBusy = true;
             return Promise.resolve(next);
+        }
+        // No item and we're shutting down: hand back the sentinel immediately
+        // (not a pending waiter a worker would block on forever) so a worker
+        // finishing its in-flight request unblocks and exits (P0-3).
+        if (this.shuttingDown) {
+            return Promise.resolve(PromptQueue.shutdownItem());
         }
         return new Promise<PromptQueueItem>((resolve) => {
             this.waiting = { resolve };
@@ -141,5 +156,41 @@ export class PromptQueue implements QueueMonitor {
             logger.info('Queue is idle - all requests processed');
             this.onIdle();
         }
+    }
+
+    /**
+     * True while {@link shutdown} has been called and the queue no longer
+     * accepts new requests (P0-3).
+     */
+    get isShuttingDown(): boolean {
+        return this.shuttingDown;
+    }
+
+    /** True if an item is the shutdown sentinel (not a real request) (P0-3). */
+    public static isShutdownItem(item: PromptQueueItem): boolean {
+        return item.nick === SHUTDOWN_NICK;
+    }
+
+    private static shutdownItem(): PromptQueueItem {
+        // The `prompt` payload is never read for a sentinel (the worker checks
+        // `isShutdownItem` before touching it), so an empty cast suffices to
+        // satisfy the type without fabricating a usable prompt.
+        return { prompt: {} as unknown as FilteredPrompt, nick: SHUTDOWN_NICK, channel: SHUTDOWN_NICK };
+    }
+
+    /**
+     * Signals the queue to stop accepting new requests and unblocks any
+     * waiting {@link dequeue} caller so a worker loop can exit (P0-3). The
+     * unblocked worker receives a {@link isShutdownItem | shutdown sentinel}
+     * to drop. Idempotent.
+     */
+    public shutdown(): void {
+        this.shuttingDown = true;
+        const waiter = this.waiting;
+        this.waiting = null;
+        if (waiter) {
+            waiter.resolve(PromptQueue.shutdownItem());
+        }
+        logger.debug('Queue shutdown requested');
     }
 }

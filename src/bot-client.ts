@@ -31,6 +31,9 @@ export class FateBot {
     private messageHandler: MessageHandler;
     private worker: GenerationWorker;
 
+    /** Guards against duplicate shutdown calls (e.g. SIGINT then SIGTERM). */
+    private shuttingDown = false;
+
     /**
      * Initializes all bot components and sets up event listeners.
      */
@@ -53,6 +56,47 @@ export class FateBot {
      */
     public startWorkers() {
         this.worker.start();
+    }
+
+    /**
+     * Runs the graceful-shutdown path: stops the generation worker and the
+     * inactivity timer (P0-3). Idempotent — the first call does the work,
+     * later calls are no-ops.
+     *
+     * Called from the process signal + uncaught handlers in {@link bot.ts};
+     * a subsequent `process.exit()` gives the in-flight request time to wind
+     * down (the worker's in-flight item finishes first, as designed).
+     */
+    public async shutdown(signalName = 'signal'): Promise<void> {
+        if (this.shuttingDown) {
+            return;
+        }
+        this.shuttingDown = true;
+        logger.info(`FateBot received ${signalName}, shutting down gracefully`);
+
+        try {
+            // Stop the worker — the loop exits after the in-flight item.
+            this.worker.stop();
+        } catch (error) {
+            logger.error('Error stopping the generation worker during shutdown:', error);
+        }
+
+        try {
+            // Stop the inactivity timer so its callback can't fire during teardown.
+            this.inactivityManager.stop();
+        } catch (error) {
+            logger.error('Error stopping the inactivity manager during shutdown:', error);
+        }
+
+        // Disconnect the IRC socket gracefully: `quit` sends QUIT and ends
+        // the connection (irc-framework has no `close`).
+        try {
+            this.bot.quit('FateBot is shutting down');
+        } catch (error) {
+            logger.debug('Ignoring error quitting the IRC connection during shutdown:', error);
+        }
+
+        logger.info('FateBot shutdown complete');
     }
 
     /**

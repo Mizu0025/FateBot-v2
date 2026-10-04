@@ -155,4 +155,60 @@ describe('GenerationWorker', () => {
         expect(send.mock.calls[1]).toEqual(['#test', 'second: Your image is ready! image-2.webp']);
         expect(queue.isIdle()).toBe(true);
     });
+
+    it('should stop the worker mid-idle: no further requests get processed (P0-3)', async () => {
+        worker.start();
+        // Wait until the worker is idle (dequeue is pending).
+        await flush();
+
+        // Enqueue one item that is currently processing (in flight).
+        queue.addTask(makeItem('inflight'));
+        // While that item is processing, stop() — it should finish first, and
+        // then the loop should exit rather than pick up the next item.
+        worker.stop();
+
+        // The in-flight item MUST be reported — it is never abandoned mid-way.
+        await flush();
+        expect(send).toHaveBeenCalledWith('#test', 'inflight: Your image is ready! /path/to/image.webp');
+
+        // After stop, the queue refuses further addTask calls.
+        expect(() => queue.addTask(makeItem('rejected'))).toThrow(/shutting down/);
+        expect(generateImageMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should let an in-flight request finish before exiting the loop (P0-3)', async () => {
+        // Simulate a long generation; after stop() the item must still be
+        // reported (not abandoned) and the queue must then reject new work.
+        let resolveInflight: ((value: { url: string; saved: string }) => void) | undefined;
+        generateImageMock.mockImplementationOnce(async () => {
+            // Expose the resolver so the test can finish the in-flight item
+            // at a controlled moment (after stop(), to prove it completes).
+            const inflight = new Promise<{ url: string; saved: string }>((resolve) => {
+                resolveInflight = resolve;
+            });
+            return inflight;
+        });
+
+        worker.start();
+        queue.addTask(makeItem('slow-nick'));
+
+        // Wait until the in-flight promise is actually running.
+        await flush(20);
+        expect(generateImageMock).toHaveBeenCalledTimes(1);
+
+        // Stop while the item is in flight.
+        worker.stop();
+
+        // Finish the generation so the loop can complete the item and exit.
+        expect(resolveInflight).toBeDefined();
+        resolveInflight?.({ url: '/slow.webp', saved: '1/1' });
+
+        await flush(120);
+
+        // The in-flight item reported before the loop exited.
+        expect(send).toHaveBeenCalledWith('#test', 'slow-nick: Your image is ready! /slow.webp');
+
+        // Now the queue rejects further requests.
+        expect(() => queue.addTask(makeItem('late'))).toThrow(/shutting down/);
+    });
 });
