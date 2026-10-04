@@ -42,11 +42,12 @@ describe('ImageGrid', () => {
             '/path/to/promptid_3.webp',
             '/path/to/promptid_4.webp',
         ];
+        const promptId = 'promptid';
 
         it('openImages opens an image from a provided filepath', async () => {
             // Arrange
             // Act
-            await ImageGrid.generateImageGrid([filepaths[0]]);
+            await ImageGrid.generateImageGrid([filepaths[0]], promptId);
 
             // Assert
             expect(sharp).toHaveBeenCalledWith(filepaths[0]);
@@ -55,7 +56,7 @@ describe('ImageGrid', () => {
         it('getImageDimensions returns image dimensions', async () => {
             // Arrange
             // Act
-            await ImageGrid.generateImageGrid([filepaths[0]]);
+            await ImageGrid.generateImageGrid([filepaths[0]], promptId);
 
             // Assert
             expect(mockSharpInstance.metadata).toHaveBeenCalled();
@@ -66,7 +67,7 @@ describe('ImageGrid', () => {
             const paths = filepaths.slice(0, 4); // 4 images -> 2x2 grid
 
             // Act
-            await ImageGrid.generateImageGrid(paths);
+            await ImageGrid.generateImageGrid(paths, promptId);
 
             // Assert
             // 2 cols * 512 width = 1024
@@ -80,7 +81,7 @@ describe('ImageGrid', () => {
         it('createBlankCanvas returns a sharp canvas output', async () => {
             // Arrange
             // Act
-            const result = await ImageGrid.generateImageGrid([filepaths[0]]);
+            const result = await ImageGrid.generateImageGrid([filepaths[0]], promptId);
 
             // Assert
             expect(sharp).toHaveBeenCalledWith(expect.objectContaining({ create: expect.any(Object) }));
@@ -90,7 +91,7 @@ describe('ImageGrid', () => {
         it('pasteImagesToGrid returns a grid composite', async () => {
             // Arrange
             // Act
-            await ImageGrid.generateImageGrid(filepaths.slice(0, 2));
+            await ImageGrid.generateImageGrid(filepaths.slice(0, 2), promptId);
 
             // Assert
             expect(mockSharpInstance.composite).toHaveBeenCalledWith(
@@ -104,7 +105,7 @@ describe('ImageGrid', () => {
         it('saveGrid saves images to a path', async () => {
             // Arrange
             // Act
-            await ImageGrid.generateImageGrid([filepaths[0]]);
+            await ImageGrid.generateImageGrid([filepaths[0]], promptId);
 
             // Assert
             expect(mockSharpInstance.toFile).toHaveBeenCalledWith('/mock/folder/promptid_0.webp');
@@ -113,7 +114,7 @@ describe('ImageGrid', () => {
         it('generateImageGrid returns a domainPath for the generated grid image', async () => {
             // Arrange
             // Act
-            const result = await ImageGrid.generateImageGrid([filepaths[0]]);
+            const result = await ImageGrid.generateImageGrid([filepaths[0]], promptId);
 
             // Assert
             expect(result).toBe('http://domain.com/promptid_0.webp');
@@ -126,9 +127,22 @@ describe('ImageGrid', () => {
 
             // Act
             // Assert
-            await expect(ImageGrid.generateImageGrid(emptyPaths)).rejects.toThrow(
+            await expect(ImageGrid.generateImageGrid(emptyPaths, promptId)).rejects.toThrow(
                 'No filepaths provided for grid generation',
             );
+        });
+
+        it('names the grid after the promptId parameter, not after the first filename (P2-7)', async () => {
+            // Arrange — the filepaths intentionally carry a *different* id prefix:
+            // if generateImageGrid re-parsed the id from the first filename
+            // (the old behavior) the grid would be saved as `otherid_0.webp`.
+            const otherIdPaths = ['/path/to/otherid_1.webp', '/path/to/otherid_2.webp'];
+
+            // Act
+            await ImageGrid.generateImageGrid(otherIdPaths, 'realp');
+
+            // Assert — the id passed in is what drives the grid filename.
+            expect(getImageFilename).toHaveBeenCalledWith('realp', 0, 'webp');
         });
     });
 });

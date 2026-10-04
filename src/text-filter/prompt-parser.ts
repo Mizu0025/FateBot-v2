@@ -35,8 +35,13 @@ export class PromptParser {
             throw new UserError(`Message must start with ${BOT_CONFIG.TRIGGER_WORD}`);
         }
 
-        // Remove the trigger keyword and leading/trailing spaces
-        const input = message.replace(BOT_CONFIG.TRIGGER_WORD, '').trim();
+        // Remove only the *leading* trigger word (P2-5). The `startsWith`
+        // check above has already anchored it to the message prefix, so we
+        // strip that exact prefix rather than searching for the trigger word
+        // anywhere in the string — a plain `.replace(trigger, '')` would drop
+        // the first occurrence wherever it appears and could corrupt a prompt
+        // that legitimately contains the trigger word mid-text.
+        const input = message.slice(BOT_CONFIG.TRIGGER_WORD.length).trim();
         const result = PromptParser.parseInput(input);
 
         logger.debug('Extracted prompt parameters', {

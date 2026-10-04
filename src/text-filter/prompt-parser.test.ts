@@ -170,4 +170,31 @@ describe('PromptParser', () => {
             await expect(PromptParser.extractPrompts(message)).rejects.toThrow(/Invalid width/);
         });
     });
+
+    describe('trigger-word strip (P2-5)', () => {
+        it('keeps a mid-prompt occurrence of the trigger word intact', async () => {
+            // Arrange — the prompt text itself contains the trigger word.
+            // Only the leading trigger must be stripped; with an unanchored
+            // replace the inner occurrence would be eaten and the prompt
+            // corrupted into `a picture of the word `.
+            const message = `${BOT_CONFIG.TRIGGER_WORD} a picture of the word ${BOT_CONFIG.TRIGGER_WORD}`;
+
+            // Act
+            const result = await PromptParser.extractPrompts(message);
+
+            // Assert
+            expect(result.prompt).toBe(`a picture of the word ${BOT_CONFIG.TRIGGER_WORD}`);
+        });
+
+        it('strips the trigger even when it is followed by no space', async () => {
+            // Arrange
+            const message = `${BOT_CONFIG.TRIGGER_WORD}a beautiful landscape`;
+
+            // Act
+            const result = await PromptParser.extractPrompts(message);
+
+            // Assert
+            expect(result.prompt).toBe('a beautiful landscape');
+        });
+    });
 });

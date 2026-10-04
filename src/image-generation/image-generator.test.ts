@@ -111,7 +111,10 @@ describe('ImageGenerator', () => {
 
             // Assert
             expect(result).toEqual({ url: '/path/to/grid.webp', saved: '2/2' });
-            expect(ImageGrid.generateImageGrid).toHaveBeenCalled();
+            expect(ImageGrid.generateImageGrid).toHaveBeenCalledWith(
+                [expect.any(String), expect.any(String)],
+                mockPromptId,
+            );
             expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
         });
 

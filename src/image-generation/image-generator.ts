@@ -94,7 +94,7 @@ export class ImageGenerator {
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {
                 logger.info(`Generating image grid from ${savedImagePaths.length} images`);
-                const gridPath = await ImageGrid.generateImageGrid(savedImagePaths);
+                const gridPath = await ImageGrid.generateImageGrid(savedImagePaths, promptId);
                 return { url: gridPath, saved: savedOfTotal };
             } else {
                 return { url: getDomainPath(savedImagePaths[0]), saved: savedOfTotal };
