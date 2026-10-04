@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { logger } from '../config/logger';
 import type { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
 
@@ -126,11 +127,14 @@ export class PromptProcessor {
     }
 
     /**
-     * Generates a random integer between 1 and 1,000,000 for use as a seed.
+     * Generates a random integer in [1, 1_000_000] for use as a seed.
+     * Uses the CSPRNG-backed `crypto.randomInt` rather than `Math.random()`
+     * (P2-4): unbiased, uniformly-distributed integers, no 32-bit float
+     * precision bias for high seeds.
      * @returns A random seed number.
      */
     private static generateRandomSeed(): number {
-        const seed = Math.floor(Math.random() * 1000000) + 1;
+        const seed = crypto.randomInt(1, 1_000_001);
         logger.debug(`Generated random seed: ${seed}`);
         return seed;
     }

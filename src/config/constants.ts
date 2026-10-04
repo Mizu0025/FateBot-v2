@@ -87,3 +87,22 @@ export const GENERATION_DEFAULTS = {
     COUNT: 4,
     OUTPUT_FORMAT: 'webp',
 } as const;
+
+/**
+ * Generation retry policy (P2-6). A retryable (transient) failure is
+ * re-attempted up to {@link MAX_RETRIES} more times; the worker waits
+ * {@link BASE_MS} before the first retry and grows that wait for each further
+ * retry. Surfaced so the worker can be driven by tests while production reads
+ * the env-validated values.
+ */
+export type RetryConfig = {
+    /** Maximum retries *after* the initial attempt (e.g. 2 => 3 total attempts). */
+    MAX_RETRIES: number;
+    /** Base backoff in ms before the first retry; grows per further retry. */
+    BASE_MS: number;
+};
+
+export const RETRY_CONFIG: RetryConfig = {
+    MAX_RETRIES: env.GENERATION_MAX_RETRIES,
+    BASE_MS: env.GENERATION_RETRY_BASE_MS,
+};

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import crypto from 'node:crypto';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 import { logger } from '../config/logger';
 import { minimalWorkflowData } from '../test-utils';
 import type { FilteredPrompt, ModelConfiguration, WorkflowData } from '../types';
@@ -153,16 +154,23 @@ describe('PromptProcessor', () => {
             // Arrange
             const promptData = PromptProcessor.createPromptData(JSON.parse(JSON.stringify(mockWorkflowData)));
             const filteredPromptWithRandomSeed = { ...mockFilteredPrompt, seed: -1 };
-            const mathSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+            // P2-4: the seed now comes from the CSPRNG (`crypto.randomInt`),
+            // not `Math.random`. Spy it (a real vitest mock) and pin it to a
+            // known value; the `as Mock` cast only widens the type — TS can't
+            // infer the return type from Node's `randomInt` overloads.
+            const randomIntMock = vi.spyOn(crypto, 'randomInt') as unknown as Mock;
+            randomIntMock.mockReturnValue(424242);
 
             // Act
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, filteredPromptWithRandomSeed);
 
             // Assert
-            expect(promptData.data.KSampler.inputs.seed).toBeGreaterThan(0);
+            expect(randomIntMock).toHaveBeenCalledWith(1, 1_000_001);
+            expect(promptData.data.KSampler.inputs.seed).toBe(424242);
             expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Generated random seed'));
 
-            mathSpy.mockRestore();
+            // Restore the real CSPRNG (a spy's mockRestore puts the original back).
+            randomIntMock.mockRestore();
         });
 
         it('should throw error if modelConfig is null', () => {

@@ -161,3 +161,41 @@ describe('env (P1-3 + P1-5): new validated keys', () => {
         errorSpy.mockRestore();
     });
 });
+
+/**
+ * P2-6 acceptance: the generation retry policy keys (GENERATION_MAX_RETRIES,
+ * GENERATION_RETRY_BASE_MS) are validated as positive integers, apply the
+ * documented defaults, accept explicit overrides, and reject non-positive
+ * values. Same approach as P1-5 — mirror the spec, don't import the live env.
+ */
+describe('env (P2-6): generation retry policy', () => {
+    const validators = {
+        GENERATION_MAX_RETRIES: posInt({ default: 2 }),
+        GENERATION_RETRY_BASE_MS: posInt({ default: 2000 }),
+    };
+
+    it('applies the documented defaults when the variables are missing', () => {
+        const env = cleanEnv({}, validators);
+        expect(env.GENERATION_MAX_RETRIES).toBe(2);
+        expect(env.GENERATION_RETRY_BASE_MS).toBe(2000);
+    });
+
+    it('honors explicit overrides', () => {
+        const env = cleanEnv(
+            {
+                GENERATION_MAX_RETRIES: '5',
+                GENERATION_RETRY_BASE_MS: '500',
+            },
+            validators,
+        );
+        expect(env.GENERATION_MAX_RETRIES).toBe(5);
+        expect(env.GENERATION_RETRY_BASE_MS).toBe(500);
+    });
+
+    it('rejects a non-positive GENERATION_MAX_RETRIES', () => {
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => cleanEnv({ GENERATION_MAX_RETRIES: '0' }, validators)).toThrow();
+        expect(() => cleanEnv({ GENERATION_MAX_RETRIES: '1.5' }, validators)).toThrow();
+        errorSpy.mockRestore();
+    });
+});

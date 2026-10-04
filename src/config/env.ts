@@ -44,6 +44,12 @@ const env = cleanEnv(process.env, {
     // WebSocket client timeouts (milliseconds).
     COMFYUI_WS_CONNECT_TIMEOUT_MS: posInt({ default: 10000 }),
     COMFYUI_WS_IMAGE_TIMEOUT_MS: posInt({ default: 300000 }),
+    // Generation retry policy (P2-6): how many times a *retryable* (transient)
+    // failure is re-attempted after the first attempt, and the base backoff the
+    // worker waits before each retry (each retry multiplies the base, with
+    // jitter). Defaults give 3 total attempts with ~2 s then ~8 s waits.
+    GENERATION_MAX_RETRIES: posInt({ default: 2 }),
+    GENERATION_RETRY_BASE_MS: posInt({ default: 2000 }),
     SASL_ACCOUNT: str({ default: undefined }),
     SASL_PASSWORD: str({ default: undefined }),
     // Logging (validated here so logger.ts reads a single source of truth).

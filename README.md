@@ -122,6 +122,8 @@ Configuration is read from environment variables, validated with `envalid`, and 
 | `COMFYUI_START_POLL_INTERVAL_MS` | Milliseconds between readiness polls while the service comes up | `2000` |
 | `LOG_LEVEL` | Winston log level (`error`, `warn`, `info`, `debug`) | `info` |
 | `LOG_TO_FILE` | Also write JSON logs to `./logs/combined.log` and `./logs/error.log` (rotated, 5 files) | `false` |
+| `GENERATION_MAX_RETRIES` | Max retries after the first attempt for a transient (retryable) failure | `2` |
+| `GENERATION_RETRY_BASE_MS` | Base backoff before the 1st retry (doubles per retry, jittered) | `2000` |
 
 Models are configured in `modelConfiguration.json` (checkpoint, VAE, workflow, sampler settings and default prompts per model name).
 
@@ -202,7 +204,7 @@ The bot is modular and async-first, with a strict separation between *receiving*
 3. **Background worker**: `worker.ts` drains the queue one item at a time — the only component that talks to ComfyUI for generation:
    - `comfyui-service-manager.ts` probes `/system_stats`; if ComfyUI is down it starts the user systemd service and polls until it reports ready (or stops the service and fails, to avoid a crash loop)
    - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid)
-   - Transient failures (connection refused/reset, timeouts) are retried exactly once; other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
+   - Transient failures (connection refused/reset, timeouts, HTTP 408/429/5xx) are retried up to `GENERATION_MAX_RETRIES` with exponential backoff + jitter (so a flapped backend gets more room each retry and a burst of queued failures doesn't retry simultaneously); other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
 4. **Idle shutdown**: `inactivity-manager.ts` listens to the queue's idle signal and stops the ComfyUI service after `COMFYUI_IDLE_MINUTES` with no activity, freeing GPU memory for the rest of the machine
 5. **Graceful shutdown**: `shutdown.ts` wires `SIGINT`/`SIGTERM` (plus `uncaughtException`/`unhandledRejection` for defence-in-depth) into `FateBot.shutdown()`, which stops the generation worker, disables the inactivity timer, and quits the IRC connection — an in-flight generation always finishes and is reported first
 

@@ -135,24 +135,31 @@ Anyone in the channel (or a bot-loop) can queue unlimited generation jobs; `item
 
 ### P2-1 · `ts-expect-error` on `irc-framework` import
 `bot-client.ts` L2 suppresses a module-typing error. Replace with `src/types/irc-framework.d.ts` (or a local `.d.ts` module declaration) so the import type-checks and the suppression disappears.
+**Done** — `src/types/irc-framework.d.ts` committed in `60e13e0`. `ts-expect-error` is no longer present under `src/`.
 
 ### P2-2 · Static-helper class pattern
 `ImageGenerator`, `ImageGrid`, `ModelLoader`, `WorkflowLoader`, `PromptProcessor`, `PromptParser` are all static-only classes. This is kept intentionally per project rules (Biome `noStaticOnlyClass` override) — **do not change**. But it does block dependency-injecting a fake `ImageGenerator` in worker tests; if P0-1's refactor is painful, consider injecting a small `GenerationDriver` interface into `GenerationWorker` as a seam.
+**Not a task** — by design (see the Biome override); left as written.
 
 ### P2-3 · `__dirname`-relative file lookups
 `ModelLoader` (L20, L43) and `WorkflowLoader.loadWorkflowByName` (L50) resolve `modelConfiguration.json` and `src/workflows/*.json` via `join(__dirname, ...)`. This silently breaks if `dist/` layout changes. Move both to env-driven paths (P1-5's `COMFYUI_WORKFLOW_PATH` is already declared but unused — that's the natural home).
+**Done** — `MODEL_CONFIG_PATH` + `COMFYUI_WORKFLOW_PATH` both env-wired, committed in `60e13e0`. No `__dirname` left in `src/**`.
 
 ### P2-4 · `generateRandomSeed` not seeded deterministically
 `prompt-processor.ts` L132 uses `Math.random()`. Fine for a LAN bot, but for reproducibility (and testability of seed-handling tests) consider `crypto.randomInt(1, 1_000_001)` or a seeded `mulberry32` when `--seed` is passed twice by the same user.
+**Done** — `generateRandomSeed` now uses CSPRNG-backed `crypto.randomInt(1, 1_000_001)`. No seeded `mulberry32` path was added (the plan explicitly marks that optional); the `--seed <n>` user path was already deterministic.
 
 ### P2-5 · `prompt-parser.ts` — trigger-word strip can corrupt the prompt
 L25 `message.replace(BOT_CONFIG.TRIGGER_WORD, '').trim()` removes the trigger word **wherever it first appears**, even mid-prompt. If the user's actual prompt contains the trigger word (e.g. `!fate a picture of the word "!fate"`), the inner occurrence is stripped, not the leading one. Use a regex with `^` anchor.
+**Done** — `slice(BOT_CONFIG.TRIGGER_WORD.length)` immediately after the existing `startsWith` guard, committed in `6c3c120`. `startsWith` already anchors the trigger to the message prefix, so no regex is needed and there is no metacharacter footgun either.
 
 ### P2-6 · `worker.ts` — retry only once, no jitter
 `generateWithRetry` does exactly one blind retry. For P1-4's flaky-network case, a 2-3 retry schedule with random backoff (2 s, 8 s ± 2 s) is a small, safe win.
+**Done** — Up to `GENERATION_MAX_RETRIES` retries (default 2 → 3 total attempts), exponential backoff `BASE_MS * 2^attempt` with a uniform [0.5, 1) jitter (`GENERATION_RETRY_BASE_MS` defaults to 2000 ms). Env-driven; the `GenerationWorker` accepts an injected retry policy for tests. Only retryable failures are retried — `UserError` and hard `SystemError` short-circuit.
 
 ### P2-7 · `image-grid.ts` derives `promptId` from filename rather than receiving it
 `generateImageGrid(filepaths)` (L118) re-derives the prompt id from the first path. `generateImage` (which owns the `promptId`) could pass it in, removing the re-parse and the shared assumption.
+**Done** — `generateImageGrid(filepaths, promptId)`; `image-generator.ts` passes its own `promptId` through, committed in `6c3c120`. The grid's filename is now driven by the caller's id, not by parsing `filepaths[0]`.
 
 ---
 

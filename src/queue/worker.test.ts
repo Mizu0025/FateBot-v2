@@ -38,6 +38,8 @@ describe('GenerationWorker', () => {
         generateImageMock = vi.mocked(ImageGenerator.generateImage);
         generateImageMock.mockReset();
         generateImageMock.mockResolvedValue({ url: '/path/to/image.webp', saved: '1/1' });
+        // Retry sleeps are instant in tests — we assert *behavior*, not timing.
+        vi.spyOn(GenerationWorker, 'sleep').mockImplementation(async () => {});
     });
 
     it('should process a queued request and send the result to the channel', async () => {
@@ -102,7 +104,7 @@ describe('GenerationWorker', () => {
         expect(send).toHaveBeenCalledWith('#test', 'user123: Your image is ready! /retry.webp');
     });
 
-    it('should report the failure when the retry also fails', async () => {
+    it('should make exactly the configured number of retries when all fail (default 2)', async () => {
         generateImageMock.mockImplementation(() =>
             Promise.reject(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' })),
         );
@@ -111,9 +113,52 @@ describe('GenerationWorker', () => {
         queue.addTask(makeItem());
         await flush();
 
-        expect(generateImageMock).toHaveBeenCalledTimes(2);
+        // Default GENERATION_MAX_RETRIES=2 => initial attempt + 2 retries = 3 calls.
+        expect(generateImageMock).toHaveBeenCalledTimes(3);
         expect(send).toHaveBeenCalledWith('#test', expect.stringContaining('likely transient — try again'));
         expect(send).toHaveBeenCalledWith('#test', expect.stringContaining('Generation failed (offline)'));
+    });
+
+    it('should honor an injected MAX_RETRIES and stop retrying after that many', async () => {
+        generateImageMock.mockImplementation(() =>
+            Promise.reject(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' })),
+        );
+        // MAX_RETRIES=1 => initial + 1 retry = 2 calls (fewer than the default 3).
+        const workerOneRetry = new GenerationWorker(queue, service, send, { MAX_RETRIES: 1, BASE_MS: 1 });
+
+        workerOneRetry.start();
+        queue.addTask(makeItem());
+        await flush();
+
+        expect(generateImageMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('should back off exponentially between retries (base * 2^attempt, jittered)', async () => {
+        generateImageMock.mockImplementation(() =>
+            Promise.reject(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' })),
+        );
+        const delays: number[] = [];
+        // Re-capture the sleep calls (beforeEach made it a plain no-op).
+        vi.spyOn(GenerationWorker, 'sleep').mockImplementation((ms) => {
+            delays.push(ms);
+            return Promise.resolve();
+        });
+        const workerBackoff = new GenerationWorker(queue, service, send, { MAX_RETRIES: 2, BASE_MS: 1000 });
+
+        workerBackoff.start();
+        queue.addTask(makeItem());
+        await flush();
+
+        // Two retries => two sleeps. Jitter is uniform [0.5, 1), so each delay
+        // lands in [base*2^a*0.5, base*2^a]. Attempt 0 => [500, 1000];
+        // attempt 1 => [1000, 2000]. The base doubles, so the 2nd is always
+        // >= the low bound of the 2nd and the 1st never exceeds the 2nd's low.
+        expect(delays).toHaveLength(2);
+        expect(delays[0]).toBeGreaterThanOrEqual(500);
+        expect(delays[0]).toBeLessThanOrEqual(1000);
+        expect(delays[1]).toBeGreaterThanOrEqual(1000);
+        expect(delays[1]).toBeLessThanOrEqual(2000);
+        expect(generateImageMock).toHaveBeenCalledTimes(3);
     });
 
     it('should report UserError as an input error', async () => {
