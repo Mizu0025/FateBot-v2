@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { promises as fs } from 'node:fs';
+import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
 import type { ModelConfiguration } from '../types';
 
@@ -17,8 +17,7 @@ export class ModelLoader {
     static async loadModelConfiguration(modelName: string): Promise<ModelConfiguration | null> {
         try {
             logger.info(`Loading model configuration: ${modelName}`);
-            const configPath = join(__dirname, '../../modelConfiguration.json');
-            const configData = JSON.parse(readFileSync(configPath, 'utf8'));
+            const configData = JSON.parse(await fs.readFile(COMFYUI_CONFIG.MODEL_CONFIG_PATH, 'utf8'));
             const config = configData[modelName] || null;
             if (config) {
                 logger.debug(`Model configuration found for ${modelName}`);
@@ -40,8 +39,7 @@ export class ModelLoader {
     static async getModelsList(): Promise<string> {
         try {
             logger.info('Retrieving available models list');
-            const configPath = join(__dirname, '../../modelConfiguration.json');
-            const data = JSON.parse(readFileSync(configPath, 'utf8'));
+            const data = JSON.parse(await fs.readFile(COMFYUI_CONFIG.MODEL_CONFIG_PATH, 'utf8'));
             return Object.keys(data).join(', ');
         } catch (error) {
             logger.error('Error getting models:', error);

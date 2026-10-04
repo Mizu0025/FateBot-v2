@@ -39,10 +39,10 @@ export class ComfyUIClient {
     /**
      * Queues a prompt to the ComfyUI server for processing.
      * @param prompt The workflow data to be processed.
-     * @returns The generated prompt ID if successful.
-     * @throws Error if the server address is missing or the request fails.
+     * @returns The ComfyUI-assigned prompt ID.
+     * @throws SystemError if the server address is missing or the request fails.
      */
-    public async queuePrompt(prompt: WorkflowData): Promise<string | null> {
+    public async queuePrompt(prompt: WorkflowData): Promise<string> {
         if (!COMFYUI_CONFIG.ADDRESS) {
             logger.error('ComfyUI server address is not configured.');
             throw new SystemError('ComfyUI server address not configured.');
@@ -95,64 +95,104 @@ export class ComfyUIClient {
 
     /**
      * Connects to the ComfyUI WebSocket server for real-time updates.
+     *
+     * Unlike the pre-plan implementation, the promise always settles: a
+     * connect timeout rejects a handshake that never completes, and a socket
+     * that closes before `open` rejects instead of hanging (P0-1). Listeners
+     * are removed on settle so a reused socket can't accumulate handlers.
      * @returns A promise that resolves to the connected WebSocket instance.
-     * @throws Error if connection fails.
+     * @throws SystemError if the connection fails or times out.
      */
-    public async connectWebSocket(): Promise<WebSocket> {
+    public connectWebSocket(): Promise<WebSocket> {
+        let ws: WebSocket;
         try {
-            this.ws = new WebSocket(
-                `ws://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/ws?clientId=${this.clientId}`,
-            );
-
-            return new Promise((resolve, reject) => {
-                if (!this.ws) {
-                    reject(new Error('Failed to create WebSocket'));
-                    return;
-                }
-
-                const ws = this.ws;
-                ws.on('open', () => {
-                    logger.info(`Connected to ComfyUI WebSocket at ${COMFYUI_CONFIG.ADDRESS}`);
-                    resolve(ws);
-                });
-
-                this.ws.on('error', (error) => {
-                    logger.error('WebSocket connection error:', error);
-                    const code = ComfyUIClient.toErrorDetails(error).code;
-                    if (code === 'ECONNREFUSED') {
-                        reject(new SystemError('Cannot connect to ComfyUI - server appears to be offline.', { code }));
-                    } else {
-                        reject(
-                            new SystemError(
-                                `WebSocket connection error: ${error.message}`,
-                                ComfyUIClient.toErrorDetails(error),
-                            ),
-                        );
-                    }
-                });
-
-                this.ws.on('close', () => {
-                    logger.debug('WebSocket connection closed');
-                });
-            });
+            ws = new WebSocket(`ws://${COMFYUI_CONFIG.ADDRESS}:${COMFYUI_CONFIG.PORT}/ws?clientId=${this.clientId}`);
         } catch (error) {
             logger.error('Error connecting to ComfyUI server:', error);
-            throw new SystemError(
-                'Could not connect to ComfyUI server. Is it running?',
-                ComfyUIClient.toErrorDetails(error),
+            return Promise.reject(
+                new SystemError(
+                    'Could not connect to ComfyUI server. Is it running?',
+                    ComfyUIClient.toErrorDetails(error),
+                ),
             );
         }
+
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                cleanup();
+                logger.error(`WebSocket connect timed out after ${COMFYUI_CONFIG.WS_CONNECT_TIMEOUT_MS}ms`);
+                try {
+                    ws.close();
+                } catch {
+                    // Socket may already be gone; nothing useful to do.
+                }
+                reject(
+                    new SystemError(
+                        `Could not connect to ComfyUI within ${COMFYUI_CONFIG.WS_CONNECT_TIMEOUT_MS}ms. Is it running?`,
+                    ),
+                );
+            }, COMFYUI_CONFIG.WS_CONNECT_TIMEOUT_MS);
+
+            const cleanup = () => {
+                clearTimeout(timeout);
+                if (typeof ws.off === 'function') {
+                    ws.off('open', onOpen);
+                    ws.off('error', onError);
+                    ws.off('close', onClose);
+                }
+            };
+
+            const onOpen = () => {
+                cleanup();
+                logger.info(`Connected to ComfyUI WebSocket at ${COMFYUI_CONFIG.ADDRESS}`);
+                this.ws = ws;
+                resolve(ws);
+            };
+
+            const onError = (error: Error) => {
+                cleanup();
+                logger.error('WebSocket connection error:', error);
+                const code = ComfyUIClient.toErrorDetails(error).code;
+                if (code === 'ECONNREFUSED') {
+                    reject(new SystemError('Cannot connect to ComfyUI - server appears to be offline.', { code }));
+                } else {
+                    reject(
+                        new SystemError(
+                            `WebSocket connection error: ${error.message}`,
+                            ComfyUIClient.toErrorDetails(error),
+                        ),
+                    );
+                }
+            };
+
+            const onClose = () => {
+                cleanup();
+                logger.debug('WebSocket closed before the connection was established');
+                reject(new SystemError('WebSocket connection closed before it was established.'));
+            };
+
+            ws.on('open', onOpen);
+            ws.on('error', onError);
+            ws.on('close', onClose);
+        });
     }
 
     /**
      * Monitors the WebSocket for status updates and binary image data.
+     *
+     * Single `message` listener per call, removed on settle, so consecutive
+     * generations on a reused socket don't accumulate handlers or double-count
+     * frames (P0-1). A socket that closes mid-retrieval now rejects (before
+     * the plan it hung until the 5-minute timeout) with a network-classified
+     * `SystemError`.
      * @param promptId The ID of the prompt to wait for.
      * @returns A map of output keys to arrays of image buffers.
-     * @throws Error if the WebSocket is not connected or the request times out.
+     * @throws SystemError if the WebSocket is not connected, the socket
+     *         drops mid-job, or the job times out.
      */
-    public async getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
+    public getImagesFromWebSocket(promptId: string): Promise<Map<string, Buffer[]>> {
         if (!this.ws) {
-            throw new SystemError('WebSocket not connected');
+            return Promise.reject(new SystemError('WebSocket not connected'));
         }
 
         const ws = this.ws;
@@ -164,11 +204,10 @@ export class ComfyUIClient {
             const timeout = setTimeout(() => {
                 logger.error(`WebSocket timeout while waiting for images (prompt ID: ${promptId})`);
                 reject(new SystemError('WebSocket timeout while waiting for images.'));
-            }, 300000); // 5 minute timeout
+            }, COMFYUI_CONFIG.WS_IMAGE_TIMEOUT_MS);
 
-            ws.on('message', (data: Buffer) => {
+            const handleMessage = (data: Buffer) => {
                 try {
-                    // Check if it's a text message (JSON) or binary data (image)
                     const messageStr = data.toString();
 
                     if (messageStr.startsWith('{')) {
@@ -187,7 +226,7 @@ export class ComfyUIClient {
                                     logger.info(
                                         `Execution complete. Received ${imageCount} image(s) for prompt ${promptId}`,
                                     );
-                                    clearTimeout(timeout);
+                                    cleanup();
                                     resolve(outputImages);
                                 } else {
                                     logger.info(`Executing node: ${executingData.node} (prompt: ${promptId})`);
@@ -208,7 +247,7 @@ export class ComfyUIClient {
                     }
                 } catch (error) {
                     logger.error('Error processing WebSocket message:', error);
-                    clearTimeout(timeout);
+                    cleanup();
                     const message = error instanceof Error ? error.message : String(error);
                     reject(
                         new SystemError(
@@ -217,18 +256,35 @@ export class ComfyUIClient {
                         ),
                     );
                 }
-            });
+            };
 
-            ws.on('error', (error) => {
-                clearTimeout(timeout);
+            const handleError = (error: Error) => {
                 logger.error('WebSocket error during image retrieval:', error);
+                cleanup();
                 reject(new SystemError(`WebSocket error: ${error.message}`, ComfyUIClient.toErrorDetails(error)));
-            });
+            };
 
-            ws.on('close', () => {
-                clearTimeout(timeout);
+            // A socket close mid-retrieval used to leave the promise pending
+            // until the timeout; reject immediately so the worker classifies it
+            // as a failure instead of waiting 5 minutes (P0-1).
+            const handleClose = () => {
                 logger.debug('WebSocket connection closed during image retrieval');
-            });
+                cleanup();
+                reject(new SystemError('WebSocket connection closed while waiting for images.'));
+            };
+
+            const cleanup = () => {
+                clearTimeout(timeout);
+                if (typeof ws.off === 'function') {
+                    ws.off('message', handleMessage);
+                    ws.off('error', handleError);
+                    ws.off('close', handleClose);
+                }
+            };
+
+            ws.on('message', handleMessage);
+            ws.on('error', handleError);
+            ws.on('close', handleClose);
         });
     }
 

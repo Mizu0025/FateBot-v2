@@ -1,7 +1,9 @@
 import env from './env';
 
 /**
- * Bot connection and identification settings.
+ * Bot connection and identification settings. TLS is env-driven (P1-3):
+ * it defaults on for the conventional TLS port (6697) but can be forced
+ * on/off explicitly for non-standard ports.
  */
 export const BOT_CONFIG = {
     SERVER: env.SERVER,
@@ -9,6 +11,7 @@ export const BOT_CONFIG = {
     NICK: env.NICK,
     TRIGGER_WORD: env.TRIGGER_WORD,
     PORT: env.PORT,
+    TLS: env.TLS,
     SASL_ACCOUNT: env.SASL_ACCOUNT,
     SASL_PASSWORD: env.SASL_PASSWORD,
 } as const;
@@ -22,7 +25,14 @@ export type ComfyUiConfig = {
     PORT: number;
     DOMAIN_PATH: string;
     FOLDER_PATH: string;
+    /** Directory containing ComfyUI workflow JSON files (one per model name). */
     WORKFLOW_PATH: string;
+    /** Path to the model configuration JSON file. */
+    MODEL_CONFIG_PATH: string;
+    /** Max ms to wait for the WebSocket to complete its handshake. */
+    WS_CONNECT_TIMEOUT_MS: number;
+    /** Max ms to wait for a queued prompt's images to stream back. */
+    WS_IMAGE_TIMEOUT_MS: number;
 };
 
 export const COMFYUI_CONFIG: ComfyUiConfig = {
@@ -31,6 +41,9 @@ export const COMFYUI_CONFIG: ComfyUiConfig = {
     DOMAIN_PATH: env.COMFYUI_DOMAIN_PATH,
     FOLDER_PATH: env.COMFYUI_FOLDER_PATH,
     WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH,
+    MODEL_CONFIG_PATH: env.MODEL_CONFIG_PATH,
+    WS_CONNECT_TIMEOUT_MS: env.COMFYUI_WS_CONNECT_TIMEOUT_MS,
+    WS_IMAGE_TIMEOUT_MS: env.COMFYUI_WS_IMAGE_TIMEOUT_MS,
 };
 
 /**
@@ -52,7 +65,7 @@ export const COMFYUI_SERVICE_CONFIG: ComfyUiServiceConfig = {
     UNIT_NAME: env.COMFYUI_UNIT_NAME,
     IDLE_MINUTES: env.COMFYUI_IDLE_MINUTES,
     START_TIMEOUT_SECONDS: env.COMFYUI_START_TIMEOUT_SECONDS,
-    START_POLL_INTERVAL_MS: 2000,
+    START_POLL_INTERVAL_MS: env.COMFYUI_START_POLL_INTERVAL_MS,
 };
 
 /**
@@ -74,3 +87,22 @@ export const GENERATION_DEFAULTS = {
     COUNT: 4,
     OUTPUT_FORMAT: 'webp',
 } as const;
+
+/**
+ * Generation retry policy (P2-6). A retryable (transient) failure is
+ * re-attempted up to {@link MAX_RETRIES} more times; the worker waits
+ * {@link BASE_MS} before the first retry and grows that wait for each further
+ * retry. Surfaced so the worker can be driven by tests while production reads
+ * the env-validated values.
+ */
+export type RetryConfig = {
+    /** Maximum retries *after* the initial attempt (e.g. 2 => 3 total attempts). */
+    MAX_RETRIES: number;
+    /** Base backoff in ms before the first retry; grows per further retry. */
+    BASE_MS: number;
+};
+
+export const RETRY_CONFIG: RetryConfig = {
+    MAX_RETRIES: env.GENERATION_MAX_RETRIES,
+    BASE_MS: env.GENERATION_RETRY_BASE_MS,
+};

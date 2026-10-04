@@ -26,6 +26,10 @@ describe('ComfyUIClient', () => {
         vi.clearAllMocks();
         // Reset COMFYUI_CONFIG.ADDRESS to a valid value before each test
         COMFYUI_CONFIG.ADDRESS = 'localhost';
+        // Generous defaults so the connect/image timeout paths are only hit by
+        // the dedicated timeout tests (P0-1) — not accidentally by the others.
+        COMFYUI_CONFIG.WS_CONNECT_TIMEOUT_MS = 10_000;
+        COMFYUI_CONFIG.WS_IMAGE_TIMEOUT_MS = 10_000;
         client = new ComfyUIClient();
         mockFetch = vi.fn();
         global.fetch = mockFetch as unknown as typeof fetch;
@@ -172,6 +176,24 @@ describe('ComfyUIClient', () => {
             await expect(client.connectWebSocket()).rejects.toThrow('WebSocket connection error: Connection error');
             expect(logger.error).toHaveBeenCalledWith('WebSocket connection error:', expect.any(Error));
         });
+
+        it('should reject with SystemError if the socket never opens (connect timeout)', async () => {
+            // Arrange — a socket that accepts the connection but never fires
+            // `open`. A short connect timeout is required to settle (P0-1).
+            COMFYUI_CONFIG.WS_CONNECT_TIMEOUT_MS = 30;
+            const mockWs = {
+                on: vi.fn(), // no events ever fire
+                off: vi.fn(),
+                close: vi.fn(),
+            };
+            (WebSocket as unknown as Mock).mockImplementation(function () {
+                return mockWs;
+            });
+
+            // Act / Assert — must reject promptly, not hang.
+            await expect(client.connectWebSocket()).rejects.toThrow(SystemError);
+            expect(mockWs.close).toHaveBeenCalled();
+        });
     });
 
     describe('getImagesFromWebSocket', () => {
@@ -277,6 +299,82 @@ describe('ComfyUIClient', () => {
             await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(SystemError);
             await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow('WebSocket error: Retrieval error');
             expect(logger.error).toHaveBeenCalledWith('WebSocket error during image retrieval:', expect.any(Error));
+        });
+
+        it('should reject immediately if the socket closes while waiting for images', async () => {
+            // Arrange — mid-job socket close used to hang until the 5-minute
+            // timeout; it must now reject (P0-1).
+            const mockWs = {
+                on: vi.fn((event: string, callback: (data?: unknown) => void) => {
+                    if (event === 'close') {
+                        setImmediate(() => callback());
+                    }
+                }),
+                off: vi.fn(),
+            };
+            (client as unknown as { ws: WebSocket | null }).ws = mockWs as unknown as WebSocket;
+
+            // Act / Assert
+            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(SystemError);
+            await expect(client.getImagesFromWebSocket('test-id')).rejects.toThrow(
+                'WebSocket connection closed while waiting for images.',
+            );
+        });
+
+        it('removes the message listener on resolve so a reused socket does not double-deliver frames', async () => {
+            // Arrange — a socket that tracks its currently-registered `message`
+            // handlers via on/off, so we can assert the previous generation's
+            // listener is gone before the next one begins (P0-1).
+            const handlers = new Set<(data: Buffer) => void>();
+            const mockWs = {
+                on: (event: string, cb: (data: Buffer) => void) => {
+                    if (event === 'message') handlers.add(cb);
+                },
+                off: (event: string, cb: (data: Buffer) => void) => {
+                    if (event === 'message') handlers.delete(cb);
+                },
+            };
+            (client as unknown as { ws: WebSocket | null }).ws = mockWs as unknown as WebSocket;
+
+            const feed = (frame: Buffer) => {
+                for (const h of Array.from(handlers)) h(frame);
+            };
+            const start = (pid: string) =>
+                feed(
+                    Buffer.from(
+                        JSON.stringify({ type: 'executing', data: { prompt_id: pid, node: 'SaveImageWebsocket' } }),
+                    ),
+                );
+            const image = (pid: string, body: string) => {
+                void pid;
+                feed(Buffer.concat([Buffer.alloc(8), Buffer.from(body)]));
+            };
+            const done = (pid: string) =>
+                feed(Buffer.from(JSON.stringify({ type: 'executing', data: { prompt_id: pid, node: null } })));
+
+            // Generation 1
+            const gen1 = client.getImagesFromWebSocket('gen-1');
+            start('gen-1');
+            image('gen-1', 'img1');
+            done('gen-1');
+            const images1 = await gen1;
+            expect(images1.get('SaveImageWebsocket')).toHaveLength(1);
+            // The key P0-1 property: gen-1's listener was removed on resolve.
+            expect(handlers.size).toBe(0);
+
+            // Generation 2 on the SAME socket — starts with a fresh single
+            // handler, so its frames are delivered exactly once.
+            const gen2 = client.getImagesFromWebSocket('gen-2');
+            expect(handlers.size).toBe(1);
+            start('gen-2');
+            image('gen-2', 'img2');
+            done('gen-2');
+            const images2 = await gen2;
+
+            // No duplicate / cross-delivered frames between the generations.
+            expect(images2.get('SaveImageWebsocket')).toHaveLength(1);
+            expect(images2.get('SaveImageWebsocket')?.[0]).toEqual(Buffer.from('img2'));
+            expect(handlers.size).toBe(0);
         });
     });
 

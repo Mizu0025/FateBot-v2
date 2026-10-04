@@ -8,7 +8,7 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 - **Text Parsing**: Parses user prompts with parameter flags, including short aliases (e.g. `-w` for `--width`)
 - **Image Generation**: Generates images using ComfyUI via WebSocket, and can delete them again via `--delete` (a single batch by id, or `--delete all`)
 - **Image Grid Creation**: Automatically composes grid layouts from batches of generated images (output is WebP)
-- **Prompt Queue + Background Worker**: Every request is queued and processed by a background worker, so the bot stays responsive and requests are handled one at a time
+- **Prompt Queue + Background Worker**: Every request is queued and processed by a background worker, so the bot stays responsive and requests are handled one at a time (queue is capped at 16 pending requests)
 - **On-Demand ComfyUI**: ComfyUI runs as a user systemd service that the bot starts on demand and stops automatically after it has been idle, so it is never holding GPU memory for no reason
 - **Error Handling**: Distinguishes user errors (bad input) from system errors, classifies generation failures (offline / backend / timeout / internal), and automatically retries transient failures once
 - **Structured Logging**: Winston-based logs, optionally written to `./logs` with rotation
@@ -38,6 +38,8 @@ These flags are detected anywhere in a trigger message and handled as commands:
 | `--stop-comfyui` | Stops the ComfyUI service to free GPU memory (starts again on the next image request) |
 | `--delete <prompt_id>` | Deletes one generated batch by its prompt id (e.g. `8cc05ada-…`) |
 | `--delete all` | Clears every image in the art folder |
+
+Flags are matched on a **whole whitespace-delimited token** (case-insensitive), so a prompt that merely *contains* a flag word (e.g. "a picture of a --help page") is still treated as a generation request.
 
 ### Generation defaults
 
@@ -102,6 +104,7 @@ Configuration is read from environment variables, validated with `envalid`, and 
 |----------|-------------|---------|
 | `SERVER` | IRC server address | `address` |
 | `PORT` | IRC server port (use `6697` for TLS) | `6667` |
+| `TLS` | Force IRC TLS on/off (defaults on when `PORT=6697`, off otherwise) | (auto) |
 | `CHANNEL` | IRC channel to join | `#channel` |
 | `NICK` | Bot's nickname | `nick` |
 | `TRIGGER_WORD` | Command trigger word | `!trigger` |
@@ -111,12 +114,16 @@ Configuration is read from environment variables, validated with `envalid`, and 
 | `COMFYUI_PORT` | ComfyUI server port | `8188` |
 | `COMFYUI_DOMAIN_PATH` | Public URL prefix reported back to IRC users | `mock_domain_path` |
 | `COMFYUI_FOLDER_PATH` | Local path where images are saved | `/path/to/files/` |
-| `COMFYUI_WORKFLOW_PATH` | Path to the ComfyUI workflow JSON | `src/workflows/workflow.json` |
+| `COMFYUI_WORKFLOW_PATH` | Directory containing the ComfyUI workflow JSON files (one per model) | `src/workflows` |
+| `MODEL_CONFIG_PATH` | Path to the `modelConfiguration.json` file (checkpoint/VAE/workflow/sampler per model) | `modelConfiguration.json` |
 | `COMFYUI_UNIT_NAME` | Name of the ComfyUI user systemd unit (without `.service`) | `comfyui` |
 | `COMFYUI_IDLE_MINUTES` | Idle minutes before the bot stops ComfyUI to free VRAM | `10` |
 | `COMFYUI_START_TIMEOUT_SECONDS` | Max seconds to wait for ComfyUI to become ready after start | `120` |
+| `COMFYUI_START_POLL_INTERVAL_MS` | Milliseconds between readiness polls while the service comes up | `2000` |
 | `LOG_LEVEL` | Winston log level (`error`, `warn`, `info`, `debug`) | `info` |
 | `LOG_TO_FILE` | Also write JSON logs to `./logs/combined.log` and `./logs/error.log` (rotated, 5 files) | `false` |
+| `GENERATION_MAX_RETRIES` | Max retries after the first attempt for a transient (retryable) failure | `2` |
+| `GENERATION_RETRY_BASE_MS` | Base backoff before the 1st retry (doubles per retry, jittered) | `2000` |
 
 Models are configured in `modelConfiguration.json` (checkpoint, VAE, workflow, sampler settings and default prompts per model name).
 
@@ -144,12 +151,12 @@ npm start
 src/
 ├── bot.ts                         # Entry point
 ├── bot-client.ts                  # IRC connection + component wiring
+├── shutdown.ts                    # Process signal + error handlers (graceful shutdown)
 ├── config/
 │   ├── env.ts                     # envalid environment validation
 │   ├── constants.ts               # BOT_CONFIG, COMFYUI_CONFIG, defaults, help text
 │   ├── logger.ts                  # Winston logger (console + optional file)
-│   ├── model-loader.ts            # Model configuration loading
-│   └── runtime-config.ts          # Runtime-mutable settings (default model)
+│   └── model-loader.ts            # Model configuration loading
 ├── handlers/
 │   ├── message-handler.ts         # Routes incoming messages to commands or generation
 │   └── command-handler.ts         # --help, --models, start/stop ComfyUI, generation
@@ -197,8 +204,9 @@ The bot is modular and async-first, with a strict separation between *receiving*
 3. **Background worker**: `worker.ts` drains the queue one item at a time — the only component that talks to ComfyUI for generation:
    - `comfyui-service-manager.ts` probes `/system_stats`; if ComfyUI is down it starts the user systemd service and polls until it reports ready (or stops the service and fails, to avoid a crash loop)
    - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid)
-   - Transient failures (connection refused/reset, timeouts) are retried exactly once; other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
+   - Transient failures (connection refused/reset, timeouts, HTTP 408/429/5xx) are retried up to `GENERATION_MAX_RETRIES` with exponential backoff + jitter (so a flapped backend gets more room each retry and a burst of queued failures doesn't retry simultaneously); other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
 4. **Idle shutdown**: `inactivity-manager.ts` listens to the queue's idle signal and stops the ComfyUI service after `COMFYUI_IDLE_MINUTES` with no activity, freeing GPU memory for the rest of the machine
+5. **Graceful shutdown**: `shutdown.ts` wires `SIGINT`/`SIGTERM` (plus `uncaughtException`/`unhandledRejection` for defence-in-depth) into `FateBot.shutdown()`, which stops the generation worker, disables the inactivity timer, and quits the IRC connection — an in-flight generation always finishes and is reported first
 
 All operations are asynchronous and non-blocking, so the bot remains responsive while images are generating.
 

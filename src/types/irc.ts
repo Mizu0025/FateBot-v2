@@ -70,4 +70,6 @@ export interface IrcClient extends MessageSender {
     on(event: string, listener: (...args: never[]) => void): this;
     connect(options: IrcConnectOptions): void;
     join(channel: string): void;
+    /** Gracefully disconnects: sends QUIT and ends the socket. */
+    quit(message?: string): void;
 }

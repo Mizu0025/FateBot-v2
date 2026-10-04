@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { COMFYUI_CONFIG } from './constants';
 import { ModelLoader } from './model-loader';
 
-// Vitest: mock `fs` via an explicit factory whose readFileSync is a vi.fn, and
-// grab that same vi.fn through a named import (not require), so the source's
-// `import { readFileSync }` and the test share one binding.
-vi.mock('fs', () => ({ readFileSync: vi.fn() }));
+// `fs.promises.readFile` is now the single fs entry point (P1-1): mock it via
+// an explicit factory so the test's vi.fn and the source's `import { promises
+// as fs }` share one binding.
+vi.mock('fs', () => ({
+    promises: { readFile: vi.fn() },
+}));
 
-import { readFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 
-const mockedReadFileSync = readFileSync as Mock;
+const mockedReadFile = fs.readFile as unknown as Mock;
 
 describe('ModelLoader', () => {
     beforeEach(() => {
@@ -22,21 +25,28 @@ describe('ModelLoader', () => {
     });
 
     describe('loadModelConfiguration', () => {
-        it('should load model configuration for a valid model', async () => {
-            // arrange
+        it('should read the model config from the env-configured path', async () => {
+            // arrange — the file path comes from COMFYUI_CONFIG.MODEL_CONFIG_PATH, not __dirname.
+            const originalPath = COMFYUI_CONFIG.MODEL_CONFIG_PATH;
+            COMFYUI_CONFIG.MODEL_CONFIG_PATH = '/custom/modelConfiguration.json';
             const mockConfig = {
                 paSanctuary: {
                     checkpointName: 'PaSanctuary_v5.safetensors',
                     vae: 'sdxl_vae.safetensors',
                 },
             };
-            mockedReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
+            mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
-            // act
-            const modelConfig = await ModelLoader.loadModelConfiguration('paSanctuary');
+            try {
+                // act
+                const modelConfig = await ModelLoader.loadModelConfiguration('paSanctuary');
 
-            // assert
-            expect(modelConfig).toEqual(mockConfig.paSanctuary);
+                // assert
+                expect(mockedReadFile).toHaveBeenCalledWith('/custom/modelConfiguration.json', 'utf8');
+                expect(modelConfig).toEqual(mockConfig.paSanctuary);
+            } finally {
+                COMFYUI_CONFIG.MODEL_CONFIG_PATH = originalPath;
+            }
         });
 
         it('should return null for an invalid model', async () => {
@@ -47,7 +57,7 @@ describe('ModelLoader', () => {
                     vae: 'sdxl_vae.safetensors',
                 },
             };
-            mockedReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
+            mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
             // act
             const modelConfig = await ModelLoader.loadModelConfiguration('invalidModel');
@@ -58,7 +68,7 @@ describe('ModelLoader', () => {
 
         it('should throw an error if modelConfiguration.json is not found', async () => {
             // arrange
-            mockedReadFileSync.mockImplementation(() => {
+            mockedReadFile.mockImplementation(() => {
                 throw new Error('File not found');
             });
 
@@ -76,7 +86,7 @@ describe('ModelLoader', () => {
                 paSanctuary: {},
                 illustriousXL: {},
             };
-            mockedReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
+            mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
             // act
             const modelsList = await ModelLoader.getModelsList();
@@ -87,7 +97,7 @@ describe('ModelLoader', () => {
 
         it('should throw an error if modelConfiguration.json is not found', async () => {
             // arrange
-            mockedReadFileSync.mockImplementation(() => {
+            mockedReadFile.mockImplementation(() => {
                 throw new Error('File not found');
             });
 

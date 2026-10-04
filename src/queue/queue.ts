@@ -1,5 +1,6 @@
 import { logger } from '../config/logger';
 import type { FilteredPrompt } from '../types';
+import { UserError } from '../types/errors';
 
 /**
  * The slice of the prompt queue that idle-state observers depend on.
@@ -24,6 +25,18 @@ export interface PromptQueueItem {
 }
 
 /**
+ * Maximum number of requests the queue will hold at once (pending or in
+ * flight). `addTask` rejects beyond this with a `UserError` so the IRC
+ * handler can tell the user "queue full" — protecting the GPU from a flood
+ * of accidental or deliberate requests. Kept mutable so tests can override
+ * it, like {@link COMFYUI_CONFIG}.
+ */
+export const MAX_QUEUE_LIMIT: { value: number } = { value: 16 };
+
+/** Nick stamped on the sentinel item the queue hands to a worker on shutdown. */
+const SHUTDOWN_NICK = '<shutdown>';
+
+/**
  * A simple FIFO queue of image generation requests.
  *
  * The queue only stores data and never executes work — a single dedicated
@@ -38,6 +51,8 @@ export class PromptQueue implements QueueMonitor {
     } | null = null;
     /** True while a worker holds an item it is processing. */
     private workerBusy = false;
+    /** Set by {@link shutdown}; a worker should exit on the next dequeue. */
+    private shuttingDown = false;
 
     /** Callback triggered when the queue becomes completely idle. */
     public onIdle?: () => void;
@@ -50,9 +65,18 @@ export class PromptQueue implements QueueMonitor {
      * request arriving while one is in flight is #2, not #1.
      */
     addTask(item: PromptQueueItem): number {
+        if (this.items.length >= MAX_QUEUE_LIMIT.value) {
+            logger.warn(`Queue is full (${MAX_QUEUE_LIMIT.value}); rejecting request from ${item.nick}`);
+            throw new UserError(`The queue is full (${MAX_QUEUE_LIMIT.value} waiting). Try again in a few moments.`);
+        }
+
         // Hand the item directly to a currently waiting worker instead of
         // buffering it — otherwise it would stay in `items` and get
         // dequeued (and generated) a second time.
+        if (this.isShuttingDown) {
+            logger.debug(`Queue is shutting down; rejecting new request from ${item.nick}`);
+            throw new UserError('The bot is shutting down; please try again shortly.');
+        }
         if (this.waiting) {
             const waiter = this.waiting;
             this.waiting = null;
@@ -80,6 +104,12 @@ export class PromptQueue implements QueueMonitor {
         if (next) {
             this.workerBusy = true;
             return Promise.resolve(next);
+        }
+        // No item and we're shutting down: hand back the sentinel immediately
+        // (not a pending waiter a worker would block on forever) so a worker
+        // finishing its in-flight request unblocks and exits (P0-3).
+        if (this.shuttingDown) {
+            return Promise.resolve(PromptQueue.shutdownItem());
         }
         return new Promise<PromptQueueItem>((resolve) => {
             this.waiting = { resolve };
@@ -126,5 +156,41 @@ export class PromptQueue implements QueueMonitor {
             logger.info('Queue is idle - all requests processed');
             this.onIdle();
         }
+    }
+
+    /**
+     * True while {@link shutdown} has been called and the queue no longer
+     * accepts new requests (P0-3).
+     */
+    get isShuttingDown(): boolean {
+        return this.shuttingDown;
+    }
+
+    /** True if an item is the shutdown sentinel (not a real request) (P0-3). */
+    public static isShutdownItem(item: PromptQueueItem): boolean {
+        return item.nick === SHUTDOWN_NICK;
+    }
+
+    private static shutdownItem(): PromptQueueItem {
+        // The `prompt` payload is never read for a sentinel (the worker checks
+        // `isShutdownItem` before touching it), so an empty cast suffices to
+        // satisfy the type without fabricating a usable prompt.
+        return { prompt: {} as unknown as FilteredPrompt, nick: SHUTDOWN_NICK, channel: SHUTDOWN_NICK };
+    }
+
+    /**
+     * Signals the queue to stop accepting new requests and unblocks any
+     * waiting {@link dequeue} caller so a worker loop can exit (P0-3). The
+     * unblocked worker receives a {@link isShutdownItem | shutdown sentinel}
+     * to drop. Idempotent.
+     */
+    public shutdown(): void {
+        this.shuttingDown = true;
+        const waiter = this.waiting;
+        this.waiting = null;
+        if (waiter) {
+            waiter.resolve(PromptQueue.shutdownItem());
+        }
+        logger.debug('Queue shutdown requested');
     }
 }

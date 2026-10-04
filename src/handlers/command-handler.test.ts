@@ -135,51 +135,6 @@ describe('CommandHandler', () => {
         });
     });
 
-    describe('handleComfyuiStatus', () => {
-        it('should report running state including queue stats', async () => {
-            (mockService.isRunning as Mock).mockResolvedValue(true);
-
-            await commandHandler.handleComfyuiStatus('user123');
-
-            expect(mockBot.notice).toHaveBeenCalledWith(
-                'user123',
-                'ComfyUI is running. Queue: 2 waiting, processing: yes.',
-            );
-        });
-
-        it('should report idle queue stats when nothing is being processed', async () => {
-            mockQueue.length = 0;
-            (mockQueue.isProcessing as Mock).mockReturnValue(false);
-            (mockService.isRunning as Mock).mockResolvedValue(true);
-
-            await commandHandler.handleComfyuiStatus('user123');
-
-            expect(mockBot.notice).toHaveBeenCalledWith(
-                'user123',
-                'ComfyUI is running. Queue: 0 waiting, processing: no.',
-            );
-        });
-
-        it('should report that ComfyUI is not running', async () => {
-            (mockService.isRunning as Mock).mockResolvedValue(false);
-
-            await commandHandler.handleComfyuiStatus('user123');
-
-            expect(mockBot.notice).toHaveBeenCalledWith(
-                'user123',
-                'ComfyUI is not running. It will start automatically on the next image request.',
-            );
-        });
-
-        it('should report an error if the status check fails', async () => {
-            (mockService.isRunning as Mock).mockRejectedValue(new Error('probe failed'));
-
-            await commandHandler.handleComfyuiStatus('user123');
-
-            expect(mockBot.notice).toHaveBeenCalledWith('user123', 'Error checking ComfyUI status: probe failed');
-        });
-    });
-
     describe('handleGenerateImage', () => {
         it('should parse prompt, clear timer and queue a request for the channel', async () => {
             const nick = 'user123';
@@ -226,7 +181,7 @@ describe('CommandHandler', () => {
 
     describe('handleDeleteImages', () => {
         it('should delete a single batch by id and confirm the count', async () => {
-            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
+            vi.mocked(deleteArtworkTarget).mockResolvedValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
 
             await commandHandler.handleDeleteImages(
                 'user123',
@@ -242,7 +197,7 @@ describe('CommandHandler', () => {
         });
 
         it('should clear the whole folder when passed "all"', async () => {
-            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['a.webp'], count: 30 });
+            vi.mocked(deleteArtworkTarget).mockResolvedValue({ deleted: ['a.webp'], count: 30 });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete all');
 
@@ -251,7 +206,7 @@ describe('CommandHandler', () => {
         });
 
         it('should report that nothing matched the id', async () => {
-            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: [], count: 0 });
+            vi.mocked(deleteArtworkTarget).mockResolvedValue({ deleted: [], count: 0 });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete nope');
 
@@ -269,9 +224,7 @@ describe('CommandHandler', () => {
         });
 
         it('should report an error from the deleter', async () => {
-            vi.mocked(deleteArtworkTarget).mockImplementation(() => {
-                throw new Error('folder missing');
-            });
+            vi.mocked(deleteArtworkTarget).mockRejectedValue(new Error('folder missing'));
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete abc');
 

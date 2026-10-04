@@ -112,17 +112,17 @@ export class ImageGrid {
     /**
      * Orchestrates the grid generation process from a list of local file paths.
      * @param filepaths Array of local image file paths.
+     * @param promptId The ID of the prompt that generated these images (P2-7).
+     *                  The caller — which already owns the prompt id — passes it
+     *                  in, so the grid does not have to re-derive it from the
+     *                  first filename and both sides share one source of truth.
      * @returns The public URL/domain path to the generated grid.
      * @throws Error if no filepaths are provided.
      */
-    public static async generateImageGrid(filepaths: string[]): Promise<string> {
+    public static async generateImageGrid(filepaths: string[], promptId: string): Promise<string> {
         if (filepaths.length === 0) {
             throw new Error('No filepaths provided for grid generation');
         }
-
-        // Extract promptId from the first filename
-        const firstFile = filepaths[0].split('/').pop() || '';
-        const promptId = firstFile.split('_')[0];
 
         // Open all images
         const images = await ImageGrid.openImages(filepaths);

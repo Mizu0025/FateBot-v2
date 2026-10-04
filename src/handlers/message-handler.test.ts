@@ -148,4 +148,81 @@ describe('MessageHandler', () => {
         expect(mockCommandHandler.handleDeleteImages).toHaveBeenCalledWith('user123', event.target, event.message);
         expect(mockCommandHandler.handleGenerateImage).not.toHaveBeenCalled();
     });
+
+    describe('whole-token flag matching (P0-7)', () => {
+        it('should NOT route a prompt that mentions --delete all as literal text', async () => {
+            const event = {
+                target: BOT_CONFIG.CHANNEL,
+                nick: 'user123',
+                message: `${BOT_CONFIG.TRIGGER_WORD} a banner that says "--delete all"`,
+            };
+
+            await messageHandler.handleMessage(event);
+
+            expect(mockCommandHandler.handleDeleteImages).not.toHaveBeenCalled();
+            expect(mockCommandHandler.handleGenerateImage).toHaveBeenCalled();
+        });
+
+        it('should route case-insensitively (--HELP → handleHelp)', async () => {
+            const event = {
+                target: BOT_CONFIG.CHANNEL,
+                nick: 'user123',
+                message: `${BOT_CONFIG.TRIGGER_WORD} --HELP`,
+            };
+
+            await messageHandler.handleMessage(event);
+
+            expect(mockCommandHandler.handleHelp).toHaveBeenCalledWith('user123');
+            expect(mockCommandHandler.handleGenerateImage).not.toHaveBeenCalled();
+        });
+
+        it('should route --START-COMFYUI regardless of case', async () => {
+            const event = {
+                target: BOT_CONFIG.CHANNEL,
+                nick: 'user123',
+                message: `${BOT_CONFIG.TRIGGER_WORD} --START-COMFYUI`,
+            };
+
+            await messageHandler.handleMessage(event);
+
+            expect(mockCommandHandler.handleStartComfyui).toHaveBeenCalledWith('user123');
+        });
+
+        it('should NOT route a prompt with a word that merely contains "--helpful"', async () => {
+            const event = {
+                target: BOT_CONFIG.CHANNEL,
+                nick: 'user123',
+                message: `${BOT_CONFIG.TRIGGER_WORD} a very --helpful cat sitting on a fence`,
+            };
+
+            await messageHandler.handleMessage(event);
+
+            expect(mockCommandHandler.handleHelp).not.toHaveBeenCalled();
+            expect(mockCommandHandler.handleGenerateImage).toHaveBeenCalledWith('user123', event.target, event.message);
+        });
+
+        it('should route when the flag appears later in the message', async () => {
+            const event = {
+                target: BOT_CONFIG.CHANNEL,
+                nick: 'user123',
+                message: `${BOT_CONFIG.TRIGGER_WORD} a sunset with --models in the sky`,
+            };
+
+            await messageHandler.handleMessage(event);
+
+            expect(mockCommandHandler.handleListModels).toHaveBeenCalledWith('user123');
+        });
+
+        it('should route --delete followed by a prompt id (not "all")', async () => {
+            const event = {
+                target: BOT_CONFIG.CHANNEL,
+                nick: 'user123',
+                message: `${BOT_CONFIG.TRIGGER_WORD} --delete a1b2c3d4-0000-0000-0000-000000000000`,
+            };
+
+            await messageHandler.handleMessage(event);
+
+            expect(mockCommandHandler.handleDeleteImages).toHaveBeenCalledWith('user123', event.target, event.message);
+        });
+    });
 });

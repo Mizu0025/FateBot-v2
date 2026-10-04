@@ -103,26 +103,6 @@ export class CommandHandler {
     }
 
     /**
-     * Reports the current state of the ComfyUI service.
-     * @param nick The nickname of the user requesting the status.
-     */
-    public async handleComfyuiStatus(nick: string) {
-        logger.info(`ComfyUI status requested by ${nick}`);
-        try {
-            const running = await this.service.isRunning();
-            this.bot.notice(
-                nick,
-                running
-                    ? `ComfyUI is running. Queue: ${this.queue.length} waiting, processing: ${this.queue.isProcessing() ? 'yes' : 'no'}.`
-                    : 'ComfyUI is not running. It will start automatically on the next image request.',
-            );
-        } catch (error) {
-            logger.error('Error checking ComfyUI status:', error);
-            this.bot.notice(nick, `Error checking ComfyUI status: ${error instanceof Error ? error.message : error}`);
-        }
-    }
-
-    /**
      * Deletes generated images. With a prompt id it removes just that batch;
      * with "all" it clears the entire art folder.
      * @param nick The nickname of the user requesting the deletion.
@@ -143,7 +123,7 @@ export class CommandHandler {
 
         const target = arg.toLowerCase() === 'all' ? 'all' : arg;
         try {
-            const result = deleteArtworkTarget(target);
+            const result = await deleteArtworkTarget(target);
             if (result.count === 0) {
                 this.bot.say(channel, `${nick}: No images matched "${target}".`);
                 return;
