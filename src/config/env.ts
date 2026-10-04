@@ -26,6 +26,9 @@ const env = cleanEnv(process.env, {
     COMFYUI_UNIT_NAME: str({ default: 'comfyui' }),
     COMFYUI_IDLE_MINUTES: posInt({ default: 10 }),
     COMFYUI_START_TIMEOUT_SECONDS: posInt({ default: 120 }),
+    // WebSocket client timeouts (milliseconds).
+    COMFYUI_WS_CONNECT_TIMEOUT_MS: posInt({ default: 10000 }),
+    COMFYUI_WS_IMAGE_TIMEOUT_MS: posInt({ default: 300000 }),
     SASL_ACCOUNT: str({ default: undefined }),
     SASL_PASSWORD: str({ default: undefined }),
 });

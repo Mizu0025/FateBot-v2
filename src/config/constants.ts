@@ -23,6 +23,10 @@ export type ComfyUiConfig = {
     DOMAIN_PATH: string;
     FOLDER_PATH: string;
     WORKFLOW_PATH: string;
+    /** Max ms to wait for the WebSocket to complete its handshake. */
+    WS_CONNECT_TIMEOUT_MS: number;
+    /** Max ms to wait for a queued prompt's images to stream back. */
+    WS_IMAGE_TIMEOUT_MS: number;
 };
 
 export const COMFYUI_CONFIG: ComfyUiConfig = {
@@ -31,6 +35,8 @@ export const COMFYUI_CONFIG: ComfyUiConfig = {
     DOMAIN_PATH: env.COMFYUI_DOMAIN_PATH,
     FOLDER_PATH: env.COMFYUI_FOLDER_PATH,
     WORKFLOW_PATH: env.COMFYUI_WORKFLOW_PATH,
+    WS_CONNECT_TIMEOUT_MS: env.COMFYUI_WS_CONNECT_TIMEOUT_MS,
+    WS_IMAGE_TIMEOUT_MS: env.COMFYUI_WS_IMAGE_TIMEOUT_MS,
 };
 
 /**

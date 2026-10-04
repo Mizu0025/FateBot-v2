@@ -61,9 +61,6 @@ export class ImageGenerator {
 
             // Queue the prompt
             const promptId = await client.queuePrompt(promptData.data);
-            if (!promptId) {
-                throw new SystemError('ComfyUI queued the prompt but returned no ID.');
-            }
             logger.info(`Prompt queued with ID: ${promptId}`);
 
             // Get images from WebSocket

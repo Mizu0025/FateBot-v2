@@ -26,9 +26,6 @@ describe('deleteArtworkTarget', () => {
         COMFYUI_CONFIG.FOLDER_PATH = '/mnt/ai_data/artwork/';
         // Default: every listed name is a regular file.
         statMock.mockResolvedValue({ isFile: () => true });
-    });
-
-    beforeEach(() => {
         vi.spyOn(logger, 'debug').mockImplementation(() => logger);
         vi.spyOn(logger, 'warn').mockImplementation(() => logger);
     });

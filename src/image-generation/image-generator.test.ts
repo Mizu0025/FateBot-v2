@@ -138,9 +138,10 @@ describe('ImageGenerator', () => {
         });
 
         it('should throw error if it fails to queue prompt', async () => {
-            // Arrange
+            // Arrange — queuePrompt now rejects on failure (it no longer resolves
+            // a bare `null`), and generateImage must surface that failure (P1-6).
             const clientInstance = new ComfyUIClient();
-            (clientInstance.queuePrompt as Mock).mockResolvedValue(null);
+            (clientInstance.queuePrompt as Mock).mockRejectedValue(new Error('ComfyUI backend returned status 500'));
             (ComfyUIClient as unknown as Mock).mockImplementation(function () {
                 return clientInstance;
             });
@@ -148,7 +149,7 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
-                'ComfyUI queued the prompt but returned no ID.',
+                'ComfyUI backend returned status 500',
             );
         });
 
