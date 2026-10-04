@@ -1,4 +1,4 @@
-import { cleanEnv, port, str } from 'envalid';
+import { bool, cleanEnv, port, str } from 'envalid';
 import { describe, expect, it, vi } from 'vitest';
 import { posInt } from './env';
 
@@ -99,5 +99,61 @@ describe('env validation', () => {
         expect(collectErrors('-5')).toEqual(['Expected a positive integer, got -5']);
         expect(collectErrors('2.5')).toEqual(['Expected a positive integer, got 2.5']);
         expect(collectErrors('abc')).toEqual(['Expected a positive integer, got abc']);
+    });
+});
+
+/**
+ * P1-3 + P1-5 acceptance: the new keys (TLS, LOG_LEVEL, LOG_TO_FILE,
+ * COMFYUI_START_POLL_INTERVAL_MS) are present in the validated environment with
+ * the documented defaults and accept explicit overrides. The spec mirrors the
+ * new keys added in P1-3/P1-5 (the full real spec would drag in dotenv + the
+ * root `.env`, which isn't the intent of this test).
+ */
+describe('env (P1-3 + P1-5): new validated keys', () => {
+    const validators = {
+        PORT: port({ default: 6667 }),
+        TLS: bool({ default: false }),
+        LOG_LEVEL: str({ default: 'info' }),
+        LOG_TO_FILE: bool({ default: false }),
+        COMFYUI_START_POLL_INTERVAL_MS: posInt({ default: 2000 }),
+    };
+
+    it('applies declared defaults when the variables are missing', () => {
+        const env = cleanEnv({}, validators);
+        expect(env.PORT).toBe(6667);
+        expect(env.TLS).toBe(false);
+        expect(env.LOG_LEVEL).toBe('info');
+        expect(env.LOG_TO_FILE).toBe(false);
+        expect(env.COMFYUI_START_POLL_INTERVAL_MS).toBe(2000);
+    });
+
+    it('accepts explicit values and validates types', () => {
+        const env = cleanEnv(
+            {
+                PORT: '7000',
+                TLS: 'true',
+                LOG_LEVEL: 'debug',
+                LOG_TO_FILE: 'true',
+                COMFYUI_START_POLL_INTERVAL_MS: '1500',
+            },
+            validators,
+        );
+        expect(env.PORT).toBe(7000);
+        expect(env.TLS).toBe(true);
+        expect(env.LOG_LEVEL).toBe('debug');
+        expect(env.LOG_TO_FILE).toBe(true);
+        expect(env.COMFYUI_START_POLL_INTERVAL_MS).toBe(1500);
+    });
+
+    it('rejects a non-positive COMFYUI_START_POLL_INTERVAL_MS', () => {
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => cleanEnv({ COMFYUI_START_POLL_INTERVAL_MS: '0' }, validators)).toThrow();
+        errorSpy.mockRestore();
+    });
+
+    it('rejects a non-boolean LOG_TO_FILE', () => {
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => cleanEnv({ LOG_TO_FILE: 'maybe' }, validators)).toThrow();
+        errorSpy.mockRestore();
     });
 });

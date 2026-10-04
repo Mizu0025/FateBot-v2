@@ -1,7 +1,9 @@
 import env from './env';
 
 /**
- * Bot connection and identification settings.
+ * Bot connection and identification settings. TLS is env-driven (P1-3):
+ * it defaults on for the conventional TLS port (6697) but can be forced
+ * on/off explicitly for non-standard ports.
  */
 export const BOT_CONFIG = {
     SERVER: env.SERVER,
@@ -9,6 +11,7 @@ export const BOT_CONFIG = {
     NICK: env.NICK,
     TRIGGER_WORD: env.TRIGGER_WORD,
     PORT: env.PORT,
+    TLS: env.TLS,
     SASL_ACCOUNT: env.SASL_ACCOUNT,
     SASL_PASSWORD: env.SASL_PASSWORD,
 } as const;
@@ -58,7 +61,7 @@ export const COMFYUI_SERVICE_CONFIG: ComfyUiServiceConfig = {
     UNIT_NAME: env.COMFYUI_UNIT_NAME,
     IDLE_MINUTES: env.COMFYUI_IDLE_MINUTES,
     START_TIMEOUT_SECONDS: env.COMFYUI_START_TIMEOUT_SECONDS,
-    START_POLL_INTERVAL_MS: 2000,
+    START_POLL_INTERVAL_MS: env.COMFYUI_START_POLL_INTERVAL_MS,
 };
 
 /**

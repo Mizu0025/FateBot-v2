@@ -1,9 +1,10 @@
 import { join } from 'node:path';
 import winston from 'winston';
+import env from './env';
 
-// Get log level from environment variable, default to 'info'
-const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
-const LOG_TO_FILE = process.env.LOG_TO_FILE === 'true';
+// Read log-level / file-logging from the validated environment (single source
+// of truth, P1-5) instead of direct `process.env` reads.
+const { LOG_LEVEL, LOG_TO_FILE } = env;
 
 // Define custom log format for console (colorized and readable)
 const consoleFormat = winston.format.combine(

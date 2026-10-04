@@ -104,6 +104,7 @@ Configuration is read from environment variables, validated with `envalid`, and 
 |----------|-------------|---------|
 | `SERVER` | IRC server address | `address` |
 | `PORT` | IRC server port (use `6697` for TLS) | `6667` |
+| `TLS` | Force IRC TLS on/off (defaults on when `PORT=6697`, off otherwise) | (auto) |
 | `CHANNEL` | IRC channel to join | `#channel` |
 | `NICK` | Bot's nickname | `nick` |
 | `TRIGGER_WORD` | Command trigger word | `!trigger` |
@@ -117,6 +118,7 @@ Configuration is read from environment variables, validated with `envalid`, and 
 | `COMFYUI_UNIT_NAME` | Name of the ComfyUI user systemd unit (without `.service`) | `comfyui` |
 | `COMFYUI_IDLE_MINUTES` | Idle minutes before the bot stops ComfyUI to free VRAM | `10` |
 | `COMFYUI_START_TIMEOUT_SECONDS` | Max seconds to wait for ComfyUI to become ready after start | `120` |
+| `COMFYUI_START_POLL_INTERVAL_MS` | Milliseconds between readiness polls while the service comes up | `2000` |
 | `LOG_LEVEL` | Winston log level (`error`, `warn`, `info`, `debug`) | `info` |
 | `LOG_TO_FILE` | Also write JSON logs to `./logs/combined.log` and `./logs/error.log` (rotated, 5 files) | `false` |
 
