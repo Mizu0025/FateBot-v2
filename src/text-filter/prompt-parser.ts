@@ -4,6 +4,20 @@ import type { FilteredPrompt } from '../types';
 import { UserError } from '../types/errors';
 
 /**
+ * Hard safety bounds on user-supplied generation parameters.
+ *
+ * `--width 65536 --height 65536 --count 128` used to parse cleanly and ask
+ * the GPU to allocate tens of gigabytes of VRAM. These bounds turn that into
+ * a `UserError` the caller can echo back to the IRC channel.
+ */
+const GENERATION_LIMITS = {
+    MIN_DIMENSION: 32,
+    MAX_DIMENSION: 8192,
+    MIN_COUNT: 1,
+    MAX_COUNT: 64,
+} as const;
+
+/**
  * Parses user input message into structured image generation parameters.
  * Supports various flags (e.g., --width, --height, --model) and their short aliases.
  */
@@ -123,35 +137,44 @@ export class PromptParser {
 
     /**
      * Applies a specific flag/value pair to the corresponding field in the FilteredPrompt result.
-     * @param result The FilteredPrompt object being built.
-     * @param flag The modifier flag (e.g., "-w" or "--width").
-     * @param value The value associated with the flag.
+     * @param result The prompt object being built.
+     * @param flag The modifier flag (e.g., "--width" or "-w").
+     * @param value The value string associated with the flag.
      */
     private static applyModifier(result: FilteredPrompt, flag: string, value: string): void {
         for (const [key, aliases] of Object.entries(PromptParser.MODIFIER_MAP)) {
             if (aliases.includes(flag)) {
                 switch (key) {
-                    case 'width': {
-                        const val = parseInt(value, 10);
-                        if (!Number.isNaN(val)) result.width = val;
+                    case 'width':
+                        result.width = PromptParser.parseBoundedInt(
+                            value,
+                            GENERATION_LIMITS.MIN_DIMENSION,
+                            GENERATION_LIMITS.MAX_DIMENSION,
+                            'width',
+                        );
                         break;
-                    }
-                    case 'height': {
-                        const val = parseInt(value, 10);
-                        if (!Number.isNaN(val)) result.height = val;
+                    case 'height':
+                        result.height = PromptParser.parseBoundedInt(
+                            value,
+                            GENERATION_LIMITS.MIN_DIMENSION,
+                            GENERATION_LIMITS.MAX_DIMENSION,
+                            'height',
+                        );
                         break;
-                    }
                     case 'model':
                         result.model = value;
                         break;
                     case 'negative_prompt':
                         result.negative_prompt = value;
                         break;
-                    case 'count': {
-                        const val = parseInt(value, 10);
-                        if (!Number.isNaN(val)) result.count = val;
+                    case 'count':
+                        result.count = PromptParser.parseBoundedInt(
+                            value,
+                            GENERATION_LIMITS.MIN_COUNT,
+                            GENERATION_LIMITS.MAX_COUNT,
+                            'count',
+                        );
                         break;
-                    }
                     case 'seed': {
                         const val = parseInt(value, 10);
                         if (!Number.isNaN(val)) result.seed = val;
@@ -161,6 +184,20 @@ export class PromptParser {
                 break;
             }
         }
+    }
+
+    /**
+     * Parses a flag value as a positive integer in the range [lo, hi],
+     * throwing a {@link UserError} describing the valid bounds otherwise.
+     * Values that fail to parse (e.g. `--width wide`) are also rejected with
+     * the bounds so the user gets a single, consistent error.
+     */
+    private static parseBoundedInt(value: string, lo: number, hi: number, name: string): number {
+        const val = parseInt(value, 10);
+        if (Number.isNaN(val) || val < lo || val > hi) {
+            throw new UserError(`Invalid ${name} "${value}". Must be an integer between ${lo} and ${hi}.`);
+        }
+        return val;
     }
 
     private static readonly MODIFIER_MAP: Record<string, string[]> = {

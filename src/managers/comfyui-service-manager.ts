@@ -17,6 +17,18 @@ const PROBE_TIMEOUT_MS = 3000;
  */
 export class ComfyUiServiceManager {
     /**
+     * In-flight `ensureRunning()` promise. All concurrent invocations share
+     * the same underlying start+poll pass, so the service is never started
+     * (or torn down) twice for the same readiness window. The mutex is nulled
+     * as soon as the shared promise settles — by any outcome (success or
+     * throw) — so the next call can start fresh.
+     *
+     * This is the fix for P0-2: before this, two concurrent callers could
+     * both time out and one could `stopService()` the very service the other
+     * was mid-generation on.
+     */
+    private ensureMutex: Promise<boolean> | null = null;
+    /**
      * Base URL of the ComfyUI HTTP/WS server, e.g. `http://localhost:8188`.
      */
     private baseUrl(): string {
@@ -42,11 +54,30 @@ export class ComfyUiServiceManager {
 
     /**
      * Ensures the ComfyUI service is started and ready to accept prompts.
-     * Probes first: if the server is already up, this is a no-op.
-     * @returns True if this call started the service, false if it was already running.
+     * Concurrent callers share the same underlying start+poll pass (P0-2) —
+     * they all resolve with the same `started` boolean and the service is
+     * only started once.
+     * @returns True if the service was started by this (or a peer) call, false
+     *         if it was already running before any of them began.
      * @throws SystemError if the service fails to start or never becomes ready.
      */
-    public async ensureRunning(): Promise<boolean> {
+    public ensureRunning(): Promise<boolean> {
+        if (!this.ensureMutex) {
+            this.ensureMutex = this.doEnsureRunning().finally(() => {
+                this.ensureMutex = null;
+            });
+        }
+        return this.ensureMutex;
+    }
+
+    /**
+     * The actual start+poll work, run at most once per shared window.
+     * Probes first: if the server is already up this is a no-op returning
+     * `false`. Otherwise starts the unit and polls until it reports ready or
+     * the deadline elapses; on timeout the service is stopped so its
+     * `Restart=on-failure` policy can't crash-loop.
+     */
+    private async doEnsureRunning(): Promise<boolean> {
         if (!COMFYUI_CONFIG.ADDRESS) {
             throw new SystemError('ComfyUI server address not configured.');
         }

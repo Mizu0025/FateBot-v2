@@ -129,6 +129,33 @@ describe('ComfyUiServiceManager', () => {
                 expect.objectContaining({ message: expect.stringContaining('ComfyUI startup timed out') }),
             );
         });
+
+        it('serializes concurrent ensureRunning calls into one start pass (P0-2 mutex)', async () => {
+            // Service comes up after a few polls. Two callers should share the
+            // same start+poll window: start is issued exactly once, and no one
+            // tears down the service the other is about to use.
+            COMFYUI_SERVICE_CONFIG.START_TIMEOUT_SECONDS = 60;
+            COMFYUI_SERVICE_CONFIG.START_POLL_INTERVAL_MS = 5;
+            let probes = 0;
+            mockFetch.mockImplementation(async () => {
+                probes += 1;
+                // First 3 probes (initial check + 2 polls): not up yet.
+                if (probes < 4) {
+                    return { ok: false };
+                }
+                return { ok: true };
+            });
+
+            const [a, b] = await Promise.all([manager.ensureRunning(), manager.ensureRunning()]);
+
+            const startCalls = execFileMock.mock.calls.filter((c) => (c[1] as string[]).includes('start'));
+            const stopCalls = execFileMock.mock.calls.filter((c) => (c[1] as string[]).includes('stop'));
+
+            expect(a).toBe(true);
+            expect(b).toBe(true);
+            expect(startCalls).toHaveLength(1);
+            expect(stopCalls).toHaveLength(0);
+        });
     });
 
     describe('stop', () => {

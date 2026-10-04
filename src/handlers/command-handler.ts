@@ -143,7 +143,7 @@ export class CommandHandler {
 
         const target = arg.toLowerCase() === 'all' ? 'all' : arg;
         try {
-            const result = deleteArtworkTarget(target);
+            const result = await deleteArtworkTarget(target);
             if (result.count === 0) {
                 this.bot.say(channel, `${nick}: No images matched "${target}".`);
                 return;

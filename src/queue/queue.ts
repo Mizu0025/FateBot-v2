@@ -1,5 +1,6 @@
 import { logger } from '../config/logger';
 import type { FilteredPrompt } from '../types';
+import { UserError } from '../types/errors';
 
 /**
  * The slice of the prompt queue that idle-state observers depend on.
@@ -22,6 +23,15 @@ export interface PromptQueueItem {
     /** The channel the request came from (results are posted back here). */
     channel: string;
 }
+
+/**
+ * Maximum number of requests the queue will hold at once (pending or in
+ * flight). `addTask` rejects beyond this with a `UserError` so the IRC
+ * handler can tell the user "queue full" — protecting the GPU from a flood
+ * of accidental or deliberate requests. Kept mutable so tests can override
+ * it, like {@link COMFYUI_CONFIG}.
+ */
+export const MAX_QUEUE_LIMIT: { value: number } = { value: 16 };
 
 /**
  * A simple FIFO queue of image generation requests.
@@ -50,6 +60,11 @@ export class PromptQueue implements QueueMonitor {
      * request arriving while one is in flight is #2, not #1.
      */
     addTask(item: PromptQueueItem): number {
+        if (this.items.length >= MAX_QUEUE_LIMIT.value) {
+            logger.warn(`Queue is full (${MAX_QUEUE_LIMIT.value}); rejecting request from ${item.nick}`);
+            throw new UserError(`The queue is full (${MAX_QUEUE_LIMIT.value} waiting). Try again in a few moments.`);
+        }
+
         // Hand the item directly to a currently waiting worker instead of
         // buffering it — otherwise it would stay in `items` and get
         // dequeued (and generated) a second time.

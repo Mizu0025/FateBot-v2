@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../config/logger';
 import type { FilteredPrompt } from '../types';
-import { PromptQueue, type PromptQueueItem } from './queue';
+import { UserError } from '../types/errors';
+import { MAX_QUEUE_LIMIT, PromptQueue, type PromptQueueItem } from './queue';
 
 // Helper to build a minimal, fully-typed queued request.
 const makeItem = (id: number): PromptQueueItem => ({
@@ -16,6 +17,8 @@ describe('PromptQueue', () => {
         vi.spyOn(logger, 'error').mockImplementation(() => logger);
         vi.spyOn(logger, 'debug').mockImplementation(() => logger);
         vi.spyOn(logger, 'info').mockImplementation(() => logger);
+        vi.spyOn(logger, 'warn').mockImplementation(() => logger);
+        MAX_QUEUE_LIMIT.value = 16;
     });
 
     it('should add requests in FIFO order and return 1-indexed positions', async () => {
@@ -165,6 +168,21 @@ describe('PromptQueue', () => {
             queue.noteItemProcessed(); // no observer → no notification, no throw
             expect(queue.isIdle()).toBe(true);
         });
+    });
+
+    it('should reject a new request once the queue is full (P0-8 backpressure)', () => {
+        MAX_QUEUE_LIMIT.value = 3;
+        const queue = new PromptQueue();
+
+        queue.addTask(makeItem(1));
+        queue.addTask(makeItem(2));
+        queue.addTask(makeItem(3));
+        expect(queue.length).toBe(3);
+
+        expect(() => queue.addTask(makeItem(4))).toThrow(UserError);
+        expect(() => queue.addTask(makeItem(4))).toThrow(/queue is full/);
+        // The rejected item was not buffered.
+        expect(queue.length).toBe(3);
     });
 
     it('should report idle when empty and nothing is in flight', () => {

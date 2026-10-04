@@ -2,14 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vite
 
 import { ModelLoader } from './model-loader';
 
-// Vitest: mock `fs` via an explicit factory whose readFileSync is a vi.fn, and
-// grab that same vi.fn through a named import (not require), so the source's
-// `import { readFileSync }` and the test share one binding.
-vi.mock('fs', () => ({ readFileSync: vi.fn() }));
+// `fs.promises.readFile` is now the single fs entry point (P1-1): mock it via
+// an explicit factory so the test's vi.fn and the source's `import { promises
+// as fs }` share one binding.
+vi.mock('fs', () => ({
+    promises: { readFile: vi.fn() },
+}));
 
-import { readFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 
-const mockedReadFileSync = readFileSync as Mock;
+const mockedReadFile = fs.readFile as unknown as Mock;
 
 describe('ModelLoader', () => {
     beforeEach(() => {
@@ -30,7 +32,7 @@ describe('ModelLoader', () => {
                     vae: 'sdxl_vae.safetensors',
                 },
             };
-            mockedReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
+            mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
             // act
             const modelConfig = await ModelLoader.loadModelConfiguration('paSanctuary');
@@ -47,7 +49,7 @@ describe('ModelLoader', () => {
                     vae: 'sdxl_vae.safetensors',
                 },
             };
-            mockedReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
+            mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
             // act
             const modelConfig = await ModelLoader.loadModelConfiguration('invalidModel');
@@ -58,7 +60,7 @@ describe('ModelLoader', () => {
 
         it('should throw an error if modelConfiguration.json is not found', async () => {
             // arrange
-            mockedReadFileSync.mockImplementation(() => {
+            mockedReadFile.mockImplementation(() => {
                 throw new Error('File not found');
             });
 
@@ -76,7 +78,7 @@ describe('ModelLoader', () => {
                 paSanctuary: {},
                 illustriousXL: {},
             };
-            mockedReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
+            mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
             // act
             const modelsList = await ModelLoader.getModelsList();
@@ -87,7 +89,7 @@ describe('ModelLoader', () => {
 
         it('should throw an error if modelConfiguration.json is not found', async () => {
             // arrange
-            mockedReadFileSync.mockImplementation(() => {
+            mockedReadFile.mockImplementation(() => {
                 throw new Error('File not found');
             });
 

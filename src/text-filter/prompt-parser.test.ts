@@ -116,13 +116,58 @@ describe('PromptParser', () => {
     });
 
     it('should correctly parse seed=0', async () => {
-        // arrange
+        // Arrange
         const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape --seed 0`;
 
-        // act
+        // Act
         const result = await PromptParser.extractPrompts(message);
 
-        // assert
+        // Assert
         expect(result.seed).toBe(0);
+    });
+
+    describe('safety bounds (P0-6)', () => {
+        it.each([
+            ['--width', 'width'],
+            ['--height', 'height'],
+            ['--count', 'count'],
+        ])('should reject values above the max for %s', async (flag, name) => {
+            const tooBig = flag === '--count' ? '65' : '8193';
+            const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape ${flag}=${tooBig}`;
+
+            await expect(PromptParser.extractPrompts(message)).rejects.toThrow(UserError);
+            await expect(PromptParser.extractPrompts(message)).rejects.toThrow(new RegExp(`Invalid ${name}`));
+        });
+
+        it.each([
+            ['--width', '31'],
+            ['--width', '0'],
+            ['--width', '-5'],
+            ['--count', '0'],
+        ])('should reject values below the min for %s=%s', async (flag, val) => {
+            const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape ${flag}=${val}`;
+
+            await expect(PromptParser.extractPrompts(message)).rejects.toThrow(UserError);
+        });
+
+        it.each([
+            ['--width', '32'],
+            ['--width', '8192'],
+            ['--count', '1'],
+            ['--count', '64'],
+        ])('should accept boundary values for %s=%s', async (flag, val) => {
+            const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape ${flag}=${val}`;
+
+            const result = await PromptParser.extractPrompts(message);
+            const field = flag === '--width' ? 'width' : 'count';
+            expect(result[field as 'width' | 'count']).toBe(parseInt(val, 10));
+        });
+
+        it('should reject non-numeric dimension values', async () => {
+            const message = `${BOT_CONFIG.TRIGGER_WORD} a beautiful landscape --width=wide`;
+
+            await expect(PromptParser.extractPrompts(message)).rejects.toThrow(UserError);
+            await expect(PromptParser.extractPrompts(message)).rejects.toThrow(/Invalid width/);
+        });
     });
 });

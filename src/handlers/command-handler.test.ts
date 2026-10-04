@@ -226,7 +226,7 @@ describe('CommandHandler', () => {
 
     describe('handleDeleteImages', () => {
         it('should delete a single batch by id and confirm the count', async () => {
-            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
+            vi.mocked(deleteArtworkTarget).mockResolvedValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
 
             await commandHandler.handleDeleteImages(
                 'user123',
@@ -242,7 +242,7 @@ describe('CommandHandler', () => {
         });
 
         it('should clear the whole folder when passed "all"', async () => {
-            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['a.webp'], count: 30 });
+            vi.mocked(deleteArtworkTarget).mockResolvedValue({ deleted: ['a.webp'], count: 30 });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete all');
 
@@ -251,7 +251,7 @@ describe('CommandHandler', () => {
         });
 
         it('should report that nothing matched the id', async () => {
-            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: [], count: 0 });
+            vi.mocked(deleteArtworkTarget).mockResolvedValue({ deleted: [], count: 0 });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete nope');
 
@@ -269,9 +269,7 @@ describe('CommandHandler', () => {
         });
 
         it('should report an error from the deleter', async () => {
-            vi.mocked(deleteArtworkTarget).mockImplementation(() => {
-                throw new Error('folder missing');
-            });
+            vi.mocked(deleteArtworkTarget).mockRejectedValue(new Error('folder missing'));
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete abc');
 

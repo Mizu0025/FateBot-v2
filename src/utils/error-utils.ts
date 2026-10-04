@@ -59,15 +59,21 @@ export function classifyGenerationError(error: unknown): ClassifiedError {
         return { category: 'offline', detail: NETWORK_CODE_MESSAGES[details.code], retryable: true };
     }
 
-    // 2) HTTP-level backend errors
+    // 2) HTTP-level backend errors.
+    //
+    // Only the two 4xx codes that mean "transiently unavailable" (408 Request
+    // Timeout, 429 Too Many Requests) plus the whole 5xx band are worth a
+    // retry. A 400/401/403/404 is a hard backend rejection — re-running the
+    // same request against the same GPU just burns VRAM for identical output.
     if (typeof details.status === 'number') {
         const status = details.status;
         const body = typeof details.text === 'string' ? details.text : '';
         const snippet = body.split('\n')[0]?.slice(0, 120);
+        const retryable = status === 408 || status === 429 || status >= 500;
         return {
             category: 'backend',
             detail: `ComfyUI responded HTTP ${status}${snippet ? `: ${snippet}` : ''}`,
-            retryable: status < 500,
+            retryable,
         };
     }
 

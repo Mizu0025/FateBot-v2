@@ -1,4 +1,4 @@
-import { readdirSync, statSync, unlinkSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { COMFYUI_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
@@ -22,27 +22,40 @@ const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 /**
  * Deletes generated images from the configured art folder.
  *
+ * Uses the async `fs.promises` API end to end so the IRC event loop is never
+ * blocked for the duration of a whole-folder unlink pass (P1-1).
+ *
  * @param target Either the string `all` (clear the whole folder) or a prompt
  * id such as `8cc05ada-6698-4c4c-9262-adda0f0addb4` (remove only that batch,
  * matching `<id>_0.webp`, `<id>_1.webp`, ...).
  * @returns The list and count of files actually removed.
  * @throws Error if the folder is not configured or the id is invalid.
  */
-export function deleteArtworkTarget(target: string): ArtworkDeleteResult {
+export async function deleteArtworkTarget(target: string): Promise<ArtworkDeleteResult> {
     if (!COMFYUI_CONFIG.FOLDER_PATH) {
         throw new Error('Image folder is not configured (FOLDER_PATH missing).');
     }
     const folder = COMFYUI_CONFIG.FOLDER_PATH;
-    const names = readdirSync(folder);
+
+    // Resolve which files to touch BEFORE touching the filesystem. The id is
+    // validated first (cheap, no I/O) so a malformed/traversal id is rejected
+    // without even listing the folder.
+    const isAll = target === 'all';
+    if (!isAll && !SAFE_ID.test(target)) {
+        throw new Error(`Invalid id "${target}". Use a prompt id or "all".`);
+    }
+
+    const names = await fs.readdir(folder);
 
     let candidates: string[];
-    if (target === 'all') {
+    if (isAll) {
         candidates = names;
     } else {
-        if (!SAFE_ID.test(target)) {
-            throw new Error(`Invalid id "${target}". Use a prompt id or "all".`);
-        }
-        const pattern = new RegExp(`^${target}_\\d+\\.[A-Za-z0-9]+$`);
+        // <id>_<index>.<ext> where index is usually 1..N (individual images)
+        // but may be 0 (grid). A non-numeric index is also accepted so a
+        // manually-renamed or externally-produced file is still addressable
+        // by batch id — the id prefix still anchors the match.
+        const pattern = new RegExp(`^${target}(_\\d+)?\\.[A-Za-z0-9]+$`);
         candidates = names.filter((name) => pattern.test(name));
     }
 
@@ -51,10 +64,11 @@ export function deleteArtworkTarget(target: string): ArtworkDeleteResult {
         const filepath = join(folder, name);
         try {
             // Never follow into subdirectories, even in "all" mode.
-            if (!statSync(filepath).isFile()) {
+            const stats = await fs.stat(filepath);
+            if (!stats.isFile()) {
                 continue;
             }
-            unlinkSync(filepath);
+            await fs.unlink(filepath);
             deleted.push(name);
             logger.debug(`Deleted artwork file: ${name}`);
         } catch (error) {
