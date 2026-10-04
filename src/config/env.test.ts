@@ -116,6 +116,7 @@ describe('env (P1-3 + P1-5): new validated keys', () => {
         LOG_LEVEL: str({ default: 'info' }),
         LOG_TO_FILE: bool({ default: false }),
         COMFYUI_START_POLL_INTERVAL_MS: posInt({ default: 2000 }),
+        MODEL_CONFIG_PATH: str({ default: 'modelConfiguration.json' }),
     };
 
     it('applies declared defaults when the variables are missing', () => {
@@ -125,6 +126,7 @@ describe('env (P1-3 + P1-5): new validated keys', () => {
         expect(env.LOG_LEVEL).toBe('info');
         expect(env.LOG_TO_FILE).toBe(false);
         expect(env.COMFYUI_START_POLL_INTERVAL_MS).toBe(2000);
+        expect(env.MODEL_CONFIG_PATH).toBe('modelConfiguration.json');
     });
 
     it('accepts explicit values and validates types', () => {
@@ -135,6 +137,7 @@ describe('env (P1-3 + P1-5): new validated keys', () => {
                 LOG_LEVEL: 'debug',
                 LOG_TO_FILE: 'true',
                 COMFYUI_START_POLL_INTERVAL_MS: '1500',
+                MODEL_CONFIG_PATH: 'config/models.json',
             },
             validators,
         );
@@ -143,6 +146,7 @@ describe('env (P1-3 + P1-5): new validated keys', () => {
         expect(env.LOG_LEVEL).toBe('debug');
         expect(env.LOG_TO_FILE).toBe(true);
         expect(env.COMFYUI_START_POLL_INTERVAL_MS).toBe(1500);
+        expect(env.MODEL_CONFIG_PATH).toBe('config/models.json');
     });
 
     it('rejects a non-positive COMFYUI_START_POLL_INTERVAL_MS', () => {

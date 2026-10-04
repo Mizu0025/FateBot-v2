@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { COMFYUI_CONFIG } from './constants';
 import { ModelLoader } from './model-loader';
 
 // `fs.promises.readFile` is now the single fs entry point (P1-1): mock it via
@@ -24,8 +25,10 @@ describe('ModelLoader', () => {
     });
 
     describe('loadModelConfiguration', () => {
-        it('should load model configuration for a valid model', async () => {
-            // arrange
+        it('should read the model config from the env-configured path', async () => {
+            // arrange — the file path comes from COMFYUI_CONFIG.MODEL_CONFIG_PATH, not __dirname.
+            const originalPath = COMFYUI_CONFIG.MODEL_CONFIG_PATH;
+            COMFYUI_CONFIG.MODEL_CONFIG_PATH = '/custom/modelConfiguration.json';
             const mockConfig = {
                 paSanctuary: {
                     checkpointName: 'PaSanctuary_v5.safetensors',
@@ -34,11 +37,16 @@ describe('ModelLoader', () => {
             };
             mockedReadFile.mockResolvedValue(JSON.stringify(mockConfig));
 
-            // act
-            const modelConfig = await ModelLoader.loadModelConfiguration('paSanctuary');
+            try {
+                // act
+                const modelConfig = await ModelLoader.loadModelConfiguration('paSanctuary');
 
-            // assert
-            expect(modelConfig).toEqual(mockConfig.paSanctuary);
+                // assert
+                expect(mockedReadFile).toHaveBeenCalledWith('/custom/modelConfiguration.json', 'utf8');
+                expect(modelConfig).toEqual(mockConfig.paSanctuary);
+            } finally {
+                COMFYUI_CONFIG.MODEL_CONFIG_PATH = originalPath;
+            }
         });
 
         it('should return null for an invalid model', async () => {

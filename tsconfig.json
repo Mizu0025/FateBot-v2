@@ -31,6 +31,7 @@
     // "moduleResolution": "node10",                     /* Specify how TypeScript looks up a file from a given module specifier. */
     "baseUrl": "src",
     "paths": {
+      "irc-framework": ["types/irc-framework"],
       "config/*": ["config/*"],
       "image-generation/*": ["image-generation/*"],
       "text-filter/*": ["text-filter/*"],

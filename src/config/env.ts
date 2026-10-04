@@ -36,6 +36,8 @@ const env = cleanEnv(process.env, {
     COMFYUI_FOLDER_PATH: str({ default: '/path/to/files/' }),
     /** Directory containing ComfyUI workflow JSON files (one per model name). */
     COMFYUI_WORKFLOW_PATH: str({ default: 'src/workflows' }),
+    /** Path to the model configuration JSON file (P2-3). */
+    MODEL_CONFIG_PATH: str({ default: 'modelConfiguration.json' }),
     COMFYUI_UNIT_NAME: str({ default: 'comfyui' }),
     COMFYUI_IDLE_MINUTES: posInt({ default: 10 }),
     COMFYUI_START_TIMEOUT_SECONDS: posInt({ default: 120 }),

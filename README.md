@@ -115,6 +115,7 @@ Configuration is read from environment variables, validated with `envalid`, and 
 | `COMFYUI_DOMAIN_PATH` | Public URL prefix reported back to IRC users | `mock_domain_path` |
 | `COMFYUI_FOLDER_PATH` | Local path where images are saved | `/path/to/files/` |
 | `COMFYUI_WORKFLOW_PATH` | Directory containing the ComfyUI workflow JSON files (one per model) | `src/workflows` |
+| `MODEL_CONFIG_PATH` | Path to the `modelConfiguration.json` file (checkpoint/VAE/workflow/sampler per model) | `modelConfiguration.json` |
 | `COMFYUI_UNIT_NAME` | Name of the ComfyUI user systemd unit (without `.service`) | `comfyui` |
 | `COMFYUI_IDLE_MINUTES` | Idle minutes before the bot stops ComfyUI to free VRAM | `10` |
 | `COMFYUI_START_TIMEOUT_SECONDS` | Max seconds to wait for ComfyUI to become ready after start | `120` |

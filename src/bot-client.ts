@@ -1,5 +1,4 @@
 import 'dotenv/config';
-// @ts-expect-error: No type definitions for 'irc-framework'
 import IRC from 'irc-framework';
 import { BOT_CONFIG } from './config/constants';
 import { logger } from './config/logger';
