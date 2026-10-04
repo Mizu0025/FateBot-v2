@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import type { Mock } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
 import { SystemError } from '../types/errors';
 import { ComfyUiServiceManager } from './comfyui-service-manager';

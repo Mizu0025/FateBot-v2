@@ -1,4 +1,5 @@
 import { cleanEnv, port, str } from 'envalid';
+import { describe, expect, it, vi } from 'vitest';
 import { posInt } from './env';
 
 describe('env validation', () => {

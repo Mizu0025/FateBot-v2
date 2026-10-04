@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import sharp from 'sharp';
-import type { Mock } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { logger } from '../config/logger';
 import { getDomainPath, getImageFilename } from './filename-utils';
 import { ImageGrid } from './image-grid';

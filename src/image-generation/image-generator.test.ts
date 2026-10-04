@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import sharp from 'sharp';
-import type { Mock } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { logger } from '../config/logger';
 import { ModelLoader } from '../config/model-loader';
 import type { FilteredPrompt } from '../types';

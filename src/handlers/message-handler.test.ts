@@ -1,4 +1,4 @@
-import type { Mocked } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { BOT_CONFIG } from '../config/constants';
 import type { CommandHandler } from './command-handler';
 import { MessageHandler } from './message-handler';

@@ -3,7 +3,6 @@
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["node", "vitest/globals"],
     "noEmit": true
   },
   "include": ["src/**/*.test.ts", "src/test-utils.ts"]

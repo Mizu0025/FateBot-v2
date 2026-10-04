@@ -1,4 +1,4 @@
-import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { COMFYUI_SERVICE_CONFIG } from '../config/constants';
 import type { PromptQueue } from '../queue/queue';
 import type { ComfyUiServiceManager } from './comfyui-service-manager';

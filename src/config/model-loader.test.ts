@@ -1,4 +1,4 @@
-import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { ModelLoader } from './model-loader';
 

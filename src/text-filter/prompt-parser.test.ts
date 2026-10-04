@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BOT_CONFIG } from '../config/constants';
 import { UserError } from '../types/errors';
 import { PromptParser } from './prompt-parser';

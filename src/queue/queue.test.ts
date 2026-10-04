@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../config/logger';
 import type { FilteredPrompt } from '../types';
 import { PromptQueue, type PromptQueueItem } from './queue';
