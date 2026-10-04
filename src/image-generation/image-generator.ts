@@ -14,17 +14,28 @@ import { PromptProcessor } from './prompt-processor';
 import { WorkflowLoader } from './workflow-loader';
 
 /**
+ * The outcome of a single image generation request.
+ * @see ImageGenerator.generateImage
+ */
+export interface GenerationResult {
+    /** URL (or grid path) the worker posts back to the channel. */
+    url: string;
+    /** How many of the requested images actually saved, e.g. `"4/4"` or `"3/4"`. */
+    saved: string;
+}
+
+/**
  * Orchestrates the entire image generation process including model configuration,
  * workflow loading, ComfyUI interaction, and image saving.
  */
 export class ImageGenerator {
     /**
-     * Generates one or more images based on the given filtered prompt.
-     * @param filteredPrompt The parsed and filtered prompt details.
-     * @returns The local path or URL to the generated image or grid.
-     * @throws Error if generation fails at any stage.
+     * The outcome of one generation: where to find the result image, plus how
+     * many of the requested images actually saved (e.g. `"3/4"`) so the
+     * worker can phrase a partial ("3 of 4 saved — one failed, see logs")
+     * vs. a clean success.
      */
-    static async generateImage(filteredPrompt: FilteredPrompt): Promise<string> {
+    public static async generateImage(filteredPrompt: FilteredPrompt): Promise<GenerationResult> {
         const client = new ComfyUIClient();
 
         try {
@@ -68,20 +79,26 @@ export class ImageGenerator {
             const imageCount = images.get('SaveImageWebsocket')?.length || 0;
             logger.info(`Received ${imageCount} image(s) from ComfyUI`);
 
-            // Save individual images
-            const savedImagePaths = await ImageGenerator.saveImageFiles(images, promptId);
+            // Save individual images (counting per-image failures — P0-4).
+            const imageData = images.get('SaveImageWebsocket') ?? [];
+            const { saved: savedImagePaths } = await ImageGenerator.saveImageFiles(imageData, promptId);
+
+            // If nothing saved, treat the whole generation as a failure so the
+            // worker's retry (which gets a fresh service-start + connection) can
+            // engage instead of reporting a clean success with no image (P0-4).
+            if (savedImagePaths.length === 0) {
+                throw new SystemError('All generated images failed to save (check the bot + sharp logs).');
+            }
+
+            const savedOfTotal = `${savedImagePaths.length}/${imageData.length}`;
 
             // Generate grid from saved images
             if (savedImagePaths.length > 1) {
                 logger.info(`Generating image grid from ${savedImagePaths.length} images`);
                 const gridPath = await ImageGrid.generateImageGrid(savedImagePaths);
-                return gridPath;
-            } else if (savedImagePaths.length === 1) {
-                return getDomainPath(savedImagePaths[0]);
+                return { url: gridPath, saved: savedOfTotal };
             } else {
-                throw new SystemError(
-                    'ComfyUI finished but produced no images (check the ComfyUI logs for node errors).',
-                );
+                return { url: getDomainPath(savedImagePaths[0]), saved: savedOfTotal };
             }
         } catch (error) {
             logger.error('Error during image generation:', error);
@@ -93,17 +110,25 @@ export class ImageGenerator {
 
     /**
      * Saves the provided image data buffers to files on disk.
-     * @param images A map of output keys to image buffers.
+     *
+     * Per-image failures are counted, not swallowed (P0-4): the caller
+     * decides what a partial or total failure means. A total failure (0 of N
+     * saved) is `failed === N`, which the caller turns into a `SystemError`
+     * so the worker retries.
+     * @param imageData The `SaveImageWebsocket` buffers produced by ComfyUI.
      * @param promptId The ID of the prompt that generated these images.
-     * @returns An array of absolute file paths to the saved images.
+     * @returns The absolute paths that saved, plus a count of the ones that did not.
      */
-    private static async saveImageFiles(images: Map<string, Buffer[]>, promptId: string): Promise<string[]> {
+    private static async saveImageFiles(
+        imageData: Buffer[],
+        promptId: string,
+    ): Promise<{ saved: string[]; failed: number }> {
         const savedImages: string[] = [];
-        const imageData = images.get('SaveImageWebsocket');
+        let failed = 0;
 
-        if (!imageData || imageData.length === 0) {
+        if (imageData.length === 0) {
             logger.warn('No images received from ComfyUI');
-            return savedImages;
+            return { saved: [], failed: 0 };
         }
 
         for (let index = 0; index < imageData.length; index++) {
@@ -118,10 +143,20 @@ export class ImageGenerator {
                 savedImages.push(filepath);
                 logger.debug(`Saved image: ${filename}`);
             } catch (error) {
+                failed++;
                 logger.error(`Error saving image ${filename}:`, error);
             }
         }
 
-        return savedImages;
+        if (failed > 0 && failed < imageData.length) {
+            // Some images failed but at least one saved: the result is still
+            // usable, so surface the shortfall explicitly rather than acting
+            // as if the whole batch succeeded (P0-4).
+            logger.warn(
+                `${failed} of ${imageData.length} image(s) failed to save; continuing with ${savedImages.length}.`,
+            );
+        }
+
+        return { saved: savedImages, failed };
     }
 }

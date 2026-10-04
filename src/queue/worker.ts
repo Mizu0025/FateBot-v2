@@ -1,5 +1,5 @@
 import { logger } from '../config/logger';
-import { ImageGenerator } from '../image-generation/image-generator';
+import { type GenerationResult, ImageGenerator } from '../image-generation/image-generator';
 import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
 import { SystemError, UserError } from '../types/errors';
 import { classifyGenerationError } from '../utils/error-utils';
@@ -43,8 +43,8 @@ export class GenerationWorker {
             const item = await this.queue.dequeue();
             logger.info(`Processing queued request from ${item.nick} (queue length: ${this.queue.length})`);
             try {
-                const imagePath = await this.generateWithRetry(item);
-                this.send(item.channel, `${item.nick}: Your image is ready! ${imagePath}`);
+                const result = await this.generateWithRetry(item);
+                this.send(item.channel, GenerationWorker.successMessage(item.nick, result));
             } catch (error: unknown) {
                 this.reportFailure(item, error);
             } finally {
@@ -54,10 +54,24 @@ export class GenerationWorker {
     }
 
     /**
-     * Generates an image, retrying once when the first attempt failed with a
+     * Phrases the success reply for a completed generation (P0-4). A clean
+     * save reads as before; a partial save (some images failed) says so
+     * explicitly instead of acting as if the whole batch succeeded.
+     */
+    private static successMessage(nick: string, result: GenerationResult): string {
+        const base = `${nick}: Your image is ready! ${result.url}`;
+        const [saved, total] = result.saved.split('/').map(Number);
+        if (saved !== undefined && total !== undefined && saved < total) {
+            return `${base} (${saved} of ${total} saved — one failed, see the bot logs)`;
+        }
+        return base;
+    }
+
+    /**
+     * Generates a result, retrying once when the first attempt failed with a
      * retryable (likely transient) error.
      */
-    private async generateWithRetry(item: PromptQueueItem): Promise<string> {
+    private async generateWithRetry(item: PromptQueueItem): Promise<GenerationResult> {
         try {
             return await this.generate(item);
         } catch (error: unknown) {
@@ -73,7 +87,7 @@ export class GenerationWorker {
     /**
      * Ensures ComfyUI is up (starting it on demand) and runs the generation.
      */
-    private async generate(item: PromptQueueItem): Promise<string> {
+    private async generate(item: PromptQueueItem): Promise<GenerationResult> {
         const started = await this.service.ensureRunning();
         if (started) {
             this.send(

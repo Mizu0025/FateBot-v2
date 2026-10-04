@@ -37,7 +37,7 @@ describe('GenerationWorker', () => {
         worker = new GenerationWorker(queue, service, send);
         generateImageMock = vi.mocked(ImageGenerator.generateImage);
         generateImageMock.mockReset();
-        generateImageMock.mockResolvedValue('/path/to/image.webp');
+        generateImageMock.mockResolvedValue({ url: '/path/to/image.webp', saved: '1/1' });
     });
 
     it('should process a queued request and send the result to the channel', async () => {
@@ -91,7 +91,7 @@ describe('GenerationWorker', () => {
     it('should retry once on a transient failure and report success', async () => {
         generateImageMock
             .mockRejectedValueOnce(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' }))
-            .mockResolvedValueOnce('/retry.webp');
+            .mockResolvedValueOnce({ url: '/retry.webp', saved: '1/1' });
 
         worker.start();
         queue.addTask(makeItem());
@@ -127,12 +127,23 @@ describe('GenerationWorker', () => {
         expect(send).toHaveBeenCalledWith('#test', 'user123: Input error: bad prompt');
     });
 
+    it('should report honest partial-save count when some images failed to save (P0-4)', async () => {
+        generateImageMock.mockResolvedValue({ url: '/path/partial.webp', saved: '3/4' });
+
+        worker.start();
+        queue.addTask(makeItem());
+        await flush();
+
+        expect(send).toHaveBeenCalledWith('#test', expect.stringContaining('3 of 4 saved'));
+        expect(send).not.toHaveBeenCalledWith('#test', expect.stringContaining('4 of 4 saved'));
+    });
+
     it('should process multiple queued requests in FIFO order', async () => {
         let call = 0;
         generateImageMock.mockImplementation(async () => {
             call += 1;
             await new Promise((resolve) => setTimeout(resolve, 5));
-            return `image-${call}.webp`;
+            return { url: `image-${call}.webp`, saved: '1/1' };
         });
 
         worker.start();

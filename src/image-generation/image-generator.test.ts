@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { logger } from '../config/logger';
 import { ModelLoader } from '../config/model-loader';
 import type { FilteredPrompt } from '../types';
+import { SystemError } from '../types/errors';
 import { ComfyUIClient } from './comfyui-client';
 import { getDomainPath, getImageFilename } from './filename-utils';
 import { ImageGenerator } from './image-generator';
@@ -87,7 +88,7 @@ describe('ImageGenerator', () => {
             const result = await ImageGenerator.generateImage(mockFilteredPrompt);
 
             // Assert
-            expect(result).toBe('https://example.com/image_1.webp');
+            expect(result).toEqual({ url: 'https://example.com/image_1.webp', saved: '1/1' });
             expect(clientInstance.connectWebSocket).toHaveBeenCalled();
             expect(clientInstance.queuePrompt).toHaveBeenCalledWith(mockPromptData.data);
             expect(fs.writeFileSync).toHaveBeenCalled();
@@ -109,7 +110,7 @@ describe('ImageGenerator', () => {
             const result = await ImageGenerator.generateImage(mockFilteredPrompt);
 
             // Assert
-            expect(result).toBe('/path/to/grid.webp');
+            expect(result).toEqual({ url: '/path/to/grid.webp', saved: '2/2' });
             expect(ImageGrid.generateImageGrid).toHaveBeenCalled();
             expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
         });
@@ -165,7 +166,7 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
-                'ComfyUI finished but produced no images',
+                'All generated images failed to save',
             );
         });
 
@@ -242,14 +243,51 @@ describe('ImageGenerator', () => {
             mockSharpInstance.toBuffer.mockRejectedValue(testError);
 
             // Act
-            // Assert
-            // This should not throw from generateImage as it is swallowed in saveImageFiles loop
-            // but generateImage will throw because savedImagePaths will be empty
+            // Assert — with 1 image and a total failure, generateImage throws
+            // a SystemError (P0-4) so the worker retries rather than reporting
+            // a clean success with zero images. No partial-save warn here (a
+            // total failure is a different code path from a partial failure).
+            await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(SystemError);
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
-                'ComfyUI finished but produced no images',
+                'All generated images failed to save',
             );
 
             expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error saving image'), testError);
+        });
+
+        it('should warn and report honest partial count when some images fail to save (P0-4)', async () => {
+            // Arrange — 4 requested, 2 fail to save, 2 succeed. The worker
+            // must be told '2/4' (not a clean success) so it can phrase the
+            // partial-save notice back to the channel user.
+            // Reset toBuffer's implementation so this test doesn't inherit a
+            // reject from a prior test (clearAllMocks only clears call history).
+            mockSharpInstance.toBuffer.mockReset().mockResolvedValue(Buffer.from('mock-webp-data'));
+
+            const mockImages = new Map([
+                ['SaveImageWebsocket', [Buffer.from('a'), Buffer.from('b'), Buffer.from('c'), Buffer.from('d')]],
+            ]);
+            const clientInstance = new ComfyUIClient();
+            (clientInstance.getImagesFromWebSocket as Mock).mockResolvedValue(mockImages);
+            (ComfyUIClient as unknown as Mock).mockImplementation(function () {
+                return clientInstance;
+            });
+
+            const w = fs.writeFileSync as unknown as Mock;
+            w.mockImplementationOnce(() => {
+                throw new Error('EPERM: encoder failed');
+            });
+            w.mockImplementationOnce(() => {
+                throw new Error('EPERM: encoder failed');
+            });
+            // Remaining calls succeed (return undefined).
+
+            // Act
+            const result = await ImageGenerator.generateImage(mockFilteredPrompt);
+
+            // Assert — 2 of 4 saved; the worker is informed via the result.
+            expect(result.saved).toBe('2/4');
+            expect(fs.writeFileSync).toHaveBeenCalledTimes(4);
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('2 of 4 image(s) failed to save'));
         });
     });
 
