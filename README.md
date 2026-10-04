@@ -120,6 +120,8 @@ Configuration is read from environment variables, validated with `envalid`, and 
 | `COMFYUI_IDLE_MINUTES` | Idle minutes before the bot stops ComfyUI to free VRAM | `10` |
 | `COMFYUI_START_TIMEOUT_SECONDS` | Max seconds to wait for ComfyUI to become ready after start | `120` |
 | `COMFYUI_START_POLL_INTERVAL_MS` | Milliseconds between readiness polls while the service comes up | `2000` |
+| `COMFYUI_WS_CONNECT_TIMEOUT_MS` | Max ms the ComfyUI WebSocket job-fetch waits to complete its handshake | `10000` |
+| `COMFYUI_WS_IMAGE_TIMEOUT_MS` | Max ms the ComfyUI WebSocket job-fetch waits for the image(s) to stream back | `300000` |
 | `LOG_LEVEL` | Winston log level (`error`, `warn`, `info`, `debug`) | `info` |
 | `LOG_TO_FILE` | Also write JSON logs to `./logs/combined.log` and `./logs/error.log` (rotated, 5 files) | `false` |
 | `GENERATION_MAX_RETRIES` | Max retries after the first attempt for a transient (retryable) failure | `2` |
@@ -178,7 +180,8 @@ src/
 ├── types/
 │   ├── index.ts                   # Shared TypeScript interfaces
 │   ├── errors.ts                  # FateBotError base, UserError, SystemError
-│   └── irc.ts                     # IRC client/event type declarations
+│   ├── irc.ts                     # IRC client/event type declarations (FateBot's contract)
+│   └── irc-framework.d.ts         # Type declarations for the untyped `irc-framework` dep (P2-1)
 ├── utils/
 │   ├── error-utils.ts             # Failure classification (offline/backend/timeout/internal)
 │   └── artwork-deleter.ts         # Deletes generated images (one batch by id, or "all")
@@ -203,7 +206,7 @@ The bot is modular and async-first, with a strict separation between *receiving*
 2. **Routing + parsing**: `message-handler.ts` routes command flags (`--help`, `--models`, `--start-comfyui`, `--stop-comfyui`, `--delete`) or hands the prompt to `command-handler.ts`, which parses flags via `prompt-parser.ts` and adds a `PromptQueueItem` to the queue
 3. **Background worker**: `worker.ts` drains the queue one item at a time — the only component that talks to ComfyUI for generation:
    - `comfyui-service-manager.ts` probes `/system_stats`; if ComfyUI is down it starts the user systemd service and polls until it reports ready (or stops the service and fails, to avoid a crash loop)
-   - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid)
+   - `image-generator.ts` runs the workflow via WebSocket (batch generation, then `image-grid.ts` composes multiple images into one grid). The job-fetch itself is timeout-bounded and always settles — it rejects on a connect timeout (socket never opened), an image-stream timeout (no image in time), or immediately if the socket closes mid-job — so a stalled backend can never hang the worker
    - Transient failures (connection refused/reset, timeouts, HTTP 408/429/5xx) are retried up to `GENERATION_MAX_RETRIES` with exponential backoff + jitter (so a flapped backend gets more room each retry and a burst of queued failures doesn't retry simultaneously); other failures are classified (`error-utils.ts`) and reported to the channel with a short reason
 4. **Idle shutdown**: `inactivity-manager.ts` listens to the queue's idle signal and stops the ComfyUI service after `COMFYUI_IDLE_MINUTES` with no activity, freeing GPU memory for the rest of the machine
 5. **Graceful shutdown**: `shutdown.ts` wires `SIGINT`/`SIGTERM` (plus `uncaughtException`/`unhandledRejection` for defence-in-depth) into `FateBot.shutdown()`, which stops the generation worker, disables the inactivity timer, and quits the IRC connection — an in-flight generation always finishes and is reported first
