@@ -1,8 +1,8 @@
+import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
-import { join } from 'path';
 import { COMFYUI_CONFIG } from '../config/constants';
-import { getDomainPath, getImageFilename } from './filename-utils';
 import { logger } from '../config/logger';
+import { getDomainPath, getImageFilename } from './filename-utils';
 
 /**
  * Handles the creation of composite image grids (montages) from multiple individual images
@@ -15,7 +15,7 @@ export class ImageGrid {
      * @returns Array of Sharp image instances.
      */
     private static async openImages(filepaths: string[]): Promise<Sharp[]> {
-        return filepaths.map(filepath => sharp(filepath));
+        return filepaths.map((filepath) => sharp(filepath));
     }
 
     /**
@@ -23,10 +23,10 @@ export class ImageGrid {
      * @param images Array of Sharp image instances.
      * @returns An object containing arrays of widths and heights.
      */
-    private static async getImageDimensions(images: Sharp[]): Promise<{ widths: number[], heights: number[] }> {
-        const dimensions = await Promise.all(images.map(img => img.metadata()));
-        const widths = dimensions.map(d => d.width || 0);
-        const heights = dimensions.map(d => d.height || 0);
+    private static async getImageDimensions(images: Sharp[]): Promise<{ widths: number[]; heights: number[] }> {
+        const dimensions = await Promise.all(images.map((img) => img.metadata()));
+        const widths = dimensions.map((d) => d.width || 0);
+        const heights = dimensions.map((d) => d.height || 0);
         return { widths, heights };
     }
 
@@ -35,7 +35,7 @@ export class ImageGrid {
      * @param numImages Total number of images to place in the grid.
      * @returns An object with cols and rows.
      */
-    private static determineGridLayout(numImages: number): { cols: number, rows: number } {
+    private static determineGridLayout(numImages: number): { cols: number; rows: number } {
         const cols = Math.ceil(Math.sqrt(numImages));
         const rows = Math.ceil(numImages / cols);
         return { cols, rows };
@@ -57,8 +57,8 @@ export class ImageGrid {
                 width: gridWidth,
                 height: gridHeight,
                 channels: 4,
-                background: { r: 255, g: 255, b: 255, alpha: 0 }
-            }
+                background: { r: 255, g: 255, b: 255, alpha: 0 },
+            },
         });
     }
 
@@ -76,7 +76,7 @@ export class ImageGrid {
         grid: Sharp,
         cols: number,
         maxWidth: number,
-        maxHeight: number
+        maxHeight: number,
     ): Promise<Sharp> {
         const composites = [];
 
@@ -89,7 +89,7 @@ export class ImageGrid {
             composites.push({
                 input: await images[index].toBuffer(),
                 left: xOffset,
-                top: yOffset
+                top: yOffset,
             });
         }
 
@@ -117,7 +117,7 @@ export class ImageGrid {
      */
     public static async generateImageGrid(filepaths: string[]): Promise<string> {
         if (filepaths.length === 0) {
-            throw new Error("No filepaths provided for grid generation");
+            throw new Error('No filepaths provided for grid generation');
         }
 
         // Extract promptId from the first filename
@@ -125,32 +125,32 @@ export class ImageGrid {
         const promptId = firstFile.split('_')[0];
 
         // Open all images
-        const images = await this.openImages(filepaths);
+        const images = await ImageGrid.openImages(filepaths);
 
         // Get dimensions
-        const { widths, heights } = await this.getImageDimensions(images);
+        const { widths, heights } = await ImageGrid.getImageDimensions(images);
 
         // Determine grid layout
         const numImages = images.length;
-        const { cols, rows } = this.determineGridLayout(numImages);
+        const { cols, rows } = ImageGrid.determineGridLayout(numImages);
 
         // Find max dimensions
         const maxWidth = Math.max(...widths);
         const maxHeight = Math.max(...heights);
 
         // Create grid
-        const grid = this.createBlankCanvas(cols, rows, maxWidth, maxHeight);
+        const grid = ImageGrid.createBlankCanvas(cols, rows, maxWidth, maxHeight);
 
         // Paste images into grid
-        const finalGrid = await this.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
+        const finalGrid = await ImageGrid.pasteImagesToGrid(images, grid, cols, maxWidth, maxHeight);
 
         // Save grid as index 0
-        const gridPath = await this.saveGrid(finalGrid, promptId);
+        const gridPath = await ImageGrid.saveGrid(finalGrid, promptId);
 
         // Get domain path
         const domainPath = getDomainPath(gridPath);
 
-        logger.info("Image grid generated and saved");
+        logger.info('Image grid generated and saved');
         return domainPath;
     }
 }

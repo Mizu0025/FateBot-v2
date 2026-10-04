@@ -2,11 +2,15 @@
   "name": "fatebot-ts",
   "version": "1.0.0",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc && node dist/bot.js",
-    "watch": "tsc --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json && node dist/bot.js",
+    "watch": "tsc --watch -p tsconfig.build.json",
     "start": "dotenv -e .env -- ts-node src/bot.ts",
-    "test": "jest"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.tests.json",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
+    "format": "biome format src"
   },
   "dependencies": {
     "@types/node": "24.3.0",
@@ -22,10 +26,9 @@
     "ws": "8.21.3"
   },
   "devDependencies": {
-    "@types/jest": "29.5.14",
+    "@biomejs/biome": "^2.5.15",
     "dotenv-cli": "7.0.0",
-    "jest": "29.7.0",
-    "ts-jest": "29.4.12",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.3"
   }
 }

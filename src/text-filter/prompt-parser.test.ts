@@ -1,12 +1,13 @@
-import { PromptParser } from './prompt-parser';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BOT_CONFIG } from '../config/constants';
 import { UserError } from '../types/errors';
+import { PromptParser } from './prompt-parser';
 
 describe('PromptParser', () => {
     beforeEach(() => {
-        jest.resetAllMocks();
-        jest.spyOn(console, 'error').mockImplementation(() => { });
-        jest.spyOn(console, 'log').mockImplementation(() => { });
+        vi.resetAllMocks();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'log').mockImplementation(() => {});
     });
     it('should extract the prompt, width, height, model, negative prompt, count, and seed from the message', async () => {
         // arrange
@@ -71,7 +72,9 @@ describe('PromptParser', () => {
 
         // act & assert
         await expect(PromptParser.extractPrompts(message)).rejects.toThrow(UserError);
-        await expect(PromptParser.extractPrompts(message)).rejects.toThrow(`Message must start with ${BOT_CONFIG.TRIGGER_WORD}`);
+        await expect(PromptParser.extractPrompts(message)).rejects.toThrow(
+            `Message must start with ${BOT_CONFIG.TRIGGER_WORD}`,
+        );
     });
 
     it('should support shortened modifiers and flexible formatting', async () => {

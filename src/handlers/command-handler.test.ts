@@ -1,55 +1,56 @@
-import { CommandHandler } from './command-handler';
-import { PromptQueue } from '../queue/queue';
-import { InactivityManager } from '../managers/inactivity-manager';
-import { ModelLoader } from '../config/model-loader';
-import { PromptParser } from '../text-filter/prompt-parser';
-import { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import { afterEach, beforeEach, describe, expect, it, type Mock, type Mocked, vi } from 'vitest';
 import { BOT_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
+import { ModelLoader } from '../config/model-loader';
+import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import type { InactivityManager } from '../managers/inactivity-manager';
+import type { PromptQueue } from '../queue/queue';
+import { PromptParser } from '../text-filter/prompt-parser';
 import { UserError } from '../types/errors';
-import { MessageSender } from '../types/irc';
+import type { MessageSender } from '../types/irc';
 import { deleteArtworkTarget } from '../utils/artwork-deleter';
+import { CommandHandler } from './command-handler';
 
-jest.mock('../config/logger');
-jest.mock('../utils/artwork-deleter');
-jest.mock('../config/model-loader');
-jest.mock('../text-filter/prompt-parser');
-jest.mock('../managers/comfyui-service-manager');
+vi.mock('../config/logger');
+vi.mock('../utils/artwork-deleter');
+vi.mock('../config/model-loader');
+vi.mock('../text-filter/prompt-parser');
+vi.mock('../managers/comfyui-service-manager');
 
 describe('CommandHandler', () => {
     let commandHandler: CommandHandler;
-    let mockBot: jest.Mocked<MessageSender>;
-    let mockQueue: { addTask: jest.Mock; length: number; isProcessing: jest.Mock };
-    let mockInactivityManager: jest.Mocked<Pick<InactivityManager, 'clearTimer'>>;
-    let mockService: jest.Mocked<ComfyUiServiceManager>;
+    let mockBot: Mocked<MessageSender>;
+    let mockQueue: { addTask: Mock; length: number; isProcessing: Mock };
+    let mockInactivityManager: Mocked<Pick<InactivityManager, 'clearTimer'>>;
+    let mockService: Mocked<ComfyUiServiceManager>;
 
     beforeEach(() => {
         mockBot = {
-            notice: jest.fn(),
-            say: jest.fn()
+            notice: vi.fn(),
+            say: vi.fn(),
         };
         mockQueue = {
-            addTask: jest.fn().mockReturnValue(1),
+            addTask: vi.fn().mockReturnValue(1),
             length: 2,
-            isProcessing: jest.fn().mockReturnValue(true)
+            isProcessing: vi.fn().mockReturnValue(true),
         };
         mockInactivityManager = {
-            clearTimer: jest.fn()
+            clearTimer: vi.fn(),
         };
         mockService = {
-            ensureRunning: jest.fn(),
-            stop: jest.fn(),
-            isRunning: jest.fn()
-        } as unknown as jest.Mocked<ComfyUiServiceManager>;
+            ensureRunning: vi.fn(),
+            stop: vi.fn(),
+            isRunning: vi.fn(),
+        } as unknown as Mocked<ComfyUiServiceManager>;
         commandHandler = new CommandHandler(
             mockBot,
             mockQueue as unknown as Pick<PromptQueue, 'addTask' | 'length' | 'isProcessing'>,
             mockInactivityManager,
-            mockService
+            mockService,
         );
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('handleHelp', () => {
@@ -65,7 +66,7 @@ describe('CommandHandler', () => {
 
     describe('handleListModels', () => {
         it('should send models list notice to the user', async () => {
-            (ModelLoader.getModelsList as jest.Mock).mockResolvedValue('model1, model2');
+            (ModelLoader.getModelsList as Mock).mockResolvedValue('model1, model2');
 
             await commandHandler.handleListModels('user123');
 
@@ -73,7 +74,7 @@ describe('CommandHandler', () => {
         });
 
         it('should send error notice if model loading fails', async () => {
-            (ModelLoader.getModelsList as jest.Mock).mockRejectedValue(new Error('Failed'));
+            (ModelLoader.getModelsList as Mock).mockRejectedValue(new Error('Failed'));
 
             await commandHandler.handleListModels('user123');
 
@@ -84,17 +85,19 @@ describe('CommandHandler', () => {
     describe('handleStartComfyui', () => {
         it('should report startup with the idle duration when the service was started', async () => {
             COMFYUI_SERVICE_CONFIG.IDLE_MINUTES = 10;
-            (mockService.ensureRunning as jest.Mock).mockResolvedValue(true);
+            (mockService.ensureRunning as Mock).mockResolvedValue(true);
 
             await commandHandler.handleStartComfyui('user123');
 
             expect(mockService.ensureRunning).toHaveBeenCalled();
-            expect(mockBot.notice).toHaveBeenCalledWith('user123',
-                'ComfyUI started. It will stay up until the queue has been idle for 10 minutes.');
+            expect(mockBot.notice).toHaveBeenCalledWith(
+                'user123',
+                'ComfyUI started. It will stay up until the queue has been idle for 10 minutes.',
+            );
         });
 
         it('should report a no-op when ComfyUI was already running', async () => {
-            (mockService.ensureRunning as jest.Mock).mockResolvedValue(false);
+            (mockService.ensureRunning as Mock).mockResolvedValue(false);
 
             await commandHandler.handleStartComfyui('user123');
 
@@ -102,7 +105,7 @@ describe('CommandHandler', () => {
         });
 
         it('should report an error if the service fails to start', async () => {
-            (mockService.ensureRunning as jest.Mock).mockRejectedValue(new Error('systemctl exploded'));
+            (mockService.ensureRunning as Mock).mockRejectedValue(new Error('systemctl exploded'));
 
             await commandHandler.handleStartComfyui('user123');
 
@@ -112,17 +115,19 @@ describe('CommandHandler', () => {
 
     describe('handleStopComfyui', () => {
         it('should stop the service and confirm', async () => {
-            (mockService.stop as jest.Mock).mockResolvedValue(undefined);
+            (mockService.stop as Mock).mockResolvedValue(undefined);
 
             await commandHandler.handleStopComfyui('user123');
 
             expect(mockService.stop).toHaveBeenCalled();
-            expect(mockBot.notice).toHaveBeenCalledWith('user123',
-                'ComfyUI stopped. It will start automatically on the next image request.');
+            expect(mockBot.notice).toHaveBeenCalledWith(
+                'user123',
+                'ComfyUI stopped. It will start automatically on the next image request.',
+            );
         });
 
         it('should report an error if stopping fails', async () => {
-            (mockService.stop as jest.Mock).mockRejectedValue(new Error('session gone'));
+            (mockService.stop as Mock).mockRejectedValue(new Error('session gone'));
 
             await commandHandler.handleStopComfyui('user123');
 
@@ -132,36 +137,42 @@ describe('CommandHandler', () => {
 
     describe('handleComfyuiStatus', () => {
         it('should report running state including queue stats', async () => {
-            (mockService.isRunning as jest.Mock).mockResolvedValue(true);
+            (mockService.isRunning as Mock).mockResolvedValue(true);
 
             await commandHandler.handleComfyuiStatus('user123');
 
-            expect(mockBot.notice).toHaveBeenCalledWith('user123',
-                'ComfyUI is running. Queue: 2 waiting, processing: yes.');
+            expect(mockBot.notice).toHaveBeenCalledWith(
+                'user123',
+                'ComfyUI is running. Queue: 2 waiting, processing: yes.',
+            );
         });
 
         it('should report idle queue stats when nothing is being processed', async () => {
             mockQueue.length = 0;
-            (mockQueue.isProcessing as jest.Mock).mockReturnValue(false);
-            (mockService.isRunning as jest.Mock).mockResolvedValue(true);
+            (mockQueue.isProcessing as Mock).mockReturnValue(false);
+            (mockService.isRunning as Mock).mockResolvedValue(true);
 
             await commandHandler.handleComfyuiStatus('user123');
 
-            expect(mockBot.notice).toHaveBeenCalledWith('user123',
-                'ComfyUI is running. Queue: 0 waiting, processing: no.');
+            expect(mockBot.notice).toHaveBeenCalledWith(
+                'user123',
+                'ComfyUI is running. Queue: 0 waiting, processing: no.',
+            );
         });
 
         it('should report that ComfyUI is not running', async () => {
-            (mockService.isRunning as jest.Mock).mockResolvedValue(false);
+            (mockService.isRunning as Mock).mockResolvedValue(false);
 
             await commandHandler.handleComfyuiStatus('user123');
 
-            expect(mockBot.notice).toHaveBeenCalledWith('user123',
-                'ComfyUI is not running. It will start automatically on the next image request.');
+            expect(mockBot.notice).toHaveBeenCalledWith(
+                'user123',
+                'ComfyUI is not running. It will start automatically on the next image request.',
+            );
         });
 
         it('should report an error if the status check fails', async () => {
-            (mockService.isRunning as jest.Mock).mockRejectedValue(new Error('probe failed'));
+            (mockService.isRunning as Mock).mockRejectedValue(new Error('probe failed'));
 
             await commandHandler.handleComfyuiStatus('user123');
 
@@ -175,7 +186,7 @@ describe('CommandHandler', () => {
             const channel = '#channel';
             const message = '!draw fluffy cat';
             const filteredPrompt = { prompt: 'fluffy cat', count: 1 } as { prompt: string; count: number };
-            (PromptParser.extractPrompts as jest.Mock).mockResolvedValue(filteredPrompt);
+            (PromptParser.extractPrompts as Mock).mockResolvedValue(filteredPrompt);
 
             await commandHandler.handleGenerateImage(nick, channel, message);
 
@@ -184,14 +195,14 @@ describe('CommandHandler', () => {
             expect(mockQueue.addTask).toHaveBeenCalledWith({
                 prompt: filteredPrompt,
                 nick,
-                channel
+                channel,
             });
             expect(mockBot.say).toHaveBeenCalledWith(channel, expect.stringContaining('You are #1 in the queue'));
         });
 
         it('should report prompt parsing errors to the channel', async () => {
             const channel = '#channel';
-            (PromptParser.extractPrompts as jest.Mock).mockRejectedValue(new UserError('Parse error'));
+            (PromptParser.extractPrompts as Mock).mockRejectedValue(new UserError('Parse error'));
 
             await commandHandler.handleGenerateImage('user123', channel, 'invalid');
 
@@ -201,28 +212,37 @@ describe('CommandHandler', () => {
 
         it('should report unexpected errors generically to the channel', async () => {
             const channel = '#channel';
-            (PromptParser.extractPrompts as jest.Mock).mockRejectedValue(new Error('boom'));
+            (PromptParser.extractPrompts as Mock).mockRejectedValue(new Error('boom'));
 
             await commandHandler.handleGenerateImage('user123', channel, 'invalid');
 
-            expect(mockBot.say).toHaveBeenCalledWith('#channel', expect.stringContaining('An error occurred while processing your request.'));
+            expect(mockBot.say).toHaveBeenCalledWith(
+                '#channel',
+                expect.stringContaining('An error occurred while processing your request.'),
+            );
             expect(mockQueue.addTask).not.toHaveBeenCalled();
         });
     });
 
     describe('handleDeleteImages', () => {
         it('should delete a single batch by id and confirm the count', async () => {
-            jest.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
+            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['x_0.webp', 'x_1.webp'], count: 2 });
 
-            await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete 8cc05ada-6698-4c4c-9262-adda0f0addb4');
+            await commandHandler.handleDeleteImages(
+                'user123',
+                '#channel',
+                '!fate --delete 8cc05ada-6698-4c4c-9262-adda0f0addb4',
+            );
 
             expect(deleteArtworkTarget).toHaveBeenCalledWith('8cc05ada-6698-4c4c-9262-adda0f0addb4');
-            expect(mockBot.say).toHaveBeenCalledWith('#channel',
-                'user123: Deleted 2 image(s) for "8cc05ada-6698-4c4c-9262-adda0f0addb4".');
+            expect(mockBot.say).toHaveBeenCalledWith(
+                '#channel',
+                'user123: Deleted 2 image(s) for "8cc05ada-6698-4c4c-9262-adda0f0addb4".',
+            );
         });
 
         it('should clear the whole folder when passed "all"', async () => {
-            jest.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['a.webp'], count: 30 });
+            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: ['a.webp'], count: 30 });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete all');
 
@@ -231,7 +251,7 @@ describe('CommandHandler', () => {
         });
 
         it('should report that nothing matched the id', async () => {
-            jest.mocked(deleteArtworkTarget).mockReturnValue({ deleted: [], count: 0 });
+            vi.mocked(deleteArtworkTarget).mockReturnValue({ deleted: [], count: 0 });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete nope');
 
@@ -242,12 +262,16 @@ describe('CommandHandler', () => {
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete');
 
             expect(deleteArtworkTarget).not.toHaveBeenCalled();
-            expect(mockBot.say).toHaveBeenCalledWith('#channel',
-                `user123: Usage: ${BOT_CONFIG.TRIGGER_WORD} --delete <prompt_id> | ${BOT_CONFIG.TRIGGER_WORD} --delete all`);
+            expect(mockBot.say).toHaveBeenCalledWith(
+                '#channel',
+                `user123: Usage: ${BOT_CONFIG.TRIGGER_WORD} --delete <prompt_id> | ${BOT_CONFIG.TRIGGER_WORD} --delete all`,
+            );
         });
 
         it('should report an error from the deleter', async () => {
-            jest.mocked(deleteArtworkTarget).mockImplementation(() => { throw new Error('folder missing'); });
+            vi.mocked(deleteArtworkTarget).mockImplementation(() => {
+                throw new Error('folder missing');
+            });
 
             await commandHandler.handleDeleteImages('user123', '#channel', '!fate --delete abc');
 

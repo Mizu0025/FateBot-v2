@@ -1,27 +1,28 @@
-import { MessageHandler } from './message-handler';
-import { CommandHandler } from './command-handler';
+import { afterEach, beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import { BOT_CONFIG } from '../config/constants';
+import type { CommandHandler } from './command-handler';
+import { MessageHandler } from './message-handler';
 
-jest.mock('../config/logger');
+vi.mock('../config/logger');
 
 describe('MessageHandler', () => {
     let messageHandler: MessageHandler;
-    let mockCommandHandler: jest.Mocked<CommandHandler>;
+    let mockCommandHandler: Mocked<CommandHandler>;
 
     beforeEach(() => {
         mockCommandHandler = {
-            handleHelp: jest.fn(),
-            handleListModels: jest.fn(),
-            handleStartComfyui: jest.fn(),
-            handleStopComfyui: jest.fn(),
-            handleGenerateImage: jest.fn().mockResolvedValue(undefined),
-            handleDeleteImages: jest.fn().mockResolvedValue(undefined),
-        } as unknown as jest.Mocked<CommandHandler>;
+            handleHelp: vi.fn(),
+            handleListModels: vi.fn(),
+            handleStartComfyui: vi.fn(),
+            handleStopComfyui: vi.fn(),
+            handleGenerateImage: vi.fn().mockResolvedValue(undefined),
+            handleDeleteImages: vi.fn().mockResolvedValue(undefined),
+        } as unknown as Mocked<CommandHandler>;
         messageHandler = new MessageHandler(mockCommandHandler);
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should ignore messages from different channels', async () => {
@@ -29,7 +30,7 @@ describe('MessageHandler', () => {
         const event = {
             target: '#different-channel',
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} test`
+            message: `${BOT_CONFIG.TRIGGER_WORD} test`,
         };
 
         // Act
@@ -44,7 +45,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: 'just chatting'
+            message: 'just chatting',
         };
 
         // Act
@@ -59,7 +60,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} --help`
+            message: `${BOT_CONFIG.TRIGGER_WORD} --help`,
         };
 
         // Act
@@ -75,7 +76,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} --models`
+            message: `${BOT_CONFIG.TRIGGER_WORD} --models`,
         };
 
         // Act
@@ -90,7 +91,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} --start-comfyui`
+            message: `${BOT_CONFIG.TRIGGER_WORD} --start-comfyui`,
         };
 
         // Act
@@ -106,7 +107,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} --stop-comfyui`
+            message: `${BOT_CONFIG.TRIGGER_WORD} --stop-comfyui`,
         };
 
         // Act
@@ -122,7 +123,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} beautiful sunset`
+            message: `${BOT_CONFIG.TRIGGER_WORD} beautiful sunset`,
         };
 
         // Act
@@ -137,7 +138,7 @@ describe('MessageHandler', () => {
         const event = {
             target: BOT_CONFIG.CHANNEL,
             nick: 'user123',
-            message: `${BOT_CONFIG.TRIGGER_WORD} --delete all`
+            message: `${BOT_CONFIG.TRIGGER_WORD} --delete all`,
         };
 
         // Act

@@ -1,5 +1,5 @@
+import { join } from 'node:path';
 import winston from 'winston';
-import { join } from 'path';
 
 // Get log level from environment variable, default to 'info'
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -16,14 +16,14 @@ const consoleFormat = winston.format.combine(
             msg += ` ${JSON.stringify(meta)}`;
         }
         return msg;
-    })
+    }),
 );
 
 // Define format for file logging (JSON for structured logs)
 const fileFormat = winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.json(),
 );
 
 // Create transports array
@@ -45,7 +45,7 @@ if (LOG_TO_FILE) {
             format: fileFormat,
             maxsize: 5242880, // 5MB
             maxFiles: 5,
-        })
+        }),
     );
 
     // Log only errors to error.log
@@ -56,7 +56,7 @@ if (LOG_TO_FILE) {
             format: fileFormat,
             maxsize: 5242880, // 5MB
             maxFiles: 5,
-        })
+        }),
     );
 }
 
@@ -76,4 +76,3 @@ if (process.env.NODE_ENV !== 'test') {
         fileLogging: LOG_TO_FILE,
     });
 }
-

@@ -1,13 +1,14 @@
-import { PromptProcessor } from './prompt-processor';
-import { FilteredPrompt, ModelConfiguration, WorkflowData } from '../types';
-import { minimalWorkflowData } from '../test-utils';
+import { describe, expect, it, vi } from 'vitest';
 import { logger } from '../config/logger';
+import { minimalWorkflowData } from '../test-utils';
+import type { FilteredPrompt, ModelConfiguration, WorkflowData } from '../types';
+import { PromptProcessor } from './prompt-processor';
 
-jest.mock('../config/logger', () => ({
+vi.mock('../config/logger', () => ({
     logger: {
-        debug: jest.fn(),
-        info: jest.fn(),
-        error: jest.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
     },
 }));
 
@@ -17,17 +18,24 @@ describe('PromptProcessor', () => {
         VAELoader: { inputs: { vae_name: 'test.vae' }, class_type: 'VAELoader' },
         KSampler: {
             inputs: {
-                seed: 123, steps: 20, cfg: 8, sampler_name: 'euler',
-                scheduler: 'normal', denoise: 1,
-                model: ['1', 0], positive: ['1', 0], negative: ['1', 0], latent_image: ['1', 0]
+                seed: 123,
+                steps: 20,
+                cfg: 8,
+                sampler_name: 'euler',
+                scheduler: 'normal',
+                denoise: 1,
+                model: ['1', 0],
+                positive: ['1', 0],
+                negative: ['1', 0],
+                latent_image: ['1', 0],
             },
-            class_type: 'KSampler'
+            class_type: 'KSampler',
         },
         EmptyLatentImage: { inputs: { width: 512, height: 512, batch_size: 1 }, class_type: 'EmptyLatentImage' },
         PositivePrompt: { inputs: { text: 'test positive', clip: ['1', 0] }, class_type: 'CLIPTextEncode' },
         NegativePrompt: { inputs: { text: 'test negative', clip: ['1', 0] }, class_type: 'CLIPTextEncode' },
         VAEDecode: { inputs: { samples: ['1', 0], vae: ['1', 0] }, class_type: 'VAEDecode' },
-        SaveImageWebsocket: { inputs: { images: ['1', 0] }, class_type: 'SaveImageWebsocket' }
+        SaveImageWebsocket: { inputs: { images: ['1', 0] }, class_type: 'SaveImageWebsocket' },
     };
 
     const mockModelConfig: ModelConfiguration = {
@@ -40,7 +48,7 @@ describe('PromptProcessor', () => {
         imageHeight: 1024,
         imageWidth: 1024,
         defaultPositivePrompt: 'masterpiece',
-        defaultNegativePrompt: 'low quality'
+        defaultNegativePrompt: 'low quality',
     };
 
     const mockFilteredPrompt: FilteredPrompt = {
@@ -50,7 +58,7 @@ describe('PromptProcessor', () => {
         height: 1024,
         model: 'xl',
         count: 1,
-        seed: 456
+        seed: 456,
     };
 
     describe('createPromptData', () => {
@@ -77,8 +85,8 @@ describe('PromptProcessor', () => {
                 PositivePrompt: { inputs: { text: ['1', 0], clip: ['1', 0] }, class_type: 'CLIPTextEncode' }, // text is an array/reference
                 PromptConcatenate: {
                     inputs: { string_a: 'default', string_b: 'concatenated', delimiter: ',' },
-                    class_type: 'PromptConcatenate'
-                }
+                    class_type: 'PromptConcatenate',
+                },
             };
 
             // Act
@@ -115,8 +123,8 @@ describe('PromptProcessor', () => {
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, mockFilteredPrompt);
 
             // Assert
-            expect(promptData.data.Checkpoint!.inputs.ckpt_name).toBe(mockModelConfig.checkpointName);
-            expect(promptData.data.VAELoader!.inputs.vae_name).toBe(mockModelConfig.vae);
+            expect(promptData.data.Checkpoint?.inputs.ckpt_name).toBe(mockModelConfig.checkpointName);
+            expect(promptData.data.VAELoader?.inputs.vae_name).toBe(mockModelConfig.vae);
             expect(promptData.data.KSampler.inputs.steps).toBe(mockModelConfig.steps);
             expect(promptData.data.KSampler.inputs.seed).toBe(mockFilteredPrompt.seed);
             expect(promptData.data.EmptyLatentImage.inputs.width).toBe(mockFilteredPrompt.width);
@@ -129,7 +137,7 @@ describe('PromptProcessor', () => {
             const workflowWithConcatenation = JSON.parse(JSON.stringify(mockWorkflowData));
             workflowWithConcatenation.PromptConcatenate = {
                 inputs: { string_a: '', string_b: '', delimiter: ',' },
-                class_type: 'PromptConcatenate'
+                class_type: 'PromptConcatenate',
             };
             const promptData = PromptProcessor.createPromptData(workflowWithConcatenation);
 
@@ -137,15 +145,15 @@ describe('PromptProcessor', () => {
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, mockFilteredPrompt);
 
             // Assert
-            expect(promptData.data.PromptConcatenate!.inputs.string_a).toBe(mockModelConfig.defaultPositivePrompt);
-            expect(promptData.data.PromptConcatenate!.inputs.string_b).toBe(mockFilteredPrompt.prompt);
+            expect(promptData.data.PromptConcatenate?.inputs.string_a).toBe(mockModelConfig.defaultPositivePrompt);
+            expect(promptData.data.PromptConcatenate?.inputs.string_b).toBe(mockFilteredPrompt.prompt);
         });
 
         it('should generate a random seed if seed is -1', () => {
             // Arrange
             const promptData = PromptProcessor.createPromptData(JSON.parse(JSON.stringify(mockWorkflowData)));
             const filteredPromptWithRandomSeed = { ...mockFilteredPrompt, seed: -1 };
-            const mathSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+            const mathSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
             // Act
             PromptProcessor.updatePromptWithModelConfig(promptData, mockModelConfig, filteredPromptWithRandomSeed);

@@ -1,4 +1,5 @@
-import { FateBotError, UserError, SystemError } from './errors';
+import { describe, expect, it } from 'vitest';
+import { FateBotError, SystemError, UserError } from './errors';
 
 describe('Custom Errors', () => {
     describe('FateBotError', () => {

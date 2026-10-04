@@ -1,19 +1,20 @@
-import { promises as fs } from 'fs';
-import { WorkflowLoader } from './workflow-loader';
-import { minimalWorkflowData } from '../test-utils';
+import { promises as fs } from 'node:fs';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { logger } from '../config/logger';
+import { minimalWorkflowData } from '../test-utils';
+import { WorkflowLoader } from './workflow-loader';
 
-jest.mock('fs', () => ({
+vi.mock('fs', () => ({
     promises: {
-        readFile: jest.fn(),
+        readFile: vi.fn(),
     },
 }));
 
-jest.mock('../config/logger', () => ({
+vi.mock('../config/logger', () => ({
     logger: {
-        debug: jest.fn(),
-        info: jest.fn(),
-        error: jest.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
     },
 }));
 
@@ -25,13 +26,13 @@ describe('WorkflowLoader', () => {
     };
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('loadWorkflowData', () => {
         it('should load workflow data successfully', async () => {
             // Arrange
-            (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify(mockWorkflowData));
+            (fs.readFile as Mock).mockResolvedValue(JSON.stringify(mockWorkflowData));
 
             // Act
             const result = await WorkflowLoader.loadWorkflowData(mockWorkflowPath);
@@ -45,22 +46,22 @@ describe('WorkflowLoader', () => {
         it('should throw error when file is not found', async () => {
             // Arrange
             const error = Object.assign(new Error('File not found'), { code: 'ENOENT' });
-            (fs.readFile as jest.Mock).mockRejectedValue(error);
+            (fs.readFile as Mock).mockRejectedValue(error);
 
             // Act & Assert
             await expect(WorkflowLoader.loadWorkflowData(mockWorkflowPath)).rejects.toThrow(
-                `${mockWorkflowPath} not found. Please ensure it exists in the current directory.`
+                `${mockWorkflowPath} not found. Please ensure it exists in the current directory.`,
             );
             expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('not found'));
         });
 
         it('should throw error when JSON is invalid', async () => {
             // Arrange
-            (fs.readFile as jest.Mock).mockResolvedValue('invalid json');
+            (fs.readFile as Mock).mockResolvedValue('invalid json');
 
             // Act & Assert
             await expect(WorkflowLoader.loadWorkflowData(mockWorkflowPath)).rejects.toThrow(
-                `Invalid JSON format in ${mockWorkflowPath}. Please check the file for errors.`
+                `Invalid JSON format in ${mockWorkflowPath}. Please check the file for errors.`,
             );
             expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Invalid JSON format'));
         });
@@ -68,7 +69,7 @@ describe('WorkflowLoader', () => {
         it('should throw generic error when readFile fails', async () => {
             // Arrange
             const genericError = new Error('Generic error');
-            (fs.readFile as jest.Mock).mockRejectedValue(genericError);
+            (fs.readFile as Mock).mockRejectedValue(genericError);
 
             // Act & Assert
             await expect(WorkflowLoader.loadWorkflowData(mockWorkflowPath)).rejects.toThrow(genericError);
@@ -80,7 +81,7 @@ describe('WorkflowLoader', () => {
         it('should load workflow by name', async () => {
             // Arrange
             const workflowName = 'test-workflow';
-            const spy = jest.spyOn(WorkflowLoader, 'loadWorkflowData').mockResolvedValue(mockWorkflowData);
+            const spy = vi.spyOn(WorkflowLoader, 'loadWorkflowData').mockResolvedValue(mockWorkflowData);
 
             // Act
             const result = await WorkflowLoader.loadWorkflowByName(workflowName);

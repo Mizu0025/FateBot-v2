@@ -1,7 +1,7 @@
-import { logger } from '../config/logger';
 import { BOT_CONFIG, COMFYUI_SERVICE_CONFIG, HELP_MESSAGES } from '../config/constants';
-import { MessageSender } from '../types/irc';
+import { logger } from '../config/logger';
 import { ModelLoader } from '../config/model-loader';
+import type { MessageSender } from '../types/irc';
 import { deleteArtworkTarget } from '../utils/artwork-deleter';
 
 /**
@@ -11,10 +11,11 @@ function extractDeleteArg(message: string): string {
     const match = message.match(/--delete\s+(?:"([^"]+)"|(\S+))/i);
     return match ? (match[1] ?? match[2]) : '';
 }
+
+import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import type { InactivityManager } from '../managers/inactivity-manager';
+import type { PromptQueue } from '../queue/queue';
 import { PromptParser } from '../text-filter/prompt-parser';
-import { PromptQueue } from '../queue/queue';
-import { InactivityManager } from '../managers/inactivity-manager';
-import { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
 import { UserError } from '../types/errors';
 
 /**
@@ -36,8 +37,8 @@ export class CommandHandler {
         private bot: MessageSender,
         private queue: Pick<PromptQueue, 'addTask' | 'length' | 'isProcessing'>,
         private inactivityManager: Pick<InactivityManager, 'clearTimer'>,
-        private service: ComfyUiServiceManager
-    ) { }
+        private service: ComfyUiServiceManager,
+    ) {}
 
     /**
      * Sends help information to the user via IRC notices.
@@ -73,11 +74,14 @@ export class CommandHandler {
         logger.info(`Manual ComfyUI start requested by ${nick}`);
         try {
             const started = await this.service.ensureRunning();
-            this.bot.notice(nick, started
-                ? `ComfyUI started. It will stay up until the queue has been idle for ${COMFYUI_SERVICE_CONFIG.IDLE_MINUTES} minutes.`
-                : 'ComfyUI was already running.');
+            this.bot.notice(
+                nick,
+                started
+                    ? `ComfyUI started. It will stay up until the queue has been idle for ${COMFYUI_SERVICE_CONFIG.IDLE_MINUTES} minutes.`
+                    : 'ComfyUI was already running.',
+            );
         } catch (error) {
-            logger.error("Error starting ComfyUI:", error);
+            logger.error('Error starting ComfyUI:', error);
             this.bot.notice(nick, `Error starting ComfyUI: ${error instanceof Error ? error.message : error}`);
         }
     }
@@ -93,7 +97,7 @@ export class CommandHandler {
             await this.service.stop();
             this.bot.notice(nick, 'ComfyUI stopped. It will start automatically on the next image request.');
         } catch (error) {
-            logger.error("Error stopping ComfyUI:", error);
+            logger.error('Error stopping ComfyUI:', error);
             this.bot.notice(nick, `Error stopping ComfyUI: ${error instanceof Error ? error.message : error}`);
         }
     }
@@ -106,11 +110,14 @@ export class CommandHandler {
         logger.info(`ComfyUI status requested by ${nick}`);
         try {
             const running = await this.service.isRunning();
-            this.bot.notice(nick, running
-                ? `ComfyUI is running. Queue: ${this.queue.length} waiting, processing: ${this.queue.isProcessing() ? 'yes' : 'no'}.`
-                : 'ComfyUI is not running. It will start automatically on the next image request.');
+            this.bot.notice(
+                nick,
+                running
+                    ? `ComfyUI is running. Queue: ${this.queue.length} waiting, processing: ${this.queue.isProcessing() ? 'yes' : 'no'}.`
+                    : 'ComfyUI is not running. It will start automatically on the next image request.',
+            );
         } catch (error) {
-            logger.error("Error checking ComfyUI status:", error);
+            logger.error('Error checking ComfyUI status:', error);
             this.bot.notice(nick, `Error checking ComfyUI status: ${error instanceof Error ? error.message : error}`);
         }
     }
@@ -127,7 +134,10 @@ export class CommandHandler {
         const arg = extractDeleteArg(message);
 
         if (!arg) {
-            this.bot.say(channel, `${nick}: Usage: ${BOT_CONFIG.TRIGGER_WORD} --delete <prompt_id> | ${BOT_CONFIG.TRIGGER_WORD} --delete all`);
+            this.bot.say(
+                channel,
+                `${nick}: Usage: ${BOT_CONFIG.TRIGGER_WORD} --delete <prompt_id> | ${BOT_CONFIG.TRIGGER_WORD} --delete all`,
+            );
             return;
         }
 
@@ -162,7 +172,7 @@ export class CommandHandler {
                 width: filteredPrompt.width,
                 height: filteredPrompt.height,
                 model: filteredPrompt.model || 'default',
-                count: filteredPrompt.count
+                count: filteredPrompt.count,
             });
 
             this.inactivityManager.clearTimer();
@@ -170,15 +180,14 @@ export class CommandHandler {
             const position = this.queue.addTask({
                 prompt: filteredPrompt,
                 nick,
-                channel
+                channel,
             });
             this.bot.say(channel, `${nick}: Starting image generation... You are #${position} in the queue.`);
-
         } catch (error: unknown) {
             if (error instanceof UserError) {
                 this.bot.say(channel, `${nick}: Error parsing your request: ${error.message}`);
             } else {
-                logger.error("Error during message handling:", error);
+                logger.error('Error during message handling:', error);
                 this.bot.say(channel, `${nick}: An error occurred while processing your request.`);
             }
         }

@@ -1,7 +1,7 @@
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { WorkflowData } from '../types';
+import { promises as fs } from 'node:fs';
+import { join } from 'node:path';
 import { logger } from '../config/logger';
+import type { WorkflowData } from '../types';
 
 /**
  * Handles the loading of ComfyUI workflow definitions from JSON files stored on disk.
@@ -38,10 +38,7 @@ export class WorkflowLoader {
      * Checks whether a thrown value is an `fs` ENOENT failure.
      */
     private static isFileNotFoundError(error: unknown): boolean {
-        return (
-            typeof error === 'object' && error !== null &&
-            (error as { code?: unknown }).code === 'ENOENT'
-        );
+        return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
     }
 
     /**
@@ -52,6 +49,6 @@ export class WorkflowLoader {
     static async loadWorkflowByName(workflowName: string): Promise<WorkflowData | null> {
         const workflowPath = join(__dirname, `../workflows/${workflowName}.json`);
         logger.info(`Loading workflow: ${workflowName}`);
-        return this.loadWorkflowData(workflowPath);
+        return WorkflowLoader.loadWorkflowData(workflowPath);
     }
 }

@@ -1,10 +1,10 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { ModelConfiguration } from '../types';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { logger } from '../config/logger';
+import type { ModelConfiguration } from '../types';
 
 /**
- * Handles the loading and listing of model configurations 
+ * Handles the loading and listing of model configurations
  * from the external modelConfiguration.json file.
  */
 export class ModelLoader {

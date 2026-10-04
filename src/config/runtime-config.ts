@@ -11,12 +11,12 @@ export class RuntimeConfig {
      * The name of the AI model to use when none is specified in the user's prompt.
      */
     static get defaultModel(): string {
-        return this._defaultModel;
+        return RuntimeConfig._defaultModel;
     }
 
     static set defaultModel(model: string) {
-        const oldModel = this._defaultModel;
-        this._defaultModel = model;
+        const oldModel = RuntimeConfig._defaultModel;
+        RuntimeConfig._defaultModel = model;
         logger.info(`Runtime default model changed from ${oldModel} to ${model}`);
     }
 }

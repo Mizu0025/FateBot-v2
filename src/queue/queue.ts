@@ -1,5 +1,5 @@
 import { logger } from '../config/logger';
-import { FilteredPrompt } from '../types';
+import type { FilteredPrompt } from '../types';
 
 /**
  * The slice of the prompt queue that idle-state observers depend on.
@@ -81,7 +81,7 @@ export class PromptQueue implements QueueMonitor {
             this.workerBusy = true;
             return Promise.resolve(next);
         }
-        return new Promise<PromptQueueItem>(resolve => {
+        return new Promise<PromptQueueItem>((resolve) => {
             this.waiting = { resolve };
         });
     }

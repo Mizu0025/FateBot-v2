@@ -1,19 +1,19 @@
-import { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
 import { logger } from '../config/logger';
+import type { FilteredPrompt, ModelConfiguration, PromptData, WorkflowData } from '../types';
 
 /**
- * Handles the extraction and transformation of workflow data into 
+ * Handles the extraction and transformation of workflow data into
  * a structured PromptData object, and applies model-specific configurations.
  */
 export class PromptProcessor {
     /**
-     * Extracts and flattens core generation parameters from a raw 
+     * Extracts and flattens core generation parameters from a raw
      * ComfyUI workflow into a structures PromptData object.
      * @param workflowData The full workflow object from a JSON file.
      * @returns A structured representation of the workflow's default parameters.
      */
     static createPromptData(workflowData: WorkflowData): PromptData {
-        logger.debug("Creating PromptData object from workflow data");
+        logger.debug('Creating PromptData object from workflow data');
 
         const checkpointInputs = workflowData.Checkpoint?.inputs;
         const unetInputs = workflowData.UNETLoader?.inputs;
@@ -24,24 +24,24 @@ export class PromptProcessor {
         const negativePromptInputs = workflowData.NegativePrompt?.inputs;
 
         // Extract positive prompt - handle both direct string and PromptConcatenate reference
-        let positivePrompt = "";
+        let positivePrompt = '';
         if (typeof positivePromptInputs?.text === 'string') {
             positivePrompt = positivePromptInputs.text;
         } else if (Array.isArray(positivePromptInputs?.text) && workflowData.PromptConcatenate) {
             // If it's a reference to PromptConcatenate, get string_b (user prompt)
-            positivePrompt = workflowData.PromptConcatenate.inputs.string_b || "";
+            positivePrompt = workflowData.PromptConcatenate.inputs.string_b || '';
         }
 
         // Extract negative prompt - handle both direct string and potential reference
-        let negativePrompt = "";
+        let negativePrompt = '';
         if (typeof negativePromptInputs?.text === 'string') {
             negativePrompt = negativePromptInputs.text;
         }
 
         return {
             data: workflowData,
-            model: checkpointInputs?.ckpt_name || unetInputs?.unet_name || "",
-            vae: vaeLoaderInputs?.vae_name || "",
+            model: checkpointInputs?.ckpt_name || unetInputs?.unet_name || '',
+            vae: vaeLoaderInputs?.vae_name || '',
             seed: ksamplerInputs?.seed || 0,
             steps: ksamplerInputs?.steps || 0,
             width: latentImageInputs?.width || 1024,
@@ -50,12 +50,12 @@ export class PromptProcessor {
             positive_prompt: positivePrompt,
             negative_prompt: negativePrompt,
             cfg: ksamplerInputs?.cfg || 8,
-            sampler: ksamplerInputs?.sampler_name || "euler"
+            sampler: ksamplerInputs?.sampler_name || 'euler',
         };
     }
 
     /**
-     * Maps user-provided prompt data and model-specific configurations 
+     * Maps user-provided prompt data and model-specific configurations
      * onto the internal ComfyUI workflow nodes.
      * @param promptData The target PromptData object containing the workflow.
      * @param modelConfig The configuration for the selected AI model.
@@ -65,11 +65,11 @@ export class PromptProcessor {
     static updatePromptWithModelConfig(
         promptData: PromptData,
         modelConfig: ModelConfiguration | null,
-        filteredPrompt: FilteredPrompt
+        filteredPrompt: FilteredPrompt,
     ): void {
         if (!modelConfig) {
-            logger.error("Model configuration not found for the specified model.");
-            throw new Error("Model configuration not found.");
+            logger.error('Model configuration not found for the specified model.');
+            throw new Error('Model configuration not found.');
         }
 
         // Update the workflow data with model configuration
@@ -87,7 +87,7 @@ export class PromptProcessor {
             steps: modelConfig.steps,
             ...(modelConfig.cfg && { cfg: modelConfig.cfg }),
             ...(modelConfig.sampler_name && { sampler_name: modelConfig.sampler_name }),
-            seed: filteredPrompt.seed === -1 ? this.generateRandomSeed() : filteredPrompt.seed,
+            seed: filteredPrompt.seed === -1 ? PromptProcessor.generateRandomSeed() : filteredPrompt.seed,
         });
 
         Object.assign(promptData.data.EmptyLatentImage.inputs, {
@@ -104,13 +104,15 @@ export class PromptProcessor {
         } else {
             // Fallback to direct text assignment for workflows without PromptConcatenate
             if (typeof promptData.data.PositivePrompt.inputs.text === 'string') {
-                promptData.data.PositivePrompt.inputs.text = `${modelConfig.defaultPositivePrompt}, ${filteredPrompt.prompt || ''}`.trim();
+                promptData.data.PositivePrompt.inputs.text =
+                    `${modelConfig.defaultPositivePrompt}, ${filteredPrompt.prompt || ''}`.trim();
             }
         }
 
         // Update negative prompt
         if (typeof promptData.data.NegativePrompt.inputs.text === 'string') {
-            promptData.data.NegativePrompt.inputs.text = `nsfw, nude, ${modelConfig.defaultNegativePrompt}, ${filteredPrompt.negative_prompt || ''}`.trim();
+            promptData.data.NegativePrompt.inputs.text =
+                `nsfw, nude, ${modelConfig.defaultNegativePrompt}, ${filteredPrompt.negative_prompt || ''}`.trim();
         }
 
         logger.debug('PromptData updated with model configuration', {
@@ -119,7 +121,7 @@ export class PromptProcessor {
             sampler: promptData.data.KSampler.inputs.sampler_name,
             width: promptData.data.EmptyLatentImage.inputs.width,
             height: promptData.data.EmptyLatentImage.inputs.height,
-            batch_size: promptData.data.EmptyLatentImage.inputs.batch_size
+            batch_size: promptData.data.EmptyLatentImage.inputs.batch_size,
         });
     }
 

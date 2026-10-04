@@ -1,7 +1,7 @@
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import { logger } from '../config/logger';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
+import { logger } from '../config/logger';
 import { SystemError } from '../types/errors';
 
 const execFileAsync = promisify(execFile);
@@ -71,13 +71,17 @@ export class ComfyUiServiceManager {
 
         // The service never became ready. Stop it so `Restart=on-failure` can't
         // keep crash-looping and burning resources — the next request starts it fresh.
-        logger.error(`ComfyUI did not become ready within ${COMFYUI_SERVICE_CONFIG.START_TIMEOUT_SECONDS}s. Stopping the service to stop any crash loop.`);
+        logger.error(
+            `ComfyUI did not become ready within ${COMFYUI_SERVICE_CONFIG.START_TIMEOUT_SECONDS}s. Stopping the service to stop any crash loop.`,
+        );
         try {
             await this.stopService();
         } catch (error) {
             logger.error('Failed to stop ComfyUI service after startup timeout:', error);
         }
-        throw new SystemError(`ComfyUI startup timed out after ${COMFYUI_SERVICE_CONFIG.START_TIMEOUT_SECONDS}s (service stopped). Check the service logs: journalctl --user -u ${COMFYUI_SERVICE_CONFIG.UNIT_NAME}`);
+        throw new SystemError(
+            `ComfyUI startup timed out after ${COMFYUI_SERVICE_CONFIG.START_TIMEOUT_SECONDS}s (service stopped). Check the service logs: journalctl --user -u ${COMFYUI_SERVICE_CONFIG.UNIT_NAME}`,
+        );
     }
 
     /**
@@ -119,6 +123,6 @@ export class ComfyUiServiceManager {
     }
 
     private wait(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }

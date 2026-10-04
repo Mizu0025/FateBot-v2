@@ -1,13 +1,13 @@
-import { ErrorDetails, SystemError } from '../types/errors';
+import { type ErrorDetails, SystemError } from '../types/errors';
 
 /**
  * Well-known error categories for generation failures.
  */
 export type FailureCategory =
-    | 'offline'       // ComfyUI is not reachable (down / port closed)
-    | 'backend'       // ComfyUI is reachable but rejected the request (HTTP 4xx/5xx)
-    | 'timeout'       // ComfyUI stopped responding mid-job
-    | 'internal';     // anything else
+    | 'offline' // ComfyUI is not reachable (down / port closed)
+    | 'backend' // ComfyUI is reachable but rejected the request (HTTP 4xx/5xx)
+    | 'timeout' // ComfyUI stopped responding mid-job
+    | 'internal'; // anything else
 
 export interface ClassifiedError {
     category: FailureCategory;

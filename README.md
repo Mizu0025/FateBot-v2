@@ -12,7 +12,7 @@ A TypeScript implementation of the FateBot IRC bot for image generation using Co
 - **On-Demand ComfyUI**: ComfyUI runs as a user systemd service that the bot starts on demand and stops automatically after it has been idle, so it is never holding GPU memory for no reason
 - **Error Handling**: Distinguishes user errors (bad input) from system errors, classifies generation failures (offline / backend / timeout / internal), and automatically retries transient failures once
 - **Structured Logging**: Winston-based logs, optionally written to `./logs` with rotation
-- **Modular Architecture**: Clean, maintainable code structure with full unit-test coverage (Jest)
+- **Modular Architecture**: Clean, maintainable code structure with full unit-test coverage (Vitest)
 
 ## Commands
 
@@ -218,14 +218,33 @@ Bot:  Mizu: ComfyUI was offline — starting it up now, generation will take a l
 
 ## Development
 
-The codebase is written in TypeScript with strict type checking. Every module has a unit test, written in Jest with `ts-jest`.
+The codebase is written in TypeScript with strict type checking. Every module has a co-located unit test, written with Vitest (`*.test.ts`). Formatting and linting use Biome (`biome.json`):
+
+- The codebase style is preserved (4-space indent, single quotes, semicolons).
+- A couple of Biome rules are deliberately disabled (documented here):
+    - **`noStaticOnlyClass` (off)** — several collaborators (`ImageGrid`, `PromptParser`, `WorkflowLoader`, …) are pure namespaces of static helpers. Refactoring each to a plain namespace object would keep the same call shape (`X.method`) but drop the class identity the project uses as a conceptual module; keeping the class is simpler than that churn. Inside those static helpers, sibling calls use the explicit class name (`ImageGrid.determineGridLayout`), so `noThisInStatic` (still on) reports nothing.
+    - **`useArrowFunction` (off, in `**/*.test.ts` only)** — Vitest constructor mocks must be `function` expressions, not arrows, because production code does `new ComfyUIClient(...)` and the mock it replaces must be constructible under `new` (arrows throw a `TypeError`). Biome can't detect that usage, so we scope the disable to test files in `biome.json` and leave the rule fully enforced on production code.
+
+Everything else in Biome's recommended presets is on.
 
 ### Building
 ```bash
-npm run build
+npm run build        # compiles src/ (production) to dist/
+```
+
+### Type-checking
+```bash
+npm run typecheck    # full type-check of production + test code (no emit)
 ```
 
 ### Running Tests
 ```bash
 npm test
+```
+
+### Lint / Format
+```bash
+npm run lint        # check (read-only)
+npm run lint:fix    # check + apply safe fixes
+npm run format      # format only
 ```

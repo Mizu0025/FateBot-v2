@@ -1,39 +1,40 @@
-import { InactivityManager } from './inactivity-manager';
-import { PromptQueue } from '../queue/queue';
-import { ComfyUiServiceManager } from './comfyui-service-manager';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { COMFYUI_SERVICE_CONFIG } from '../config/constants';
+import type { PromptQueue } from '../queue/queue';
+import type { ComfyUiServiceManager } from './comfyui-service-manager';
+import { InactivityManager } from './inactivity-manager';
 
-jest.mock('../config/logger');
-jest.mock('./comfyui-service-manager');
+vi.mock('../config/logger');
+vi.mock('./comfyui-service-manager');
 
 describe('InactivityManager', () => {
     let inactivityManager: InactivityManager;
     let mockQueue: {
         onIdle: null | (() => void);
-        isIdle: jest.Mock;
+        isIdle: Mock;
     };
-    let mockService: { stop: jest.Mock };
+    let mockService: { stop: Mock };
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         COMFYUI_SERVICE_CONFIG.IDLE_MINUTES = 10;
         mockQueue = {
             onIdle: null,
-            isIdle: jest.fn().mockReturnValue(true)
+            isIdle: vi.fn().mockReturnValue(true),
         };
         mockService = {
-            stop: jest.fn().mockResolvedValue(undefined)
+            stop: vi.fn().mockResolvedValue(undefined),
         };
         inactivityManager = new InactivityManager(
             mockQueue as unknown as Pick<PromptQueue, 'onIdle' | 'isIdle'>,
-            mockService as unknown as ComfyUiServiceManager
+            mockService as unknown as ComfyUiServiceManager,
         );
     });
 
     afterEach(() => {
         inactivityManager.stop();
-        jest.useRealTimers();
-        jest.clearAllMocks();
+        vi.useRealTimers();
+        vi.clearAllMocks();
     });
 
     // The timeout callback is async (it awaits service.stop()); after advancing
@@ -51,7 +52,7 @@ describe('InactivityManager', () => {
         // Assert - nothing happens before the timer expires
         expect(mockService.stop).not.toHaveBeenCalled();
 
-        jest.advanceTimersByTime(10 * 60 * 1000);
+        vi.advanceTimersByTime(10 * 60 * 1000);
         await settle();
         await settle();
 
@@ -59,10 +60,10 @@ describe('InactivityManager', () => {
     });
 
     it('should not stop the service if the queue is not idle when the timer expires', async () => {
-        (mockQueue.isIdle as jest.Mock).mockReturnValue(false);
+        (mockQueue.isIdle as Mock).mockReturnValue(false);
 
         if (mockQueue.onIdle) mockQueue.onIdle();
-        jest.advanceTimersByTime(10 * 60 * 1000);
+        vi.advanceTimersByTime(10 * 60 * 1000);
         await settle();
         await settle();
 
@@ -73,7 +74,7 @@ describe('InactivityManager', () => {
         if (mockQueue.onIdle) mockQueue.onIdle();
 
         inactivityManager.clearTimer();
-        jest.advanceTimersByTime(10 * 60 * 1000);
+        vi.advanceTimersByTime(10 * 60 * 1000);
         await settle();
         await settle();
 
@@ -82,19 +83,19 @@ describe('InactivityManager', () => {
 
     it('should reset the countdown when new activity occurs during idleness', async () => {
         if (mockQueue.onIdle) mockQueue.onIdle();
-        jest.advanceTimersByTime(9 * 60 * 1000);
+        vi.advanceTimersByTime(9 * 60 * 1000);
 
         // A new request arrives: the timer resets, so the original 10-minute
         // countdown no longer expires.
         if (mockQueue.onIdle) mockQueue.onIdle();
-        jest.advanceTimersByTime(9 * 60 * 1000);
+        vi.advanceTimersByTime(9 * 60 * 1000);
         await settle();
         await settle();
 
         expect(mockService.stop).not.toHaveBeenCalled();
 
         // One more minute completes the fresh 10-minute window.
-        jest.advanceTimersByTime(1 * 60 * 1000);
+        vi.advanceTimersByTime(1 * 60 * 1000);
         await settle();
         await settle();
 
@@ -102,10 +103,10 @@ describe('InactivityManager', () => {
     });
 
     it('should not throw when stopping the service fails', async () => {
-        (mockService.stop as jest.Mock).mockRejectedValue(new Error('session gone'));
+        (mockService.stop as Mock).mockRejectedValue(new Error('session gone'));
 
         if (mockQueue.onIdle) mockQueue.onIdle();
-        jest.advanceTimersByTime(10 * 60 * 1000);
+        vi.advanceTimersByTime(10 * 60 * 1000);
         await settle();
         await settle();
 
@@ -116,7 +117,7 @@ describe('InactivityManager', () => {
         if (mockQueue.onIdle) mockQueue.onIdle();
 
         inactivityManager.stop();
-        jest.advanceTimersByTime(10 * 60 * 1000);
+        vi.advanceTimersByTime(10 * 60 * 1000);
         await settle();
         await settle();
 

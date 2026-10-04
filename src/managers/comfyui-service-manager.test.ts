@@ -1,19 +1,23 @@
-import { ComfyUiServiceManager } from './comfyui-service-manager';
-import { execFile } from 'child_process';
+import { execFile } from 'node:child_process';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
 import { SystemError } from '../types/errors';
+import { ComfyUiServiceManager } from './comfyui-service-manager';
 
-jest.mock('../config/logger');
-jest.mock('child_process');
+vi.mock('../config/logger');
+// Explicit factory: Vitest's bare vi.mock('child_process') auto-mock does not
+// route the test's mockImplementation to the source's promisify(execFile)
+// binding. A vi.fn from a factory is what util.promisify forwards to reliably.
+vi.mock('child_process', () => ({ execFile: vi.fn() }));
 
-const execFileMock = execFile as unknown as jest.Mock;
+const execFileMock = execFile as unknown as Mock;
 
 describe('ComfyUiServiceManager', () => {
     let manager: ComfyUiServiceManager;
-    let mockFetch: jest.Mock;
+    let mockFetch: Mock;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         COMFYUI_CONFIG.ADDRESS = 'localhost';
         COMFYUI_CONFIG.PORT = 8188;
         COMFYUI_SERVICE_CONFIG.UNIT_NAME = 'comfyui';
@@ -21,7 +25,7 @@ describe('ComfyUiServiceManager', () => {
         COMFYUI_SERVICE_CONFIG.START_POLL_INTERVAL_MS = 1;
 
         manager = new ComfyUiServiceManager();
-        mockFetch = jest.fn();
+        mockFetch = vi.fn();
         global.fetch = mockFetch as unknown as typeof fetch;
 
         // Default: systemctl commands succeed.
@@ -63,15 +67,15 @@ describe('ComfyUiServiceManager', () => {
 
         it('should start the service and wait until it is ready', async () => {
             // First probe fails (not running), then the service comes up.
-            mockFetch
-                .mockResolvedValueOnce({ ok: false })
-                .mockResolvedValue({ ok: true });
+            mockFetch.mockResolvedValueOnce({ ok: false }).mockResolvedValue({ ok: true });
 
             const started = await manager.ensureRunning();
 
             expect(started).toBe(true);
             expect(execFileMock).toHaveBeenCalledWith(
-                'systemctl', ['--user', 'start', 'comfyui'], expect.any(Function)
+                'systemctl',
+                ['--user', 'start', 'comfyui'],
+                expect.any(Function),
             );
         });
 
@@ -79,7 +83,7 @@ describe('ComfyUiServiceManager', () => {
             COMFYUI_CONFIG.ADDRESS = '';
 
             await expect(manager.ensureRunning()).rejects.toThrow(
-                new SystemError('ComfyUI server address not configured.')
+                new SystemError('ComfyUI server address not configured.'),
             );
             expect(mockFetch).not.toHaveBeenCalled();
         });
@@ -91,7 +95,7 @@ describe('ComfyUiServiceManager', () => {
             });
 
             await expect(manager.ensureRunning()).rejects.toThrow(
-                new SystemError("Failed to start ComfyUI service 'comfyui': Unit comfyui.service not found.")
+                new SystemError("Failed to start ComfyUI service 'comfyui': Unit comfyui.service not found."),
             );
         });
 
@@ -103,12 +107,10 @@ describe('ComfyUiServiceManager', () => {
                 expect.objectContaining({
                     name: 'SystemError',
                     message: expect.stringContaining('ComfyUI startup timed out'),
-                })
+                }),
             );
             // The service must be torn down to prevent a crash loop.
-            expect(execFileMock).toHaveBeenCalledWith(
-                'systemctl', ['--user', 'stop', 'comfyui'], expect.any(Function)
-            );
+            expect(execFileMock).toHaveBeenCalledWith('systemctl', ['--user', 'stop', 'comfyui'], expect.any(Function));
         });
 
         it('should still throw a startup timeout when the follow-up stop fails', async () => {
@@ -124,7 +126,7 @@ describe('ComfyUiServiceManager', () => {
 
             // The stop failure is logged, not propagated — the startup timeout is the error.
             await expect(manager.ensureRunning()).rejects.toThrow(
-                expect.objectContaining({ message: expect.stringContaining('ComfyUI startup timed out') })
+                expect.objectContaining({ message: expect.stringContaining('ComfyUI startup timed out') }),
             );
         });
     });
@@ -133,9 +135,7 @@ describe('ComfyUiServiceManager', () => {
         it('should stop the user service', async () => {
             await manager.stop();
 
-            expect(execFileMock).toHaveBeenCalledWith(
-                'systemctl', ['--user', 'stop', 'comfyui'], expect.any(Function)
-            );
+            expect(execFileMock).toHaveBeenCalledWith('systemctl', ['--user', 'stop', 'comfyui'], expect.any(Function));
         });
 
         it('should throw a SystemError when systemctl stop fails', async () => {
@@ -144,7 +144,7 @@ describe('ComfyUiServiceManager', () => {
             });
 
             await expect(manager.stop()).rejects.toThrow(
-                new SystemError("Failed to stop ComfyUI service 'comfyui': user session not found")
+                new SystemError("Failed to stop ComfyUI service 'comfyui': user session not found"),
             );
         });
     });

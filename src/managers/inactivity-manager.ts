@@ -1,7 +1,7 @@
-import { logger } from '../config/logger';
 import { COMFYUI_SERVICE_CONFIG } from '../config/constants';
-import { ComfyUiServiceManager } from './comfyui-service-manager';
-import { QueueMonitor } from '../queue/queue';
+import { logger } from '../config/logger';
+import type { QueueMonitor } from '../queue/queue';
+import type { ComfyUiServiceManager } from './comfyui-service-manager';
 
 /**
  * Monitors the prompt queue and stops the ComfyUI service after a period of
@@ -17,7 +17,7 @@ export class InactivityManager {
      */
     constructor(
         private queue: QueueMonitor,
-        private service: ComfyUiServiceManager
+        private service: ComfyUiServiceManager,
     ) {
         this.queue.onIdle = () => this.resetInactivityTimer();
     }
@@ -30,20 +30,23 @@ export class InactivityManager {
     private resetInactivityTimer() {
         this.clearTimer();
         const idleMinutes = COMFYUI_SERVICE_CONFIG.IDLE_MINUTES;
-        this.inactivityTimer = setTimeout(async () => {
-            if (!this.queue.isIdle()) {
-                return;
-            }
+        this.inactivityTimer = setTimeout(
+            async () => {
+                if (!this.queue.isIdle()) {
+                    return;
+                }
 
-            logger.info(`No requests for ${idleMinutes} minutes. Stopping ComfyUI to free VRAM.`);
+                logger.info(`No requests for ${idleMinutes} minutes. Stopping ComfyUI to free VRAM.`);
 
-            try {
-                await this.service.stop();
-                logger.info('ComfyUI service stopped.');
-            } catch (error) {
-                logger.error('Error stopping ComfyUI during inactivity:', error);
-            }
-        }, idleMinutes * 60 * 1000);
+                try {
+                    await this.service.stop();
+                    logger.info('ComfyUI service stopped.');
+                } catch (error) {
+                    logger.error('Error stopping ComfyUI during inactivity:', error);
+                }
+            },
+            idleMinutes * 60 * 1000,
+        );
     }
 
     /**
