@@ -1,6 +1,6 @@
 import { bool, cleanEnv, port, str } from 'envalid';
 import { describe, expect, it, vi } from 'vitest';
-import { posInt } from './env';
+import { nonNegInt, posInt } from './env';
 
 describe('env validation', () => {
     it('validates all required variables and applies defaults', () => {
@@ -196,6 +196,38 @@ describe('env (P2-6): generation retry policy', () => {
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         expect(() => cleanEnv({ GENERATION_MAX_RETRIES: '0' }, validators)).toThrow();
         expect(() => cleanEnv({ GENERATION_MAX_RETRIES: '1.5' }, validators)).toThrow();
+        errorSpy.mockRestore();
+    });
+});
+
+/**
+ * VRAM headroom gate acceptance: GENERATION_VRAM_MIN_FREE_GIB is a
+ * non-negative integer (0 is the deliberate "gate disabled" value, unlike
+ * posInt keys where 0 is invalid), with the documented default of 4.
+ */
+describe('env: GENERATION_VRAM_MIN_FREE_GIB (nonNegInt)', () => {
+    const validators = {
+        GENERATION_VRAM_MIN_FREE_GIB: nonNegInt({ default: 4 }),
+    };
+
+    it('applies the documented default of 4 GiB when the variable is missing', () => {
+        const env = cleanEnv({}, validators);
+        expect(env.GENERATION_VRAM_MIN_FREE_GIB).toBe(4);
+    });
+
+    it('accepts an explicit override, including the disabling zero', () => {
+        const env = cleanEnv({ GENERATION_VRAM_MIN_FREE_GIB: '32' }, validators);
+        expect(env.GENERATION_VRAM_MIN_FREE_GIB).toBe(32);
+
+        const disabled = cleanEnv({ GENERATION_VRAM_MIN_FREE_GIB: '0' }, validators);
+        expect(disabled.GENERATION_VRAM_MIN_FREE_GIB).toBe(0);
+    });
+
+    it('rejects negative and non-integer values', () => {
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => cleanEnv({ GENERATION_VRAM_MIN_FREE_GIB: '-1' }, validators)).toThrow();
+        expect(() => cleanEnv({ GENERATION_VRAM_MIN_FREE_GIB: '1.5' }, validators)).toThrow();
+        expect(() => cleanEnv({ GENERATION_VRAM_MIN_FREE_GIB: 'abc' }, validators)).toThrow();
         errorSpy.mockRestore();
     });
 });

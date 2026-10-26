@@ -13,6 +13,19 @@ export const posInt = makeValidator<number>((input: string) => {
 });
 
 /**
+ * Validator for non-negative integers (used for thresholds where `0` is a
+ * meaningful value, e.g. a capacity check that can be switched off).
+ * @throws EnvError when the value is not a whole number >= 0.
+ */
+export const nonNegInt = makeValidator<number>((input: string) => {
+    const value = Number(input);
+    if (!Number.isInteger(value) || value < 0) {
+        throw new Error(`Expected a non-negative integer, got ${input}`);
+    }
+    return value;
+});
+
+/**
  * Whether the configured IRC port is the conventional TLS port. Used as the
  * default for the `TLS` flag so a bare `PORT=6697` is treated as
  * TLS-secured without also setting `TLS` explicitly (P1-3). Read from the raw
@@ -50,6 +63,11 @@ const env = cleanEnv(process.env, {
     // jitter). Defaults give 3 total attempts with ~2 s then ~8 s waits.
     GENERATION_MAX_RETRIES: posInt({ default: 2 }),
     GENERATION_RETRY_BASE_MS: posInt({ default: 2000 }),
+    // VRAM headroom gate: refuse a generation (before starting ComfyUI) unless
+    // at least this many GiB of the GPU's memory is free. A shared GPU can
+    // otherwise accept a job that then dies mid-decode with CUDA OOM. `0`
+    // disables the check.
+    GENERATION_VRAM_MIN_FREE_GIB: nonNegInt({ default: 4 }),
     SASL_ACCOUNT: str({ default: undefined }),
     SASL_PASSWORD: str({ default: undefined }),
     // Logging (validated here so logger.ts reads a single source of truth).

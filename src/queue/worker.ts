@@ -149,8 +149,14 @@ export class GenerationWorker {
 
     /**
      * Ensures ComfyUI is up (starting it on demand) and runs the generation.
+     *
+     * The VRAM headroom gate runs first: on a shared GPU the point is to
+     * refuse the job *before* booting a backend that would die mid-decode
+     * with CUDA out-of-memory (and the worker's retry, which re-enters here,
+     * re-checks after its backoff in case the occupier freed memory).
      */
     private async generate(item: PromptQueueItem): Promise<GenerationResult> {
+        await this.service.ensureHeadroom();
         const started = await this.service.ensureRunning();
         if (started) {
             this.send(

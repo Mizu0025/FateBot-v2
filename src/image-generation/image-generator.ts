@@ -86,7 +86,9 @@ export class ImageGenerator {
             // worker's retry (which gets a fresh service-start + connection) can
             // engage instead of reporting a clean success with no image (P0-4).
             if (savedImagePaths.length === 0) {
-                throw new SystemError('All generated images failed to save (check the bot + sharp logs).');
+                throw new SystemError('All received images failed to save (check the bot + sharp logs).', {
+                    saveFailure: true,
+                });
             }
 
             const savedOfTotal = `${savedImagePaths.length}/${imageData.length}`;

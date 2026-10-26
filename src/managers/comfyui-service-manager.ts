@@ -1,8 +1,9 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
+import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG, VRAM_GATE_CONFIG } from '../config/constants';
 import { logger } from '../config/logger';
 import { SystemError } from '../types/errors';
+import { InsufficientVRAMError } from './comfyui-vram';
 
 const execFileAsync = promisify(execFile);
 /** How long a single readiness probe may take before being treated as "down". */
@@ -112,6 +113,51 @@ export class ComfyUiServiceManager {
         }
         throw new SystemError(
             `ComfyUI startup timed out after ${COMFYUI_SERVICE_CONFIG.START_TIMEOUT_SECONDS}s (service stopped). Check the service logs: journalctl --user -u ${COMFYUI_SERVICE_CONFIG.UNIT_NAME}`,
+        );
+    }
+
+    /**
+     * Ensures enough FREE GPU memory is available before committing to a
+     * generation (and before starting the ComfyUI service — the point is to
+     * avoid booting a backend that then dies mid-job with CUDA out-of-memory).
+     *
+     * The read is best-effort: if the platform tool reports nothing (no GPU
+     * tool, or a wedged probe) the check is skipped and the generation
+     * proceeds — the bot must never block every image just because it can't
+     * measure the GPU. A refusal is an {@link InsufficientVRAMError} (a
+     * `SystemError` subclass the classifier knows): retryable when the host
+     * was *close* to the threshold (the occupier may be about to exit), a
+     * hard failure when it was nowhere near.
+     *
+     * @throws InsufficientVRAMError when free memory is below the gate.
+     */
+    public async ensureHeadroom(): Promise<void> {
+        const minFreeGiB = VRAM_GATE_CONFIG.MIN_FREE_GIB;
+        if (minFreeGiB <= 0) {
+            return; // Gate disabled: this GPU is assumed to be ours alone.
+        }
+
+        const memory = await VRAM_GATE_CONFIG.read();
+        if (!memory) {
+            logger.debug('VRAM headroom check skipped: no GPU memory reading available.');
+            return;
+        }
+
+        logger.info(
+            `VRAM headroom check: ${memory.freeGiB.toFixed(1)} GiB free of ${memory.totalGiB.toFixed(1)} GiB (need ${minFreeGiB} GiB).`,
+        );
+        if (memory.freeGiB >= minFreeGiB) {
+            return;
+        }
+
+        // Close to the threshold (within 50% of it) is transient-likely —
+        // the occupier may be finishing; well under it is not going to change
+        // during a retry's backoff.
+        const retryable = memory.freeGiB >= minFreeGiB / 2;
+        logger.warn(`Refusing generation: only ${memory.freeGiB.toFixed(1)} GiB free, need ${minFreeGiB} GiB.`);
+        throw new InsufficientVRAMError(
+            `Not enough GPU memory free to start an image generation (${memory.freeGiB.toFixed(1)} GiB free, need ${minFreeGiB} GiB). Free up GPU memory and try again.`,
+            { freeGiB: memory.freeGiB, totalGiB: memory.totalGiB, thresholdGiB: minFreeGiB, retryableVRAM: retryable },
         );
     }
 

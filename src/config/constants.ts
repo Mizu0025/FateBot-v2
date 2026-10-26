@@ -1,3 +1,4 @@
+import { VramProbe } from '../managers/comfyui-vram';
 import env from './env';
 
 /**
@@ -105,4 +106,32 @@ export type RetryConfig = {
 export const RETRY_CONFIG: RetryConfig = {
     MAX_RETRIES: env.GENERATION_MAX_RETRIES,
     BASE_MS: env.GENERATION_RETRY_BASE_MS,
+};
+
+/**
+ * VRAM headroom gate. Before a generation starts (and before ComfyUI is
+ * started at all) the worker checks that at least {@link MIN_FREE_GIB} GiB of
+ * GPU memory are free; if not, the job is refused immediately with a
+ * retryable `InsufficientVRAM` error instead of burning ~20 s of GPU time and
+ * dying mid-decode with CUDA out-of-memory. `0` disables the check (a machine
+ * whose GPU is dedicated to ComfyUI never sees contention). The read itself is
+ * best-effort: a machine where no GPU tool reports anything falls back to
+ * "unknown" and the check is skipped rather than blocking generations.
+ *
+ * Kept mutable (like the ComfyUI config) so tests can override thresholds and
+ * stub the reader.
+ */
+export type VramGateConfig = {
+    /** Minimum free GPU memory (GiB) required to start a generation. 0 disables. */
+    MIN_FREE_GIB: number;
+    /**
+     * Reads (total, free) GiB of GPU memory from the platform tooling.
+     * `null` means "no usable measurement" — the caller skips the check.
+     */
+    read: () => Promise<{ totalGiB: number; freeGiB: number } | null>;
+};
+
+export const VRAM_GATE_CONFIG: VramGateConfig = {
+    MIN_FREE_GIB: env.GENERATION_VRAM_MIN_FREE_GIB,
+    read: VramProbe.readGpuMemory,
 };

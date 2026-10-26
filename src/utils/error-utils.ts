@@ -1,3 +1,4 @@
+import { InsufficientVRAMError } from '../managers/comfyui-vram';
 import { type ErrorDetails, SystemError } from '../types/errors';
 
 /**
@@ -6,6 +7,7 @@ import { type ErrorDetails, SystemError } from '../types/errors';
 export type FailureCategory =
     | 'offline' // ComfyUI is not reachable (down / port closed)
     | 'backend' // ComfyUI is reachable but rejected the request (HTTP 4xx/5xx)
+    | 'vram' // the GPU did not have enough free memory (pre-flight gate)
     | 'timeout' // ComfyUI stopped responding mid-job
     | 'internal'; // anything else
 
@@ -53,6 +55,20 @@ function toErrorDetails(error: unknown): ErrorDetails {
  */
 export function classifyGenerationError(error: unknown): ClassifiedError {
     const details = toErrorDetails(error);
+
+    // 0) VRAM headroom refusals. Recognized by type (a dedicated SystemError
+    // subclass) so no message parsing is needed. Retryability is carried by the
+    // gate on the error's details: refusal *close* to the threshold may be
+    // transient (the occupier might exit before the backoff elapses), but a
+    // far-below refusal is not worth burning a GPU retry.
+    if (error instanceof InsufficientVRAMError) {
+        const retryable = details.retryableVRAM === true;
+        return {
+            category: 'vram',
+            detail: error.message,
+            retryable,
+        };
+    }
 
     // 1) Direct network / connection errors (WebSocket connect, fetch failures)
     if (details.code && NETWORK_CODE_MESSAGES[details.code]) {

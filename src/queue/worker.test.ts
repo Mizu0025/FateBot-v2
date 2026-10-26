@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, type Mock, type Mocked, vi } from 'vitest';
 import { ImageGenerator } from '../image-generation/image-generator';
 import type { ComfyUiServiceManager } from '../managers/comfyui-service-manager';
+import { InsufficientVRAMError } from '../managers/comfyui-vram';
 import type { FilteredPrompt } from '../types';
 import { SystemError, UserError } from '../types/errors';
 import { PromptQueue, type PromptQueueItem } from './queue';
@@ -30,6 +31,9 @@ describe('GenerationWorker', () => {
         queue = new PromptQueue();
         service = {
             ensureRunning: vi.fn().mockResolvedValue(false),
+            // The VRAM headroom gate runs before every generation; a resolving
+            // stub means "gate passed" (the happy path the suite asserts on).
+            ensureHeadroom: vi.fn().mockResolvedValue(undefined),
             stop: vi.fn().mockResolvedValue(undefined),
             isRunning: vi.fn().mockResolvedValue(false),
         } as unknown as Mocked<ComfyUiServiceManager>;
@@ -170,6 +174,81 @@ describe('GenerationWorker', () => {
 
         expect(generateImageMock).toHaveBeenCalledTimes(1);
         expect(send).toHaveBeenCalledWith('#test', 'user123: Input error: bad prompt');
+    });
+
+    it('refuses a low-VRAM job, never starts ComfyUI, and warns the user (vram gate)', async () => {
+        // Far below the threshold (retryableVRAM: false) so no retry is made.
+        (service.ensureHeadroom as Mock).mockImplementation(() =>
+            Promise.reject(
+                new InsufficientVRAMError('Not enough GPU memory free to start an image generation', {
+                    freeGiB: 0.4,
+                    totalGiB: 24,
+                    thresholdGiB: 4,
+                    retryableVRAM: false,
+                }),
+            ),
+        );
+
+        worker.start();
+        queue.addTask(makeItem());
+        await flush();
+
+        expect(service.ensureHeadroom).toHaveBeenCalledTimes(1);
+        // The whole point of the gate: no booting a backend that would OOM.
+        expect(service.ensureRunning).not.toHaveBeenCalled();
+        expect(generateImageMock).not.toHaveBeenCalled();
+        expect(send).toHaveBeenCalledWith(
+            '#test',
+            'user123: Generation failed (vram). Not enough GPU memory free to start an image generation',
+        );
+        expect(queue.isIdle()).toBe(true);
+    });
+
+    it('retries a retryable VRAM refusal and succeeds once the occupier frees memory', async () => {
+        // First attempt: close to the threshold (retryableVRAM: true).
+        // Second attempt: the GPU has been freed and the job goes through.
+        (service.ensureHeadroom as Mock)
+            .mockImplementationOnce(() =>
+                Promise.reject(
+                    new InsufficientVRAMError('Not enough GPU memory free (3.0 of 24 GiB, need 4 GiB)', {
+                        freeGiB: 3,
+                        totalGiB: 24,
+                        thresholdGiB: 4,
+                        retryableVRAM: true,
+                    }),
+                ),
+            )
+            .mockResolvedValue(undefined);
+
+        worker.start();
+        queue.addTask(makeItem());
+        await flush();
+
+        expect(service.ensureHeadroom).toHaveBeenCalledTimes(2);
+        expect(service.ensureRunning).toHaveBeenCalledTimes(1);
+        expect(generateImageMock).toHaveBeenCalledTimes(1);
+        expect(send).toHaveBeenCalledWith('#test', 'user123: Your image is ready! /path/to/image.webp');
+    });
+
+    it('does not retry a non-retryable VRAM refusal', async () => {
+        (service.ensureHeadroom as Mock).mockImplementation(() =>
+            Promise.reject(
+                new InsufficientVRAMError('Not enough GPU memory free (0.5 of 24 GiB, need 4 GiB)', {
+                    freeGiB: 0.5,
+                    totalGiB: 24,
+                    thresholdGiB: 4,
+                    retryableVRAM: false,
+                }),
+            ),
+        );
+
+        worker.start();
+        queue.addTask(makeItem());
+        await flush();
+
+        expect(service.ensureHeadroom).toHaveBeenCalledTimes(1);
+        expect(service.ensureRunning).not.toHaveBeenCalled();
+        expect(send).toHaveBeenCalledWith('#test', expect.stringContaining('Generation failed (vram)'));
     });
 
     it('should report honest partial-save count when some images failed to save (P0-4)', async () => {

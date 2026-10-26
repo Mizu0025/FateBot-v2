@@ -1,8 +1,48 @@
 import { describe, expect, it } from 'vitest';
+import { InsufficientVRAMError } from '../managers/comfyui-vram';
 import { SystemError } from '../types/errors';
 import { classifyGenerationError } from './error-utils';
 
 describe('classifyGenerationError', () => {
+    describe('VRAM headroom refusals', () => {
+        it('classifies a close-to-threshold refusal as retryable vram', () => {
+            const result = classifyGenerationError(
+                new InsufficientVRAMError('Not enough GPU memory free', {
+                    freeGiB: 3,
+                    totalGiB: 24,
+                    thresholdGiB: 4,
+                    retryableVRAM: true,
+                }),
+            );
+
+            expect(result.category).toBe('vram');
+            expect(result.retryable).toBe(true);
+            expect(result.detail).toBe('Not enough GPU memory free');
+        });
+
+        it('classifies a far-below-threshold refusal as non-retryable vram', () => {
+            const result = classifyGenerationError(
+                new InsufficientVRAMError('Not enough GPU memory free', {
+                    freeGiB: 0.4,
+                    totalGiB: 24,
+                    thresholdGiB: 4,
+                    retryableVRAM: false,
+                }),
+            );
+
+            expect(result.category).toBe('vram');
+            expect(result.retryable).toBe(false);
+        });
+
+        it('classifies a vram error with no retryable flag as non-retryable by default', () => {
+            // A refusal that forgot to set the flag must not accidentally retry
+            // (retrying an OOM burns the GPU for an identical OOM).
+            const result = classifyGenerationError(new InsufficientVRAMError('Not enough GPU memory free'));
+
+            expect(result.category).toBe('vram');
+            expect(result.retryable).toBe(false);
+        });
+    });
     describe('network codes', () => {
         it('classifies ECONNREFUSED as retryable offline', () => {
             const result = classifyGenerationError(new SystemError('connect ECONNREFUSED', { code: 'ECONNREFUSED' }));
