@@ -1,8 +1,9 @@
 import { execFile } from 'node:child_process';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG } from '../config/constants';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { COMFYUI_CONFIG, COMFYUI_SERVICE_CONFIG, VRAM_GATE_CONFIG } from '../config/constants';
 import { SystemError } from '../types/errors';
 import { ComfyUiServiceManager } from './comfyui-service-manager';
+import { InsufficientVRAMError } from './comfyui-vram';
 
 vi.mock('../config/logger');
 // Explicit factory: Vitest's bare vi.mock('child_process') auto-mock does not
@@ -155,6 +156,79 @@ describe('ComfyUiServiceManager', () => {
             expect(b).toBe(true);
             expect(startCalls).toHaveLength(1);
             expect(stopCalls).toHaveLength(0);
+        });
+    });
+
+    describe('ensureHeadroom', () => {
+        const savedGate = { ...VRAM_GATE_CONFIG };
+        type Reader = (typeof VRAM_GATE_CONFIG)['read'];
+        let readStub: Mock<Reader>;
+
+        // The gate config is deliberately mutable so tests can override the
+        // threshold and stub the reader — the real probe would shell out to
+        // rocm-smi, and here the point is the gate's decision logic, not the
+        // byte parsing (covered in comfyui-vram.test.ts).
+        beforeEach(() => {
+            readStub = vi.fn<Reader>().mockResolvedValue({ totalGiB: 24, freeGiB: 8 });
+            VRAM_GATE_CONFIG.MIN_FREE_GIB = 4;
+            VRAM_GATE_CONFIG.read = readStub;
+        });
+        afterEach(() => {
+            Object.assign(VRAM_GATE_CONFIG, savedGate);
+        });
+
+        it('passes and never starts the service when free memory is at the threshold', async () => {
+            readStub.mockResolvedValue({ totalGiB: 24, freeGiB: 4 });
+            await expect(manager.ensureHeadroom()).resolves.toBeUndefined();
+            expect(execFileMock).not.toHaveBeenCalledWith(
+                'systemctl',
+                expect.arrayContaining(['start']),
+                expect.anything(),
+            );
+        });
+
+        it('passes when free memory exceeds the threshold', async () => {
+            readStub.mockResolvedValue({ totalGiB: 24, freeGiB: 41 });
+            await expect(manager.ensureHeadroom()).resolves.toBeUndefined();
+        });
+
+        it('refuses with InsufficientVRAMError when free memory is below the threshold', async () => {
+            readStub.mockResolvedValue({ totalGiB: 24, freeGiB: 3 });
+
+            await expect(manager.ensureHeadroom()).rejects.toThrow(InsufficientVRAMError);
+            await expect(manager.ensureHeadroom()).rejects.toMatchObject({
+                details: {
+                    freeGiB: 3,
+                    totalGiB: 24,
+                    thresholdGiB: 4,
+                    retryableVRAM: true, // 3 >= 4/2 — close enough to be transient
+                },
+            });
+        });
+
+        it('marks a far-below-threshold refusal as non-retryable', async () => {
+            readStub.mockResolvedValue({ totalGiB: 24, freeGiB: 1.5 });
+
+            await expect(manager.ensureHeadroom()).rejects.toMatchObject({
+                details: {
+                    retryableVRAM: false, // 1.5 < 4/2 — the occupier is not about to exit
+                },
+            });
+        });
+
+        it('skips the check entirely when the gate is disabled (MIN_FREE_GIB = 0)', async () => {
+            VRAM_GATE_CONFIG.MIN_FREE_GIB = 0;
+            readStub.mockResolvedValue({ totalGiB: 24, freeGiB: 0 });
+
+            await expect(manager.ensureHeadroom()).resolves.toBeUndefined();
+            expect(readStub).not.toHaveBeenCalled();
+        });
+
+        it('skips the check when the probe reports nothing (null) rather than blocking', async () => {
+            readStub.mockResolvedValue(null); // non-GPU host or wedged probe
+
+            await expect(manager.ensureHeadroom()).resolves.toBeUndefined();
+            expect(readStub).toHaveBeenCalledTimes(1);
         });
     });
 

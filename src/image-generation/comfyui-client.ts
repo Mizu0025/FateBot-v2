@@ -6,17 +6,28 @@ import type { WorkflowData } from '../types';
 import { type ErrorDetails, SystemError } from '../types/errors';
 
 /** A message type known to arrive over the ComfyUI WebSocket. */
-export type ComfyUIMessageType = 'executing' | 'status' | string;
+export type ComfyUIMessageType = 'executing' | 'execution_error' | 'status' | string;
 
 export interface ComfyUIMessage {
     type: ComfyUIMessageType;
-    /** Type-specific payload; only `executing` payloads are modeled. */
-    data?: ComfyUIExecutingData;
+    /** Type-specific payload; `executing` and `execution_error` payloads are modeled. */
+    data?: ComfyUIExecutingData | ComfyUIErrorData;
 }
 
 export interface ComfyUIExecutingData {
     prompt_id: string;
     node: string | null;
+}
+
+/** ComfyUI's `execution_error` payload. `error`/`base_error` carry the
+ *  operator-facing message; the rest identifies *where* it failed. */
+export interface ComfyUIErrorData {
+    prompt_id: string;
+    node_id: string;
+    node_type: string;
+    error: string;
+    base_error?: unknown;
+    node_titles?: Record<string, string>;
 }
 
 /**
@@ -91,6 +102,18 @@ export class ComfyUIClient {
             details.code = (error as { code: string }).code;
         }
         return details;
+    }
+
+    /** First non-empty line of a multi-line backend error (e.g. a Python traceback). */
+    private static firstLine(text: unknown): string {
+        if (typeof text !== 'string') {
+            return String(text ?? '');
+        }
+        const line = text
+            .split('\n')
+            .map((l) => l.replace(/\s+/g, ' ').trim())
+            .find(Boolean);
+        return (line ?? '').slice(0, 240);
     }
 
     /**
@@ -201,40 +224,29 @@ export class ComfyUIClient {
         logger.debug(`Waiting for images from prompt ID: ${promptId}`);
 
         return new Promise((resolve, reject) => {
+            // A single settle path shared by every outcome (completion, error,
+            // timeout, close) — the first one to fire wins and removes the
+            // listeners, so a reused socket can't deliver twice (P0-1).
+            let settled = false;
+            const settle = (fn: () => void) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                cleanup();
+                fn();
+            };
+
             const timeout = setTimeout(() => {
                 logger.error(`WebSocket timeout while waiting for images (prompt ID: ${promptId})`);
-                reject(new SystemError('WebSocket timeout while waiting for images.'));
+                settle(() => reject(new SystemError('WebSocket timeout while waiting for images.')));
             }, COMFYUI_CONFIG.WS_IMAGE_TIMEOUT_MS);
 
             const handleMessage = (data: Buffer) => {
                 try {
                     const messageStr = data.toString();
 
-                    if (messageStr.startsWith('{')) {
-                        // JSON message
-                        const message: ComfyUIMessage = JSON.parse(messageStr);
-                        logger.debug(`Received WebSocket message type: ${message.type}`);
-
-                        if (message.type === 'executing') {
-                            const executingData: ComfyUIExecutingData | undefined = message.data;
-                            if (!executingData) return;
-
-                            if (executingData.prompt_id === promptId) {
-                                if (executingData.node === null) {
-                                    // Execution is done
-                                    const imageCount = outputImages.get('SaveImageWebsocket')?.length || 0;
-                                    logger.info(
-                                        `Execution complete. Received ${imageCount} image(s) for prompt ${promptId}`,
-                                    );
-                                    cleanup();
-                                    resolve(outputImages);
-                                } else {
-                                    logger.info(`Executing node: ${executingData.node} (prompt: ${promptId})`);
-                                    currentNode = executingData.node;
-                                }
-                            }
-                        }
-                    } else {
+                    if (!messageStr.startsWith('{')) {
                         // Binary data (image)
                         if (currentNode === 'SaveImageWebsocket') {
                             const images = outputImages.get(currentNode) || [];
@@ -244,17 +256,71 @@ export class ComfyUIClient {
                             images.push(data.slice(8));
                             outputImages.set(currentNode, images);
                         }
+                        return;
+                    }
+
+                    // JSON message
+                    const message: ComfyUIMessage = JSON.parse(messageStr);
+                    logger.debug(`Received WebSocket message type: ${message.type}`);
+
+                    if (message.type === 'execution_error') {
+                        // The job is dead on the backend side: the prompt will
+                        // never produce images, so reject with the backend's
+                        // own reason (e.g. CUDA out of memory) instead of
+                        // letting the caller "save" zero images and report a
+                        // save failure (P0-4).
+                        const data = message.data as ComfyUIErrorData | undefined;
+                        if (!data || data.prompt_id !== promptId) {
+                            return;
+                        }
+                        const reason =
+                            typeof data.base_error === 'string' && data.base_error.trim()
+                                ? data.base_error
+                                : data.error;
+                        logger.error(`ComfyUI execution error for prompt ${promptId}:`, reason);
+                        settle(() =>
+                            reject(
+                                new SystemError(`ComfyUI job failed: ${ComfyUIClient.firstLine(reason)}`, {
+                                    backendError: ComfyUIClient.firstLine(data.error),
+                                    nodeType: data.node_type,
+                                    nodeId: data.node_id,
+                                }),
+                            ),
+                        );
+                        return;
+                    }
+
+                    if (message.type === 'executing') {
+                        const executingData: ComfyUIExecutingData | undefined = message.data as
+                            | ComfyUIExecutingData
+                            | undefined;
+                        if (!executingData) return;
+
+                        if (executingData.prompt_id === promptId) {
+                            if (executingData.node === null) {
+                                // Execution is done
+                                const imageCount = outputImages.get('SaveImageWebsocket')?.length || 0;
+                                logger.info(
+                                    `Execution complete. Received ${imageCount} image(s) for prompt ${promptId}`,
+                                );
+                                settle(() => resolve(outputImages));
+                            } else {
+                                logger.info(`Executing node: ${executingData.node} (prompt: ${promptId})`);
+                                currentNode = executingData.node;
+                            }
+                        }
                     }
                 } catch (error) {
                     logger.error('Error processing WebSocket message:', error);
-                    cleanup();
-                    const message = error instanceof Error ? error.message : String(error);
-                    reject(
-                        new SystemError(
-                            `Error processing WebSocket message: ${message}`,
-                            ComfyUIClient.toErrorDetails(error),
-                        ),
-                    );
+                    settle(() => {
+                        const message = error instanceof Error ? error.message : String(error);
+                        reject(
+                            new SystemError(
+                                `Error processing WebSocket message: ${message}`,
+                                ComfyUIClient.toErrorDetails(error),
+                            ),
+                        );
+                    });
                 }
             };
 

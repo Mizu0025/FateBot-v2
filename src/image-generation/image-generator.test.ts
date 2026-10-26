@@ -169,7 +169,7 @@ describe('ImageGenerator', () => {
             // Act
             // Assert
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
-                'All generated images failed to save',
+                'All received images failed to save',
             );
         });
 
@@ -252,7 +252,7 @@ describe('ImageGenerator', () => {
             // total failure is a different code path from a partial failure).
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(SystemError);
             await expect(ImageGenerator.generateImage(mockFilteredPrompt)).rejects.toThrow(
-                'All generated images failed to save',
+                'All received images failed to save',
             );
 
             expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error saving image'), testError);
